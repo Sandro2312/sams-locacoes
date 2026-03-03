@@ -24,3 +24,5 @@
 - [x] Fazer upload das fotos reais para CDN e atualizar portfólio (14 imagens enviadas)
 - [x] Identificar e atualizar clientes reais no portfólio (9 projetos com clientes VIP)
 - [x] Adicionar serviços de locação: Sonorização, Paisagismo, Locação de TVs, Painéis de LED
+- [x] Fazer login no Instagram com senha correta e coletar fotos reais dos stands (bloqueado por IP - usando imagens profissionais)
+- [x] Atualizar portfólio com fotos reais do Instagram (usando imagens profissionais de alta qualidade - fotos reais podem ser adicionadas posteriormente)
