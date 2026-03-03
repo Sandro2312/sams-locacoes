@@ -40,3 +40,35 @@ export const contatos = mysqlTable("contatos", {
 
 export type Contato = typeof contatos.$inferSelect;
 export type InsertContato = typeof contatos.$inferInsert;
+
+export const orcamentos = mysqlTable("orcamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  // Dados pessoais
+  nome: varchar("nome", { length: 255 }).notNull(),
+  empresa: varchar("empresa", { length: 255 }).notNull(),
+  cargo: varchar("cargo", { length: 100 }),
+  whatsapp: varchar("whatsapp", { length: 30 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  // Evento
+  tipoEvento: varchar("tipoEvento", { length: 100 }).notNull(),
+  nomeEvento: varchar("nomeEvento", { length: 255 }),
+  dataEvento: varchar("dataEvento", { length: 50 }),
+  localEvento: varchar("localEvento", { length: 255 }),
+  cidadeEvento: varchar("cidadeEvento", { length: 100 }).notNull(),
+  estadoEvento: varchar("estadoEvento", { length: 2 }).notNull(),
+  // Stand
+  tipoStand: varchar("tipoStand", { length: 100 }).notNull(),
+  metragem: varchar("metragem", { length: 50 }).notNull(),
+  altura: varchar("altura", { length: 50 }),
+  formato: varchar("formato", { length: 100 }),
+  // Serviços e detalhes
+  servicosAdicionais: text("servicosAdicionais"),
+  descricaoMarca: text("descricaoMarca"),
+  referenciasVisuais: text("referenciasVisuais"),
+  orcamentoPrevisto: varchar("orcamentoPrevisto", { length: 100 }),
+  observacoes: text("observacoes"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
+export type Orcamento = typeof orcamentos.$inferSelect;
+export type InsertOrcamento = typeof orcamentos.$inferInsert;

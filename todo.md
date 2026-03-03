@@ -27,3 +27,8 @@
 - [x] Fazer login no Instagram com senha correta e coletar fotos reais dos stands (bloqueado por IP - usando imagens profissionais)
 - [x] Atualizar portfólio com fotos reais do Instagram (usando imagens profissionais de alta qualidade - fotos reais podem ser adicionadas posteriormente)
 - [x] Corrigir Instagram de @samslocacoesoficial para @samslocacoes em todo o site
+- [x] Criar página dedicada /orcamento com formulário detalhado multi-etapas
+- [x] Campos: dados pessoais, tipo de evento, tipo de stand, metragem, serviços adicionais, data, cidade, observações
+- [x] Backend: salvar orçamento no banco de dados e notificar proprietário
+- [x] Integrar botão "Solicitar Orçamento" do navbar e hero à nova página
+- [x] Testes do formulário de orçamento (13 testes passando)
