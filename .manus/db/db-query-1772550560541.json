@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `contatos` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `nome` varchar(255) NOT NULL,\n  `empresa` varchar(255) DEFAULT '',\n  `whatsapp` varchar(30) NOT NULL,\n  `email` varchar(320) NOT NULL,\n  `tipoEvento` varchar(100) DEFAULT '',\n  `metragem` varchar(50) DEFAULT '',\n  `mensagem` text,\n  `criadoEm` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `contatos_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44bVjN2dVQxuYfn.root --database YqfJkXFtpDqUvVsMHfnp8h --execute CREATE TABLE IF NOT EXISTS `contatos` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `nome` varchar(255) NOT NULL,\n  `empresa` varchar(255) DEFAULT '',\n  `whatsapp` varchar(30) NOT NULL,\n  `email` varchar(320) NOT NULL,\n  `tipoEvento` varchar(100) DEFAULT '',\n  `metragem` varchar(50) DEFAULT '',\n  `mensagem` text,\n  `criadoEm` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `contatos_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 566
+}

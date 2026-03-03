@@ -26,3 +26,17 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // TODO: Add your tables here
+export const contatos = mysqlTable("contatos", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  empresa: varchar("empresa", { length: 255 }).default(""),
+  whatsapp: varchar("whatsapp", { length: 30 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  tipoEvento: varchar("tipoEvento", { length: 100 }).default(""),
+  metragem: varchar("metragem", { length: 50 }).default(""),
+  mensagem: text("mensagem"),
+  criadoEm: timestamp("criadoEm").defaultNow().notNull(),
+});
+
+export type Contato = typeof contatos.$inferSelect;
+export type InsertContato = typeof contatos.$inferInsert;
