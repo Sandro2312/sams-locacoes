@@ -60,7 +60,7 @@ export default function Footer() {
                 <Instagram size={16} className="text-white/70 group-hover:text-[oklch(0.12_0.02_240)]" />
               </a>
               <a
-                href="https://wa.me/5511999999999"
+                href="https://wa.me/5551998827054"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-sm bg-white/10 hover:bg-[#25D366] flex items-center justify-center transition-colors duration-300 group"
@@ -122,7 +122,7 @@ export default function Footer() {
             </h4>
             <div className="space-y-4">
               <a
-                href="https://wa.me/5511999999999"
+                href="https://wa.me/5551998827054"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-3 group"
@@ -130,18 +130,18 @@ export default function Footer() {
                 <Phone size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-white/40 text-xs font-heading uppercase tracking-wide">WhatsApp</p>
-                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">(11) 99999-9999</p>
+                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">(51) 99882-7054</p>
                 </div>
               </a>
 
               <a
-                href="mailto:contato@samslocacoes.com.br"
+                href="mailto:vera@samslocacoes.com.br"
                 className="flex items-start gap-3 group"
               >
                 <Mail size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-white/40 text-xs font-heading uppercase tracking-wide">E-mail</p>
-                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">contato@samslocacoes.com.br</p>
+                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">vera@samslocacoes.com.br</p>
                 </div>
               </a>
 
@@ -149,7 +149,7 @@ export default function Footer() {
                 <MapPin size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-white/40 text-xs font-heading uppercase tracking-wide">Localização</p>
-                  <p className="text-white/70 text-sm font-sans">São Paulo, SP</p>
+                  <p className="text-white/70 text-sm font-sans">Porto Alegre, RS</p>
                   <p className="text-white/40 text-xs font-sans">Atendimento em todo o Brasil</p>
                 </div>
               </div>

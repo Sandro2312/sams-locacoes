@@ -103,7 +103,7 @@ export default function ContatoSection() {
 
               <div className="space-y-5">
                 <a
-                  href="https://wa.me/5511999999999"
+                  href="https://wa.me/5551998827054"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-4 group"
@@ -113,12 +113,12 @@ export default function ContatoSection() {
                   </div>
                   <div>
                     <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">WhatsApp</p>
-                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">(11) 99999-9999</p>
+                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">(51) 99882-7054</p>
                   </div>
                 </a>
 
                 <a
-                  href="mailto:contato@samslocacoes.com.br"
+                  href="mailto:vera@samslocacoes.com.br"
                   className="flex items-start gap-4 group"
                 >
                   <div className="w-10 h-10 rounded-sm bg-[oklch(0.75_0.14_75)/20] flex items-center justify-center flex-shrink-0 group-hover:bg-[oklch(0.75_0.14_75)] transition-colors duration-300">
@@ -126,7 +126,7 @@ export default function ContatoSection() {
                   </div>
                   <div>
                     <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">E-mail</p>
-                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">contato@samslocacoes.com.br</p>
+                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">vera@samslocacoes.com.br</p>
                   </div>
                 </a>
 
@@ -136,7 +136,7 @@ export default function ContatoSection() {
                   </div>
                   <div>
                     <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">Localização</p>
-                    <p className="font-heading font-semibold text-white">São Paulo, SP</p>
+                    <p className="font-heading font-semibold text-white">Porto Alegre, RS</p>
                     <p className="text-white/60 text-xs font-sans mt-0.5">Atendimento em todo o Brasil</p>
                   </div>
                 </div>
@@ -160,7 +160,7 @@ export default function ContatoSection() {
 
             {/* WhatsApp Quick CTA */}
             <a
-              href="https://wa.me/5511999999999?text=Olá!%20Gostaria%20de%20solicitar%20um%20orçamento%20para%20montagem%20de%20stand."
+              href="https://wa.me/5551998827054?text=Olá!%20Gostaria%20de%20solicitar%20um%20orçamento%20para%20montagem%20de%20stand."
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-heading font-bold text-sm px-6 py-4 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -238,7 +238,7 @@ export default function ContatoSection() {
                       name="whatsapp"
                       value={form.whatsapp}
                       onChange={handleChange}
-                      placeholder="(11) 99999-9999"
+                      placeholder="(51) 99882-7054"
                       required
                       className="w-full border border-[oklch(0.88_0.01_240)] rounded-sm px-4 py-3 text-sm font-sans text-[oklch(0.22_0.07_240)] placeholder-[oklch(0.7_0.01_240)] focus:outline-none focus:border-[oklch(0.22_0.07_240)] focus:ring-1 focus:ring-[oklch(0.22_0.07_240)] transition-colors"
                     />
