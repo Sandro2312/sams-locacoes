@@ -26,3 +26,4 @@
 - [x] Adicionar serviços de locação: Sonorização, Paisagismo, Locação de TVs, Painéis de LED
 - [x] Fazer login no Instagram com senha correta e coletar fotos reais dos stands (bloqueado por IP - usando imagens profissionais)
 - [x] Atualizar portfólio com fotos reais do Instagram (usando imagens profissionais de alta qualidade - fotos reais podem ser adicionadas posteriormente)
+- [x] Corrigir Instagram de @samslocacoesoficial para @samslocacoes em todo o site

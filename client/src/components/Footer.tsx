@@ -51,7 +51,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://instagram.com/samslocacoesoficial"
+                href="https://instagram.com/samslocacoes"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-sm bg-white/10 hover:bg-[oklch(0.75_0.14_75)] flex items-center justify-center transition-colors duration-300 group"
@@ -155,7 +155,7 @@ export default function Footer() {
               </div>
 
               <a
-                href="https://instagram.com/samslocacoesoficial"
+                href="https://instagram.com/samslocacoes"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-3 group"
@@ -163,7 +163,7 @@ export default function Footer() {
                 <Instagram size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-white/40 text-xs font-heading uppercase tracking-wide">Instagram</p>
-                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">@samslocacoesoficial</p>
+                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">@samslocacoes</p>
                 </div>
               </a>
             </div>

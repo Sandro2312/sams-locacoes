@@ -246,12 +246,12 @@ export default function PortfolioSection() {
             Veja mais projetos no nosso Instagram
           </p>
           <a
-            href="https://instagram.com/samslocacoesoficial"
+            href="https://instagram.com/samslocacoes"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 border border-[oklch(0.22_0.07_240)] text-[oklch(0.22_0.07_240)] hover:bg-[oklch(0.22_0.07_240)] hover:text-white font-heading font-semibold text-sm px-6 py-3 rounded-sm tracking-wide transition-all duration-300"
           >
-            @samslocacoesoficial
+            @samslocacoes
           </a>
         </motion.div>
       </div>
