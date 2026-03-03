@@ -142,7 +142,7 @@ export default function ContatoSection() {
                 </div>
 
                 <a
-                  href="https://instagram.com/samslocacoesoficial"
+                  href="https://instagram.com/samslocacoes"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-4 group"
@@ -152,7 +152,7 @@ export default function ContatoSection() {
                   </div>
                   <div>
                     <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">Instagram</p>
-                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">@samslocacoesoficial</p>
+                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">@samslocacoes</p>
                   </div>
                 </a>
               </div>
