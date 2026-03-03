@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Phone } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/sams-logo_9fc7a984.jpg";
 
@@ -16,6 +16,7 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -29,6 +30,11 @@ export default function Navbar() {
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  const goToOrcamento = () => {
+    setIsOpen(false);
+    navigate("/orcamento");
+  };
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -40,9 +46,8 @@ export default function Navbar() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a
-            href="#inicio"
-            onClick={(e) => { e.preventDefault(); handleNavClick("#inicio"); }}
+          <button
+            onClick={() => handleNavClick("#inicio")}
             className="flex items-center gap-3 group"
           >
             <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[oklch(0.75_0.14_75)] shadow-lg group-hover:border-[oklch(0.85_0.10_78)] transition-all duration-300">
@@ -60,31 +65,31 @@ export default function Navbar() {
                 Locações
               </p>
             </div>
-          </a>
+          </button>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link.href}
-                href={link.href}
-                onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }}
+                onClick={() => handleNavClick(link.href)}
                 className="px-4 py-2 text-white/80 hover:text-[oklch(0.75_0.14_75)] font-heading text-sm font-medium tracking-wide transition-all duration-200 relative group"
               >
                 {link.label}
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-[oklch(0.75_0.14_75)] group-hover:w-full transition-all duration-300 rounded-full" />
-              </a>
+              </button>
             ))}
           </nav>
 
           {/* CTA Button */}
           <div className="hidden lg:flex items-center gap-3">
-            <Link href="/orcamento">
-              <a className="flex items-center gap-2 bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-2.5 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl">
-                <Phone size={15} />
-                Solicitar Orçamento
-              </a>
-            </Link>
+            <button
+              onClick={goToOrcamento}
+              className="flex items-center gap-2 bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-2.5 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <Phone size={15} />
+              Solicitar Orçamento
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -106,22 +111,22 @@ export default function Navbar() {
       >
         <div className="bg-[oklch(0.16_0.08_240)] border-t border-white/10 px-4 py-4 space-y-1">
           {navLinks.map((link) => (
-            <a
+            <button
               key={link.href}
-              href={link.href}
-              onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }}
-              className="block px-4 py-3 text-white/80 hover:text-[oklch(0.75_0.14_75)] hover:bg-white/5 font-heading text-sm font-medium tracking-wide rounded-sm transition-all duration-200"
+              onClick={() => handleNavClick(link.href)}
+              className="block w-full text-left px-4 py-3 text-white/80 hover:text-[oklch(0.75_0.14_75)] hover:bg-white/5 font-heading text-sm font-medium tracking-wide rounded-sm transition-all duration-200"
             >
               {link.label}
-            </a>
+            </button>
           ))}
           <div className="pt-2 border-t border-white/10">
-            <Link href="/orcamento">
-              <a className="flex items-center justify-center gap-2 w-full bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-3 rounded-sm tracking-wide transition-all duration-300">
-                <Phone size={15} />
-                Solicitar Orçamento
-              </a>
-            </Link>
+            <button
+              onClick={goToOrcamento}
+              className="flex items-center justify-center gap-2 w-full bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-3 rounded-sm tracking-wide transition-all duration-300"
+            >
+              <Phone size={15} />
+              Solicitar Orçamento
+            </button>
           </div>
         </div>
       </div>

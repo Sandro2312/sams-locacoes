@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/sams-logo_9fc7a984.jpg";
 
@@ -98,6 +98,7 @@ const STEPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Orcamento() {
+  const [, navigate] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -195,12 +196,13 @@ export default function Orcamento() {
             >
               Falar no WhatsApp
             </a>
-            <Link href="/">
-              <a className="flex items-center justify-center gap-2 border border-[oklch(0.75_0.14_75)] text-[oklch(0.45_0.08_240)] hover:bg-[oklch(0.75_0.14_75)/10] font-heading font-semibold px-6 py-3 rounded-sm transition-all duration-300">
-                <ArrowLeft size={16} />
-                Voltar ao Site
-              </a>
-            </Link>
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center justify-center gap-2 border border-[oklch(0.75_0.14_75)] text-[oklch(0.45_0.08_240)] hover:bg-[oklch(0.75_0.14_75)/10] font-heading font-semibold px-6 py-3 rounded-sm transition-all duration-300"
+            >
+              <ArrowLeft size={16} />
+              Voltar ao Site
+            </button>
           </div>
         </motion.div>
       </div>
@@ -213,23 +215,22 @@ export default function Orcamento() {
       <header className="bg-[oklch(0.18_0.07_240)] border-b border-white/10 sticky top-0 z-50">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <a className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-[oklch(0.75_0.14_75)/50]">
-                  <img src={LOGO_URL} alt="SAMS Locações" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <p className="text-white font-heading font-bold text-sm leading-tight">SAMS</p>
-                  <p className="text-[oklch(0.75_0.14_75)] font-heading text-xs tracking-widest uppercase">Locações</p>
-                </div>
-              </a>
-            </Link>
-            <Link href="/">
-              <a className="flex items-center gap-2 text-white/60 hover:text-[oklch(0.75_0.14_75)] font-heading text-sm transition-colors">
-                <ArrowLeft size={16} />
-                Voltar ao site
-              </a>
-            </Link>
+            <button onClick={() => navigate("/")} className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[oklch(0.75_0.14_75)/50]">
+                <img src={LOGO_URL} alt="SAMS Locações" className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <p className="text-white font-heading font-bold text-sm leading-tight">SAMS</p>
+                <p className="text-[oklch(0.75_0.14_75)] font-heading text-xs tracking-widest uppercase">Locações</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 text-white/60 hover:text-[oklch(0.75_0.14_75)] font-heading text-sm transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Voltar ao site
+            </button>
           </div>
         </div>
       </header>

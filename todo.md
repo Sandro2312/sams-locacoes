@@ -32,3 +32,4 @@
 - [x] Backend: salvar orçamento no banco de dados e notificar proprietário
 - [x] Integrar botão "Solicitar Orçamento" do navbar e hero à nova página
 - [x] Testes do formulário de orçamento (13 testes passando)
+- [x] Corrigir erro: `<a> cannot contain a nested <a>` em Navbar, HeroSection e Orcamento.tsx
