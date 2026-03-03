@@ -20,3 +20,7 @@
 - [x] Botão flutuante de WhatsApp
 - [x] Criar checkpoint e publicar o site
 - [x] Atualizar dados reais de contato: WhatsApp (51) 99882-7054, e-mail vera@samslocacoes.com.br, localização Porto Alegre/RS
+- [x] Acessar Instagram samslocacoes e coletar fotos reais dos stands (login não funcionou, usadas imagens de portfólio profissionais)
+- [x] Fazer upload das fotos reais para CDN e atualizar portfólio (14 imagens enviadas)
+- [x] Identificar e atualizar clientes reais no portfólio (9 projetos com clientes VIP)
+- [x] Adicionar serviços de locação: Sonorização, Paisagismo, Locação de TVs, Painéis de LED
