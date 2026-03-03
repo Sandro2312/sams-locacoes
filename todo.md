@@ -19,3 +19,4 @@
 - [x] Upload do logo real da SAMS para CDN
 - [x] Botão flutuante de WhatsApp
 - [x] Criar checkpoint e publicar o site
+- [x] Atualizar dados reais de contato: WhatsApp (51) 99882-7054, e-mail vera@samslocacoes.com.br, localização Porto Alegre/RS

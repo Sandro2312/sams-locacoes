@@ -23,7 +23,7 @@ export default function Home() {
 
       {/* WhatsApp Floating Button */}
       <a
-        href="https://wa.me/5511999999999?text=Olá!%20Gostaria%20de%20solicitar%20um%20orçamento%20para%20montagem%20de%20stand."
+        href="https://wa.me/5551998827054?text=Olá!%20Gostaria%20de%20solicitar%20um%20orçamento%20para%20montagem%20de%20stand."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1ebe5d] flex items-center justify-center shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110"
