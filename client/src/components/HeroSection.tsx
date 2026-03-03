@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ChevronDown, Award, MapPin, Users } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/stand-5_ea936cfd.jpg";
 
@@ -11,6 +11,7 @@ const stats = [
 ];
 
 export default function HeroSection() {
+  const [, navigate] = useLocation();
 
   const scrollDown = () => {
     const el = document.querySelector("#sobre");
@@ -64,11 +65,12 @@ export default function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link href="/orcamento">
-              <a className="w-full sm:w-auto bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-bold text-base px-8 py-4 rounded-sm tracking-wide transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
-                Solicitar Orçamento Gratuito
-              </a>
-            </Link>
+            <button
+              onClick={() => navigate("/orcamento")}
+              className="w-full sm:w-auto bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-bold text-base px-8 py-4 rounded-sm tracking-wide transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
+            >
+              Solicitar Orçamento Gratuito
+            </button>
             <button
               onClick={() => document.querySelector("#portfolio")?.scrollIntoView({ behavior: "smooth" })}
               className="w-full sm:w-auto border border-white/30 hover:border-[oklch(0.75_0.14_75)] text-white hover:text-[oklch(0.85_0.10_78)] font-heading font-semibold text-base px-8 py-4 rounded-sm tracking-wide transition-all duration-300 backdrop-blur-sm"
