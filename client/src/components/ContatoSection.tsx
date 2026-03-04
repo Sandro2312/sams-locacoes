@@ -238,7 +238,7 @@ export default function ContatoSection() {
                       name="whatsapp"
                       value={form.whatsapp}
                       onChange={handleChange}
-                      placeholder="(51) 99882-7054"
+                      placeholder="(XX) XXXXX-XXXX"
                       required
                       className="w-full border border-[oklch(0.88_0.01_240)] rounded-sm px-4 py-3 text-sm font-sans text-[oklch(0.22_0.07_240)] placeholder-[oklch(0.7_0.01_240)] focus:outline-none focus:border-[oklch(0.22_0.07_240)] focus:ring-1 focus:ring-[oklch(0.22_0.07_240)] transition-colors"
                     />
