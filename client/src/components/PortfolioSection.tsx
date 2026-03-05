@@ -1,109 +1,75 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ZoomIn, Star } from "lucide-react";
+import { X, ZoomIn, Star, Play } from "lucide-react";
 
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h";
 
 const projetos = [
   {
     id: 1,
-    titulo: "Stand Neugebauer",
-    cliente: "Neugebauer",
-    evento: "Fispal Food Service",
+    titulo: "Stand BiQ Adesivos",
+    cliente: "BiQ Adesivos Bertoncouro",
+    evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
-    imagem: `${CDN}/stand-sams-01_4a150f41.jpg`,
+    imagem: `${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`,
+    video: `${CDN}/BIQ-FIMEC2026_bf465d42.mp4`,
+    galeria: [
+      `${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`,
+      `${CDN}/BIQ-FIMEC2026(1)_6568c8ac.jpeg`,
+      `${CDN}/BIQ-FIMEC2026_18287744.jpeg`,
+    ],
     vip: true,
-    descricao: "Stand premium com design exclusivo para a tradicional marca de chocolates, destacando a identidade visual da marca com iluminação especial e área de degustação.",
+    descricao: "Stand premium de alto impacto para a BiQ Adesivos Bertoncouro na FIMEC 2026. Projeto com estrutura curvilínea, painéis LED de grande formato, parede verde e área de relacionamento. Um dos destaques da feira no Pavilhão FENAC, Novo Hamburgo/RS.",
   },
   {
     id: 2,
-    titulo: "Stand Água da Serra",
-    cliente: "Água da Serra",
-    evento: "Expo Bebidas",
+    titulo: "Stand COIM Brasil",
+    cliente: "COIM Brasil",
+    evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
-    imagem: `${CDN}/stand-01_a5db7b8c.webp`,
+    imagem: `${CDN}/COIM-FIMEC2026_0b7df077.jpeg`,
+    video: `${CDN}/COIM-FIMEC2026_5e571e23.mp4`,
+    galeria: [
+      `${CDN}/COIM-FIMEC2026_0b7df077.jpeg`,
+    ],
     vip: true,
-    descricao: "Projeto sofisticado com elementos naturais e modernos, refletindo a pureza e qualidade da marca de águas premium.",
+    descricao: "Stand sofisticado para a COIM Brasil na FIMEC 2026, com design em azul e branco, iluminação com réguas de LED, jardim vertical, área de reuniões e painel de sustentabilidade. Projeto que combina elegância e funcionalidade no Pavilhão FENAC, Novo Hamburgo/RS.",
   },
   {
     id: 3,
-    titulo: "Stand COIM",
-    cliente: "COIM",
-    evento: "Feiplastic",
-    categoria: "Híbrido",
-    imagem: `${CDN}/stand-02_4924d85f.jpg`,
-    vip: true,
-    descricao: "Stand híbrido de alto impacto para empresa do setor químico, com área de demonstração e espaço para reuniões de negócios.",
-  },
-  {
-    id: 4,
-    titulo: "Stand Telecom",
-    cliente: "Telecom",
-    evento: "Campus Party",
+    titulo: "Stand Grupo Stickfran",
+    cliente: "Grupo Stickfran",
+    evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
-    imagem: `${CDN}/stand-03_ae6d3fae.jpg`,
+    imagem: `${CDN}/Stickfran-FIMEC2026_9ae9b6ef.jpeg`,
+    video: `${CDN}/Stickfran-FIMEC2026_f6dafb06.mp4`,
+    videoExtra: `${CDN}/Stickfran-FIMEC2026(1)_540a2ecf.mp4`,
+    galeria: [
+      `${CDN}/Stickfran-FIMEC2026_9ae9b6ef.jpeg`,
+      `${CDN}/Stickfran-FIMEC2026(1)_2c6a8956.jpeg`,
+    ],
     vip: true,
-    descricao: "Stand tecnológico com integração de displays interativos e estrutura futurista para empresa do setor de telecomunicações.",
-  },
-  {
-    id: 5,
-    titulo: "Stand Modular Premium",
-    cliente: "Cliente Corporativo",
-    evento: "Feira Internacional",
-    categoria: "Modular",
-    imagem: `${CDN}/stand-04_e5512606.webp`,
-    vip: false,
-    descricao: "Stand modular elegante com acabamento premium e sinalização de alto impacto para evento internacional.",
-  },
-  {
-    id: 6,
-    titulo: "Stand Expositivo",
-    cliente: "Empresa Alimentícia",
-    evento: "Expoalimentos",
-    categoria: "Personalizado",
-    imagem: `${CDN}/stand-06_82662087.jpg`,
-    vip: false,
-    descricao: "Stand expositivo com design atrativo e funcional, pensado para maximizar a exposição dos produtos e o fluxo de visitantes.",
-  },
-  {
-    id: 7,
-    titulo: "Stand Modular Compacto",
-    cliente: "Empresa de Tecnologia",
-    evento: "Tech Summit",
-    categoria: "Modular",
-    imagem: `${CDN}/stand-07_ddbefdb9.jpg`,
-    vip: false,
-    descricao: "Solução modular compacta e versátil, ideal para empresas que participam de múltiplos eventos ao longo do ano.",
-  },
-  {
-    id: 8,
-    titulo: "Cenografia Corporativa",
-    cliente: "Evento Corporativo",
-    evento: "Convenção Nacional",
-    categoria: "Cenografia",
-    imagem: `${CDN}/cenografia_a91a5eab.jpg`,
-    vip: false,
-    descricao: "Cenografia completa para convenção nacional com palco, iluminação cênica e ambientação temática de alto impacto.",
-  },
-  {
-    id: 9,
-    titulo: "Stand Feira Comercial",
-    cliente: "Rede Varejista",
-    evento: "Feira do Varejo",
-    categoria: "Híbrido",
-    imagem: `${CDN}/stand-05_8bf6a441.jpg`,
-    vip: false,
-    descricao: "Stand híbrido para rede varejista com área de atendimento, vitrine de produtos e espaço de relacionamento com clientes.",
+    descricao: "Stand de grande impacto para o Grupo Stickfran (TK / STK) na FIMEC 2026. Estrutura em preto com vitrines iluminadas exibindo a linha completa de componentes para calçados e artefatos. Painéis de LED e identidade visual marcante no Pavilhão FENAC, Novo Hamburgo/RS.",
   },
 ];
 
 const categorias = ["Todos", "Personalizado", "Modular", "Híbrido", "Cenografia"];
 
+type Projeto = typeof projetos[0] & { videoExtra?: string };
+
 export default function PortfolioSection() {
   const [filtro, setFiltro] = useState("Todos");
-  const [selecionado, setSelecionado] = useState<typeof projetos[0] | null>(null);
+  const [selecionado, setSelecionado] = useState<Projeto | null>(null);
+  const [fotoAtiva, setFotoAtiva] = useState(0);
+  const [videoAtivo, setVideoAtivo] = useState<string | null>(null);
 
   const filtrados = filtro === "Todos" ? projetos : projetos.filter((p) => p.categoria === filtro);
+
+  const abrirProjeto = (projeto: Projeto) => {
+    setSelecionado(projeto);
+    setFotoAtiva(0);
+    setVideoAtivo(null);
+  };
 
   return (
     <section id="portfolio" className="py-24 bg-white overflow-hidden">
@@ -128,8 +94,7 @@ export default function PortfolioSection() {
             <span className="italic text-[oklch(0.75_0.14_75)]">Encantam</span>
           </h2>
           <p className="text-[oklch(0.5_0.02_240)] text-base max-w-2xl mx-auto font-sans leading-relaxed">
-            Conheça alguns dos projetos que realizamos para grandes marcas brasileiras. 
-            Cada stand conta uma história de excelência e dedicação.
+            Conheça os projetos que realizamos na <strong>FIMEC 2026</strong> — Feira Internacional de Tecnologia para Calçados, Componentes e Artefatos, em Novo Hamburgo/RS.
           </p>
         </motion.div>
 
@@ -146,7 +111,7 @@ export default function PortfolioSection() {
             <span className="font-heading font-semibold text-white text-sm tracking-wide">Clientes VIP</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6">
-            {["Neugebauer", "Água da Serra", "COIM", "Telecom"].map((c) => (
+            {["BiQ Adesivos", "COIM Brasil", "Grupo Stickfran"].map((c) => (
               <span key={c} className="font-heading font-bold text-[oklch(0.85_0.10_78)] text-sm tracking-wide border-r border-white/20 last:border-0 pr-6 last:pr-0">
                 {c}
               </span>
@@ -186,14 +151,20 @@ export default function PortfolioSection() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.4, delay: 0.05 * i }}
                 className="group relative rounded-sm overflow-hidden cursor-pointer card-elegant bg-[oklch(0.97_0.003_240)]"
-                onClick={() => setSelecionado(projeto)}
+                onClick={() => abrirProjeto(projeto)}
               >
-                <div className="aspect-[4/3] overflow-hidden">
+                <div className="aspect-[4/3] overflow-hidden relative">
                   <img
                     src={projeto.imagem}
                     alt={projeto.titulo}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
+                  {/* Video indicator */}
+                  {projeto.video && (
+                    <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
+                      <Play size={14} className="text-white ml-0.5" fill="white" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Overlay on hover */}
@@ -246,12 +217,12 @@ export default function PortfolioSection() {
             Veja mais projetos no nosso Instagram
           </p>
           <a
-            href="https://instagram.com/samslocacoes"
+            href="https://instagram.com/samslocacoesoficial"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 border border-[oklch(0.22_0.07_240)] text-[oklch(0.22_0.07_240)] hover:bg-[oklch(0.22_0.07_240)] hover:text-white font-heading font-semibold text-sm px-6 py-3 rounded-sm tracking-wide transition-all duration-300"
           >
-            @samslocacoes
+            @samslocacoesoficial
           </a>
         </motion.div>
       </div>
@@ -263,7 +234,7 @@ export default function PortfolioSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
             onClick={() => setSelecionado(null)}
           >
             <motion.div
@@ -271,7 +242,7 @@ export default function PortfolioSection() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="relative max-w-3xl w-full bg-[oklch(0.18_0.07_240)] rounded-sm overflow-hidden"
+              className="relative max-w-4xl w-full bg-[oklch(0.18_0.07_240)] rounded-sm overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -281,21 +252,78 @@ export default function PortfolioSection() {
                 <X size={18} />
               </button>
 
-              <div className="aspect-video overflow-hidden">
-                <img
-                  src={selecionado.imagem}
-                  alt={selecionado.titulo}
-                  className="w-full h-full object-cover"
-                />
+              {/* Media viewer */}
+              <div className="aspect-video overflow-hidden bg-black">
+                {videoAtivo ? (
+                  <video
+                    key={videoAtivo}
+                    src={videoAtivo}
+                    controls
+                    autoPlay
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <img
+                    src={selecionado.galeria[fotoAtiva]}
+                    alt={selecionado.titulo}
+                    className="w-full h-full object-contain"
+                  />
+                )}
               </div>
 
-              <div className="p-6">
+              {/* Thumbnails + video toggle */}
+              <div className="flex items-center gap-2 px-4 pt-3 pb-1 overflow-x-auto">
+                {selecionado.galeria.map((foto, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { setFotoAtiva(idx); setVideoAtivo(null); }}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                      !videoAtivo && fotoAtiva === idx
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={foto} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+                {selecionado.video && (
+                  <button
+                    onClick={() => setVideoAtivo(selecionado.video!)}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
+                      videoAtivo === selecionado.video
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                    title="Assistir vídeo"
+                  >
+                    <Play size={20} className="text-white" fill="white" />
+                  </button>
+                )}
+                {selecionado.videoExtra && (
+                  <button
+                    onClick={() => setVideoAtivo(selecionado.videoExtra!)}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
+                      videoAtivo === selecionado.videoExtra
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                    title="Assistir vídeo 2"
+                  >
+                    <div className="flex flex-col items-center">
+                      <Play size={16} className="text-white" fill="white" />
+                      <span className="text-white text-[9px] font-heading mt-0.5">2</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-display text-xl font-bold text-white mb-1">{selecionado.titulo}</h3>
                     <p className="text-[oklch(0.75_0.14_75)] text-sm font-heading">{selecionado.cliente} · {selecionado.evento}</p>
                   </div>
-                  <span className="bg-[oklch(0.75_0.14_75)/20] text-[oklch(0.85_0.10_78)] px-3 py-1 rounded-full text-xs font-heading border border-[oklch(0.75_0.14_75)/30]">
+                  <span className="bg-[oklch(0.75_0.14_75)/20] text-[oklch(0.85_0.10_78)] px-3 py-1 rounded-full text-xs font-heading border border-[oklch(0.75_0.14_75)/30] whitespace-nowrap">
                     {selecionado.categoria}
                   </span>
                 </div>

@@ -33,3 +33,5 @@
 - [x] Integrar botão "Solicitar Orçamento" do navbar e hero à nova página
 - [x] Testes do formulário de orçamento (13 testes passando)
 - [x] Corrigir erro: `<a> cannot contain a nested <a>` em Navbar, HeroSection e Orcamento.tsx
+- [x] Atualizar portfólio com fotos e vídeos reais da FIMEC 2026 (BiQ Adesivos, COIM Brasil, Grupo Stickfran)
+- [x] Remover projetos placeholder e manter apenas os 3 stands reais da FIMEC 2026
