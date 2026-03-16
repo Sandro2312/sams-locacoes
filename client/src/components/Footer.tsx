@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, Instagram, ArrowUp } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram, Linkedin, Facebook, ArrowUp } from "lucide-react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/sams-logo_9fc7a984.jpg";
 
@@ -58,6 +58,24 @@ export default function Footer() {
                 aria-label="Instagram"
               >
                 <Instagram size={16} className="text-white/70 group-hover:text-[oklch(0.12_0.02_240)]" />
+              </a>
+              <a
+                href="https://www.facebook.com/samslocacoesemontagem"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-sm bg-white/10 hover:bg-[#1877F2] flex items-center justify-center transition-colors duration-300 group"
+                aria-label="Facebook"
+              >
+                <Facebook size={16} className="text-white/70 group-hover:text-white" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/sams-locacoes"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-sm bg-white/10 hover:bg-[#0A66C2] flex items-center justify-center transition-colors duration-300 group"
+                aria-label="LinkedIn"
+              >
+                <Linkedin size={16} className="text-white/70 group-hover:text-white" />
               </a>
               <a
                 href="https://wa.me/5551998827054"
@@ -164,6 +182,30 @@ export default function Footer() {
                 <div>
                   <p className="text-white/40 text-xs font-heading uppercase tracking-wide">Instagram</p>
                   <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">@samslocacoes</p>
+                </div>
+              </a>
+              <a
+                href="https://www.facebook.com/samslocacoesemontagem"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 group"
+              >
+                <Facebook size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white/40 text-xs font-heading uppercase tracking-wide">Facebook</p>
+                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">SAMS Locações e Montagem</p>
+                </div>
+              </a>
+              <a
+                href="https://www.linkedin.com/company/sams-locacoes"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 group"
+              >
+                <Linkedin size={15} className="text-[oklch(0.75_0.14_75)] mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white/40 text-xs font-heading uppercase tracking-wide">LinkedIn</p>
+                  <p className="text-white/70 group-hover:text-[oklch(0.85_0.10_78)] text-sm font-sans transition-colors">SAMS Locações</p>
                 </div>
               </a>
             </div>
