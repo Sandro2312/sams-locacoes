@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Phone, Mail, MapPin, Instagram, CheckCircle2, Loader2 } from "lucide-react";
+import { Send, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, CheckCircle2, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -153,6 +153,36 @@ export default function ContatoSection() {
                   <div>
                     <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">Instagram</p>
                     <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">@samslocacoes</p>
+                  </div>
+                </a>
+
+                <a
+                  href="https://www.facebook.com/samslocacoesemontagem"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-4 group"
+                >
+                  <div className="w-10 h-10 rounded-sm bg-[oklch(0.75_0.14_75)/20] flex items-center justify-center flex-shrink-0 group-hover:bg-[#1877F2] transition-colors duration-300">
+                    <Facebook size={18} className="text-[oklch(0.75_0.14_75)] group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <div>
+                    <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">Facebook</p>
+                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">SAMS Locações e Montagem</p>
+                  </div>
+                </a>
+
+                <a
+                  href="https://www.linkedin.com/company/sams-locacoes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-4 group"
+                >
+                  <div className="w-10 h-10 rounded-sm bg-[oklch(0.75_0.14_75)/20] flex items-center justify-center flex-shrink-0 group-hover:bg-[#0A66C2] transition-colors duration-300">
+                    <Linkedin size={18} className="text-[oklch(0.75_0.14_75)] group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <div>
+                    <p className="font-heading text-xs text-white/50 tracking-wide uppercase mb-0.5">LinkedIn</p>
+                    <p className="font-heading font-semibold text-white group-hover:text-[oklch(0.85_0.10_78)] transition-colors">SAMS Locações</p>
                   </div>
                 </a>
               </div>
