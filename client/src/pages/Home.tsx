@@ -6,6 +6,7 @@ import PortfolioSection from "@/components/PortfolioSection";
 import DepoimentosSection from "@/components/DepoimentosSection";
 import ContatoSection from "@/components/ContatoSection";
 import Footer from "@/components/Footer";
+import LeadPopup from "@/components/LeadPopup";
 
 export default function Home() {
   return (
@@ -20,6 +21,8 @@ export default function Home() {
         <ContatoSection />
       </main>
       <Footer />
+
+      <LeadPopup />
 
       {/* WhatsApp Floating Button */}
       <div className="fixed bottom-20 right-6 z-50 flex flex-col items-end gap-2 group">
