@@ -22,7 +22,7 @@ export default function Home() {
       <Footer />
 
       {/* WhatsApp Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 group">
+      <div className="fixed bottom-20 right-6 z-50 flex flex-col items-end gap-2 group">
         {/* Tooltip */}
         <div className="bg-white text-gray-800 text-sm font-medium px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 pointer-events-none whitespace-nowrap">
           💬 Fale conosco agora!
