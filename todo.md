@@ -36,3 +36,4 @@
 - [x] Atualizar portfólio com fotos e vídeos reais da FIMEC 2026 (BiQ Adesivos, COIM Brasil, Grupo Stickfran)
 - [x] Remover projetos placeholder e manter apenas os 3 stands reais da FIMEC 2026
 - [x] Pop-up de captação de leads após 30 segundos na página
+- [x] Seção de parceiros/clientes com logos de Neugebauer, Água da Serra, COIM e Telecom
