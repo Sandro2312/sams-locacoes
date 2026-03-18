@@ -4,6 +4,7 @@ import SobreSection from "@/components/SobreSection";
 import ServicosSection from "@/components/ServicosSection";
 import PortfolioSection from "@/components/PortfolioSection";
 import DepoimentosSection from "@/components/DepoimentosSection";
+import ParceirosSection from "@/components/ParceirosSection";
 import ContatoSection from "@/components/ContatoSection";
 import Footer from "@/components/Footer";
 import LeadPopup from "@/components/LeadPopup";
@@ -17,6 +18,7 @@ export default function Home() {
         <SobreSection />
         <ServicosSection />
         <PortfolioSection />
+        <ParceirosSection />
         <DepoimentosSection />
         <ContatoSection />
       </main>
