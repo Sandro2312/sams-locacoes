@@ -6,6 +6,7 @@ import PortfolioSection from "@/components/PortfolioSection";
 import DepoimentosSection from "@/components/DepoimentosSection";
 import ParceirosSection from "@/components/ParceirosSection";
 import ContatoSection from "@/components/ContatoSection";
+import ProximosEventosSection from "@/components/ProximosEventosSection";
 import Footer from "@/components/Footer";
 import LeadPopup from "@/components/LeadPopup";
 
@@ -20,6 +21,7 @@ export default function Home() {
         <PortfolioSection />
         <ParceirosSection />
         <DepoimentosSection />
+        <ProximosEventosSection />
         <ContatoSection />
       </main>
       <Footer />
