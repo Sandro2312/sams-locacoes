@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Orcamento from "./pages/Orcamento";
 import Blog from "./pages/Blog";
 import BlogArtigo from "./pages/BlogArtigo";
+import Feiras2026 from "./pages/Feiras2026";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/orcamento"} component={Orcamento} />
       <Route path={"/blog"} component={Blog} />
       <Route path={"/blog/:slug"} component={BlogArtigo} />
+      <Route path={"/feiras-2026"} component={Feiras2026} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
