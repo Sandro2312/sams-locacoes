@@ -42,7 +42,7 @@ export default function SobreSection() {
             <div className="relative rounded-sm overflow-hidden shadow-2xl aspect-[4/3]">
               <img
                 src={SOBRE_IMG}
-                alt="Stand SAMS Locações"
+                alt="SAMS Locações - Montadora de stands para feiras e eventos corporativos em Porto Alegre e todo o Brasil"
                 className="w-full h-full object-cover"
               />
               {/* Overlay gradient */}
@@ -75,8 +75,8 @@ export default function SobreSection() {
             </div>
 
             <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-[oklch(0.18_0.07_240)] font-bold leading-tight mb-6">
-              Excelência em Cada{" "}
-              <span className="italic text-[oklch(0.75_0.14_75)]">Detalhe</span>
+              Empresa de Stands em{" "}
+              <span className="italic text-[oklch(0.75_0.14_75)]">Porto Alegre e Todo o Brasil</span>
             </h2>
 
             <p className="text-[oklch(0.4_0.02_240)] text-base leading-relaxed mb-4 font-sans">

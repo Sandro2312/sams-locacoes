@@ -90,11 +90,11 @@ export default function PortfolioSection() {
             <span className="section-divider" />
           </div>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-[oklch(0.18_0.07_240)] font-bold leading-tight mb-4">
-            Projetos que{" "}
-            <span className="italic text-[oklch(0.75_0.14_75)]">Encantam</span>
+            Portfólio de{" "}
+            <span className="italic text-[oklch(0.75_0.14_75)]">Stands Personalizados</span>
           </h2>
           <p className="text-[oklch(0.5_0.02_240)] text-base max-w-2xl mx-auto font-sans leading-relaxed">
-            Conheça os projetos que realizamos na <strong>FIMEC 2026</strong> — Feira Internacional de Tecnologia para Calçados, Componentes e Artefatos, em Novo Hamburgo/RS.
+            Conheça os <strong>stands personalizados para feiras</strong> que realizamos na <strong>FIMEC 2026</strong> — Feira Internacional de Tecnologia para Calçados, em Novo Hamburgo/RS. <strong>Montagem de estandes corporativos</strong> com qualidade e pontualidade.
           </p>
         </motion.div>
 
@@ -156,7 +156,7 @@ export default function PortfolioSection() {
                 <div className="aspect-[4/3] overflow-hidden relative">
                   <img
                     src={projeto.imagem}
-                    alt={projeto.titulo}
+                    alt={`Stand personalizado ${projeto.cliente} - Montagem de stands para feiras - SAMS Locações`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Video indicator */}
