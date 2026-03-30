@@ -99,12 +99,12 @@ export default function ServicosSection() {
             <span className="section-divider" />
           </div>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-[oklch(0.18_0.07_240)] font-bold leading-tight mb-4">
-            Soluções Completas para{" "}
-            <span className="italic text-[oklch(0.75_0.14_75)]">Seu Evento</span>
+            Montagem de Stands e{" "}
+            <span className="italic text-[oklch(0.75_0.14_75)]">Cenografia Corporativa</span>
           </h2>
           <p className="text-[oklch(0.5_0.02_240)] text-base max-w-2xl mx-auto font-sans leading-relaxed">
-            Da concepção à desmontagem, oferecemos um portfólio completo de serviços para que sua marca 
-            brilhe em qualquer feira ou evento corporativo.
+            Da concepção à desmontagem, somos a <strong>empresa de stands em Porto Alegre</strong> com atuação em todo o Brasil. 
+            <strong>Stands personalizados para feiras</strong>, modulares e cenógrafias que fazem sua marca se destacar.
           </p>
         </motion.div>
 

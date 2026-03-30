@@ -50,17 +50,16 @@ export default function HeroSection() {
 
           {/* Main Headline */}
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white font-bold leading-tight mb-4">
-            Transformamos{" "}
-            <span className="text-gold-gradient italic">Espaços</span>
+            Montadora de Stands{" "}
+            <span className="text-gold-gradient italic">Especialista</span>
             <br />
             em{" "}
-            <span className="text-gold-gradient italic">Experiências</span>
+            <span className="text-gold-gradient italic">Feiras e Eventos</span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-white/70 text-lg sm:text-xl max-w-2xl mx-auto mb-8 font-sans leading-relaxed">
-            Há mais de <strong className="text-[oklch(0.85_0.10_78)]">15 anos</strong> criando stands e cenografias que encantam, 
-            conectam marcas ao seu público e geram resultados reais em feiras e eventos corporativos em todo o Brasil.
+            Há mais de <strong className="text-[oklch(0.85_0.10_78)]">15 anos</strong> realizando <strong className="text-[oklch(0.85_0.10_78)]">montagem de stands para feiras</strong> e eventos corporativos em todo o Brasil. Stands personalizados, modulares e cenografias que conectam marcas ao seu público.
           </p>
 
           {/* CTA Buttons */}

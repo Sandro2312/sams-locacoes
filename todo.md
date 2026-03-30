@@ -38,3 +38,16 @@
 - [x] Pop-up de captação de leads após 30 segundos na página
 - [x] Seção de parceiros/clientes com logos de Neugebauer, Água da Serra, COIM e Telecom
 - [x] Seção "Próximos Eventos" com as 11 feiras de 2026
+
+## SEO e Blog (Plano de Marketing)
+
+- [ ] Otimização SEO on-page: meta title e description em todas as páginas
+- [ ] Otimização SEO on-page: H1/H2 com palavras-chave estratégicas
+- [ ] Otimização SEO on-page: alt texts nas imagens do portfólio
+- [ ] Otimização SEO on-page: URLs amigáveis
+- [ ] Otimização SEO on-page: sitemap.xml e robots.txt
+- [ ] Criar seção /blog no site
+- [ ] Artigo 1: "Como escolher uma montadora de stands para sua empresa"
+- [ ] Artigo 2: "Tendências de design de stands para 2026"
+- [ ] Artigo 3: "Quanto custa montar um stand em feiras"
+- [ ] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
