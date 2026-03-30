@@ -41,13 +41,15 @@
 
 ## SEO e Blog (Plano de Marketing)
 
-- [ ] Otimização SEO on-page: meta title e description em todas as páginas
-- [ ] Otimização SEO on-page: H1/H2 com palavras-chave estratégicas
-- [ ] Otimização SEO on-page: alt texts nas imagens do portfólio
-- [ ] Otimização SEO on-page: URLs amigáveis
-- [ ] Otimização SEO on-page: sitemap.xml e robots.txt
-- [ ] Criar seção /blog no site
-- [ ] Artigo 1: "Como escolher uma montadora de stands para sua empresa"
-- [ ] Artigo 2: "Tendências de design de stands para 2026"
-- [ ] Artigo 3: "Quanto custa montar um stand em feiras"
-- [ ] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
+- [x] Otimização SEO on-page: meta title e description em todas as páginas
+- [x] Otimização SEO on-page: H1/H2 com palavras-chave estratégicas
+- [x] Otimização SEO on-page: alt texts nas imagens do portfólio
+- [x] Otimização SEO on-page: URLs amigáveis
+- [x] Otimização SEO on-page: sitemap.xml e robots.txt
+- [x] Criar seção /blog no site
+- [x] Artigo 1: "Como escolher uma montadora de stands para sua empresa"
+- [x] Artigo 2: "Tendências de design de stands para 2026"
+- [x] Artigo 3: "Quanto custa montar um stand em feiras"
+- [x] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
+- [ ] Submeter sitemap.xml ao Google Search Console
+- [ ] Criar página /feiras-2026 otimizada para SEO
