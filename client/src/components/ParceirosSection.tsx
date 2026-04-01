@@ -98,7 +98,7 @@ export default function ParceirosSection() {
               <img
                 src={parceiro.logo}
                 alt={`Logo ${parceiro.nome}`}
-                className="max-h-16 max-w-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                className="max-h-16 max-w-full object-contain transition-all duration-300"
                 draggable={false}
               />
             </div>
