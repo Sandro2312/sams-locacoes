@@ -53,3 +53,6 @@
 - [x] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
 - [ ] Submeter sitemap.xml ao Google Search Console
 - [ ] Criar página /feiras-2026 otimizada para SEO
+- [x] Corrigir tag canônica: garantir que todas as páginas apontem para samslocacoes.com.br (sem www duplicado)
+- [x] Corrigir redirecionamentos: www → sem www (ou vice-versa) com 301 permanente
+- [x] Verificar sitemap.xml com URLs canônicas corretas

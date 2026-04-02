@@ -1,8 +1,10 @@
-import { useLocation } from "wouter";
+import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight, Tag } from "lucide-react";
+import { useLocation } from "wouter";
 
 export const artigos = [
   {
@@ -51,6 +53,12 @@ export default function Blog() {
   const [, navigate] = useLocation();
 
   return (
+    <>
+      <Helmet>
+        <title>Blog | Dicas e Tendências sobre Montagem de Stands | SAMS Locações</title>
+        <meta name="description" content="Artigos especializados sobre montagem de stands para feiras, tendências de design, orçamentos e eventos corporativos. Conteúdo da SAMS Locações." />
+        <link rel="canonical" href="https://samslocacoes.com.br/blog" />
+      </Helmet>
     <div className="min-h-screen bg-white">
       <Navbar />
 
@@ -162,5 +170,6 @@ export default function Blog() {
 
       <Footer />
     </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useLocation, useParams } from "wouter";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
@@ -209,6 +210,17 @@ export default function BlogArtigo() {
   const outrosArtigos = artigos.filter((a) => a.slug !== slug).slice(0, 2);
 
   return (
+    <>
+      <Helmet>
+        <title>{artigo.titulo} | SAMS Locações</title>
+        <meta name="description" content={artigo.resumo} />
+        <link rel="canonical" href={`https://samslocacoes.com.br/blog/${artigo.slug}`} />
+        <meta property="og:title" content={artigo.titulo} />
+        <meta property="og:description" content={artigo.resumo} />
+        <meta property="og:image" content={artigo.imagem} />
+        <meta property="og:url" content={`https://samslocacoes.com.br/blog/${artigo.slug}`} />
+        <meta property="og:type" content="article" />
+      </Helmet>
     <div className="min-h-screen bg-white">
       <Navbar />
 
@@ -348,5 +360,6 @@ export default function BlogArtigo() {
 
       <Footer />
     </div>
+    </>
   );
 }
