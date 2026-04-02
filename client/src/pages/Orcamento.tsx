@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -210,6 +211,12 @@ export default function Orcamento() {
   }
 
   return (
+    <>
+      <Helmet>
+        <title>Solicitar Orçamento de Stand | SAMS Locações</title>
+        <meta name="description" content="Solicite um orçamento gratuito para montagem de stands em feiras e eventos corporativos. Atendimento em todo o Brasil. Resposta em até 24 horas." />
+        <link rel="canonical" href="https://samslocacoes.com.br/orcamento" />
+      </Helmet>
     <div className="min-h-screen bg-[oklch(0.98_0.003_240)]">
       {/* Header */}
       <header className="bg-[oklch(0.18_0.07_240)] border-b border-white/10 sticky top-0 z-50">
@@ -597,6 +604,7 @@ export default function Orcamento() {
         </form>
       </div>
     </div>
+    </>
   );
 }
 
