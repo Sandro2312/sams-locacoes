@@ -200,6 +200,20 @@ export default function ContatoSection() {
               </svg>
               Falar pelo WhatsApp
             </a>
+
+            {/* Download Apresentação Institucional */}
+            <a
+              href="https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/SAMS_Locacoes_Apresentacao_Institucional_3b19fd26.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="flex items-center justify-center gap-3 w-full border-2 border-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.75_0.14_75)] text-[oklch(0.75_0.14_75)] hover:text-[oklch(0.12_0.02_240)] font-heading font-bold text-sm px-6 py-4 rounded-sm tracking-wide transition-all duration-300"
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Baixar Apresentação Institucional
+            </a>
           </motion.div>
 
           {/* Contact Form */}

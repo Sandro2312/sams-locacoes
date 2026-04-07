@@ -59,3 +59,4 @@
 - [x] Submeter sitemap.xml ao Google Search Console
 - [x] Instalar pixel do Meta (Facebook) no site - ID: 754354964297671
 - [x] Criar conta Meta Business Manager
+- [x] Exportar apresentação institucional para PDF e adicionar botão de download no site
