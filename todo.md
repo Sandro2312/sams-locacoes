@@ -51,8 +51,11 @@
 - [x] Artigo 2: "Tendências de design de stands para 2026"
 - [x] Artigo 3: "Quanto custa montar um stand em feiras"
 - [x] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
-- [ ] Submeter sitemap.xml ao Google Search Console
+- [x] Submeter sitemap.xml ao Google Search Console
 - [ ] Criar página /feiras-2026 otimizada para SEO
 - [x] Corrigir tag canônica: garantir que todas as páginas apontem para samslocacoes.com.br (sem www duplicado)
 - [x] Corrigir redirecionamentos: www → sem www (ou vice-versa) com 301 permanente
 - [x] Verificar sitemap.xml com URLs canônicas corretas
+- [x] Submeter sitemap.xml ao Google Search Console
+- [x] Instalar pixel do Meta (Facebook) no site - ID: 754354964297671
+- [x] Criar conta Meta Business Manager
