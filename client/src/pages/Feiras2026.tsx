@@ -3,6 +3,17 @@ import { Helmet } from "react-helmet-async";
 
 const feiras = [
   {
+    nome: "ExpoApras",
+    descricao: "43ª Feira e Convenção Paranaense de Supermercados — maior evento supermercadista do Paraná",
+    local: "Pinhais, PR",
+    data: "14 a 16 de Abril de 2026",
+    segmento: "Supermercados e Varejo",
+    status: "realizada",
+    slug: "expoapras-2026",
+    clientes: ["Neugebauer", "Aromasil", "Popper", "AlcaFoods"],
+    destaque: "4 stands entregues com excelência no Expotrade Convention Center",
+  },
+  {
     nome: "FIMEC",
     descricao: "Feira Internacional de Tecnologia para Calçados, Artefatos e Componentes",
     local: "Novo Hamburgo, RS",
@@ -10,6 +21,8 @@ const feiras = [
     segmento: "Calçados e Couro",
     status: "realizada",
     slug: "fimec-2026",
+    clientes: ["BiQ Adesivos", "COIM Brasil", "Grupo Stickfran"],
+    destaque: "3 stands entregues no Pavilhão FENAC",
   },
   {
     nome: "FEIPLAR",
@@ -104,8 +117,9 @@ const feiras = [
 ];
 
 export default function Feiras2026() {
-  const realizadas = feiras.filter((f) => f.status === "realizada");
-  const proximas = feiras.filter((f) => f.status === "proxima");
+  type Feira = typeof feiras[0];
+  const realizadas = feiras.filter((f) => f.status === "realizada") as Feira[];
+  const proximas = feiras.filter((f) => f.status === "proxima") as Feira[];
 
   return (
     <>
@@ -113,7 +127,7 @@ export default function Feiras2026() {
         <title>Feiras 2026 — SAMS Locações | Montagem de Stands nas Principais Feiras do Brasil</title>
         <meta
           name="description"
-          content="SAMS Locações estará presente nas 11 principais feiras do Brasil em 2026: FEIPLAR, FISPAL, AGRISHOW, EXPODIRETO, FENAC, MERCOPAR, FEIMEC, AUTOMEC, INTERMODAL e EXPOAGAS. Solicite seu orçamento."
+          content="SAMS Locações presente nas principais feiras do Brasil em 2026: ExpoApras (realizada), FIMEC (realizada), FEIPLAR, FISPAL, AGRISHOW, EXPODIRETO, FENAC, MERCOPAR, FEIMEC, AUTOMEC, INTERMODAL e EXPOAGAS. Solicite seu orçamento."
         />
         <link rel="canonical" href="https://samslocacoes.com.br/feiras-2026" />
         <script type="application/ld+json">{JSON.stringify({
@@ -141,7 +155,7 @@ export default function Feiras2026() {
             Feiras 2026 — <span className="text-[#c9a84c] italic">SAMS Locações</span>
           </h1>
           <p className="text-lg text-white/70 max-w-2xl mx-auto">
-            Estamos confirmados nas <strong className="text-white">11 principais feiras do Brasil</strong> em 2026.
+            Estamos presentes nas <strong className="text-white">principais feiras do Brasil</strong> em 2026.
             Montagem de stands personalizados, modulares e híbridos em todo o território nacional.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-8">
@@ -196,11 +210,24 @@ export default function Feiras2026() {
                     <span className="text-xs bg-green-500 text-white px-2 py-1 rounded font-semibold">Realizada ✓</span>
                   </div>
                   <p className="text-gray-600 text-sm mb-3">{feira.descricao}</p>
-                  <div className="flex flex-wrap gap-3 text-sm">
+                  <div className="flex flex-wrap gap-3 text-sm mb-3">
                     <span className="text-gray-500">📍 {feira.local}</span>
                     <span className="text-gray-500">📅 {feira.data}</span>
                     <span className="bg-[#0a1628]/10 text-[#0a1628] px-2 py-0.5 rounded text-xs">{feira.segmento}</span>
                   </div>
+                  {feira.destaque && (
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <p className="text-xs font-semibold text-green-700 mb-2">🏆 SAMS Locações na feira:</p>
+                      <p className="text-xs text-green-800 mb-2">{feira.destaque}</p>
+                      {feira.clientes && feira.clientes.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {feira.clientes.map((c: string) => (
+                            <span key={c} className="bg-[#0a1628] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
