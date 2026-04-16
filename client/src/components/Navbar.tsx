@@ -18,7 +18,10 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  // Verifica se está na página inicial
+  const isHome = location === "/" || location === "";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -28,24 +31,43 @@ export default function Navbar() {
 
   const handleNavClick = (href: string) => {
     setIsOpen(false);
+
+    // Link de rota interna (ex: /blog, /feiras-2026)
     if (href.startsWith("/")) {
       navigate(href);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+
+    // Link âncora: se estiver na Home, faz scroll suave
+    if (isHome) {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // Se estiver em outra página, navega para Home com hash
+      navigate("/");
+      // Aguarda a Home renderizar e então rola até a seção
+      setTimeout(() => {
+        const el = document.querySelector(href);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 400);
+    }
   };
 
   const goToOrcamento = () => {
     setIsOpen(false);
     navigate("/orcamento");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Navbar é sólida: nas subpáginas sempre, na Home só após scroll
+  const isSolid = !isHome || scrolled;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-[oklch(0.18_0.07_240)/97] backdrop-blur-md shadow-xl border-b border-white/10"
+        isSolid
+          ? "bg-[#0a1628] backdrop-blur-md shadow-xl border-b border-white/10"
           : "bg-transparent"
       }`}
     >
@@ -56,7 +78,7 @@ export default function Navbar() {
             onClick={() => handleNavClick("#inicio")}
             className="flex items-center gap-3 group"
           >
-            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[oklch(0.75_0.14_75)] shadow-lg group-hover:border-[oklch(0.85_0.10_78)] transition-all duration-300">
+            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#c9a84c] shadow-lg group-hover:border-[oklch(0.85_0.10_78)] transition-all duration-300">
               <img
                 src={LOGO_URL}
                 alt="SAMS Locações"
@@ -67,7 +89,7 @@ export default function Navbar() {
               <p className="text-white font-heading font-bold text-lg leading-tight tracking-wide">
                 SAMS
               </p>
-              <p className="text-[oklch(0.75_0.14_75)] font-heading text-xs tracking-[0.2em] uppercase">
+              <p className="text-[#c9a84c] font-heading text-xs tracking-[0.2em] uppercase">
                 Locações
               </p>
             </div>
@@ -75,23 +97,36 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => handleNavClick(link.href)}
-                className="px-4 py-2 text-white/80 hover:text-[oklch(0.75_0.14_75)] font-heading text-sm font-medium tracking-wide transition-all duration-200 relative group"
-              >
-                {link.label}
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-[oklch(0.75_0.14_75)] group-hover:w-full transition-all duration-300 rounded-full" />
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              const isActive =
+                (link.href === "/blog" && location.startsWith("/blog")) ||
+                (link.href === "/feiras-2026" && location === "/feiras-2026");
+              return (
+                <button
+                  key={link.href}
+                  onClick={() => handleNavClick(link.href)}
+                  className={`px-4 py-2 font-heading text-sm font-medium tracking-wide transition-all duration-200 relative group ${
+                    isActive
+                      ? "text-[#c9a84c]"
+                      : "text-white/80 hover:text-[#c9a84c]"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-[#c9a84c] transition-all duration-300 rounded-full ${
+                      isActive ? "w-full" : "w-0 group-hover:w-full"
+                    }`}
+                  />
+                </button>
+              );
+            })}
           </nav>
 
           {/* CTA Button */}
           <div className="hidden lg:flex items-center gap-3">
             <button
               onClick={goToOrcamento}
-              className="flex items-center gap-2 bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-2.5 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8963d] text-[#0a1628] font-heading font-semibold text-sm px-5 py-2.5 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               <Phone size={15} />
               Solicitar Orçamento
@@ -101,7 +136,7 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 text-white hover:text-[oklch(0.75_0.14_75)] transition-colors"
+            className="lg:hidden p-2 text-white hover:text-[#c9a84c] transition-colors"
             aria-label="Menu"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -115,20 +150,27 @@ export default function Navbar() {
           isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="bg-[oklch(0.16_0.08_240)] border-t border-white/10 px-4 py-4 space-y-1">
-          {navLinks.map((link) => (
-            <button
-              key={link.href}
-              onClick={() => handleNavClick(link.href)}
-              className="block w-full text-left px-4 py-3 text-white/80 hover:text-[oklch(0.75_0.14_75)] hover:bg-white/5 font-heading text-sm font-medium tracking-wide rounded-sm transition-all duration-200"
-            >
-              {link.label}
-            </button>
-          ))}
+        <div className="bg-[#0a1628] border-t border-white/10 px-4 py-4 space-y-1">
+          {navLinks.map((link) => {
+            const isActive =
+              (link.href === "/blog" && location.startsWith("/blog")) ||
+              (link.href === "/feiras-2026" && location === "/feiras-2026");
+            return (
+              <button
+                key={link.href}
+                onClick={() => handleNavClick(link.href)}
+                className={`block w-full text-left px-4 py-3 hover:bg-white/5 font-heading text-sm font-medium tracking-wide rounded-sm transition-all duration-200 ${
+                  isActive ? "text-[#c9a84c]" : "text-white/80 hover:text-[#c9a84c]"
+                }`}
+              >
+                {link.label}
+              </button>
+            );
+          })}
           <div className="pt-2 border-t border-white/10">
             <button
               onClick={goToOrcamento}
-              className="flex items-center justify-center gap-2 w-full bg-[oklch(0.75_0.14_75)] hover:bg-[oklch(0.82_0.12_78)] text-[oklch(0.12_0.02_240)] font-heading font-semibold text-sm px-5 py-3 rounded-sm tracking-wide transition-all duration-300"
+              className="flex items-center justify-center gap-2 w-full bg-[#c9a84c] hover:bg-[#b8963d] text-[#0a1628] font-heading font-semibold text-sm px-5 py-3 rounded-sm tracking-wide transition-all duration-300"
             >
               <Phone size={15} />
               Solicitar Orçamento
