@@ -5,60 +5,6 @@ import { X, ZoomIn, Star, Play } from "lucide-react";
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h";
 
 const projetos = [
-  // ── ExpoApras 2026 ──────────────────────────────────────────────────────────
-  {
-    id: 4,
-    titulo: "Stand Neugebauer",
-    cliente: "Neugebauer",
-    evento: "ExpoApras 2026 — Pinhais/PR",
-    categoria: "Personalizado",
-    imagem: `${CDN}/STANDNEUGEBAUEREXPOAPRAS_90168df4.mp4`,
-    video: `${CDN}/STANDNEUGEBAUEREXPOAPRAS_90168df4.mp4`,
-    galeria: [] as string[],
-    vip: true,
-    descricao: "Stand de alto impacto para a Neugebauer na 43ª ExpoApras — maior feira supermercadista do Paraná. Projeto com identidade visual marcante, iluminação profissional e espaço de degustação. Expotrade Convention Center, Pinhais/PR.",
-    feira: "ExpoApras 2026",
-  },
-  {
-    id: 5,
-    titulo: "Stand Aromasil",
-    cliente: "Aromasil",
-    evento: "ExpoApras 2026 — Pinhais/PR",
-    categoria: "Personalizado",
-    imagem: `${CDN}/STANDAROMASILEXPOAPRAS_1737f74e.mp4`,
-    video: `${CDN}/STANDAROMASILEXPOAPRAS_1737f74e.mp4`,
-    galeria: [] as string[],
-    vip: false,
-    descricao: "Stand personalizado para a Aromasil na ExpoApras 2026. Estrutura elegante com exposição de produtos e área de atendimento. 43ª Feira e Convenção Paranaense de Supermercados, Expotrade, Pinhais/PR.",
-    feira: "ExpoApras 2026",
-  },
-  {
-    id: 6,
-    titulo: "Stand Popper",
-    cliente: "Popper",
-    evento: "ExpoApras 2026 — Pinhais/PR",
-    categoria: "Personalizado",
-    imagem: `${CDN}/STANDPOPPEREXPOAPRAS_819db55a.mp4`,
-    video: `${CDN}/STANDPOPPEREXPOAPRAS_819db55a.mp4`,
-    galeria: [] as string[],
-    vip: false,
-    descricao: "Stand criativo para a Popper na ExpoApras 2026. Projeto com layout funcional, identidade visual atrativa e excelente aproveitamento de espaço para exposição de produtos. Expotrade, Pinhais/PR.",
-    feira: "ExpoApras 2026",
-  },
-  {
-    id: 7,
-    titulo: "Stand AlcaFoods",
-    cliente: "AlcaFoods",
-    evento: "ExpoApras 2026 — Pinhais/PR",
-    categoria: "Personalizado",
-    imagem: `${CDN}/STANDALCAFOODSEXPOAPRAS_a952fecc.mp4`,
-    video: `${CDN}/STANDALCAFOODSEXPOAPRAS_a952fecc.mp4`,
-    galeria: [] as string[],
-    vip: false,
-    descricao: "Stand completo para a AlcaFoods na ExpoApras 2026. Estrutura moderna com área de exposição de produtos alimentícios, iluminação destacada e identidade visual impactante. Expotrade, Pinhais/PR.",
-    feira: "ExpoApras 2026",
-  },
-  // ── FIMEC 2026 ──────────────────────────────────────────────────────────────
   {
     id: 1,
     titulo: "Stand BiQ Adesivos",
@@ -74,7 +20,6 @@ const projetos = [
     ],
     vip: true,
     descricao: "Stand premium de alto impacto para a BiQ Adesivos Bertoncouro na FIMEC 2026. Projeto com estrutura curvilínea, painéis LED de grande formato, parede verde e área de relacionamento. Um dos destaques da feira no Pavilhão FENAC, Novo Hamburgo/RS.",
-    feira: "FIMEC 2026",
   },
   {
     id: 2,
@@ -89,7 +34,6 @@ const projetos = [
     ],
     vip: true,
     descricao: "Stand sofisticado para a COIM Brasil na FIMEC 2026, com design em azul e branco, iluminação com réguas de LED, jardim vertical, área de reuniões e painel de sustentabilidade. Projeto que combina elegância e funcionalidade no Pavilhão FENAC, Novo Hamburgo/RS.",
-    feira: "FIMEC 2026",
   },
   {
     id: 3,
@@ -106,36 +50,26 @@ const projetos = [
     ],
     vip: true,
     descricao: "Stand de grande impacto para o Grupo Stickfran (TK / STK) na FIMEC 2026. Estrutura em preto com vitrines iluminadas exibindo a linha completa de componentes para calçados e artefatos. Painéis de LED e identidade visual marcante no Pavilhão FENAC, Novo Hamburgo/RS.",
-    feira: "FIMEC 2026",
   },
 ];
 
-const feiras = ["Todos", "ExpoApras 2026", "FIMEC 2026"];
+const categorias = ["Todos", "Personalizado", "Modular", "Híbrido", "Cenografia"];
 
 type Projeto = typeof projetos[0] & { videoExtra?: string };
 
 export default function PortfolioSection() {
-  const [filtroFeira, setFiltroFeira] = useState("Todos");
+  const [filtro, setFiltro] = useState("Todos");
   const [selecionado, setSelecionado] = useState<Projeto | null>(null);
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [videoAtivo, setVideoAtivo] = useState<string | null>(null);
 
-  const filtrados = filtroFeira === "Todos"
-    ? projetos
-    : projetos.filter((p) => p.feira === filtroFeira);
+  const filtrados = filtro === "Todos" ? projetos : projetos.filter((p) => p.categoria === filtro);
 
   const abrirProjeto = (projeto: Projeto) => {
     setSelecionado(projeto);
     setFotoAtiva(0);
-    // Para projetos só com vídeo (sem galeria de fotos), abre direto no vídeo
-    if (projeto.galeria.length === 0 && projeto.video) {
-      setVideoAtivo(projeto.video);
-    } else {
-      setVideoAtivo(null);
-    }
+    setVideoAtivo(null);
   };
-
-  const vipClientes = ["Neugebauer", "BiQ Adesivos", "COIM Brasil", "Grupo Stickfran"];
 
   return (
     <section id="portfolio" className="py-24 bg-white overflow-hidden">
@@ -160,7 +94,7 @@ export default function PortfolioSection() {
             <span className="italic text-[oklch(0.75_0.14_75)]">Stands Personalizados</span>
           </h2>
           <p className="text-[oklch(0.5_0.02_240)] text-base max-w-2xl mx-auto font-sans leading-relaxed">
-            Conheça os <strong>stands personalizados para feiras</strong> que realizamos nas principais feiras do Brasil — <strong>ExpoApras 2026</strong> (Pinhais/PR) e <strong>FIMEC 2026</strong> (Novo Hamburgo/RS). <strong>Montagem de estandes corporativos</strong> com qualidade e pontualidade.
+            Conheça os <strong>stands personalizados para feiras</strong> que realizamos na <strong>FIMEC 2026</strong> — Feira Internacional de Tecnologia para Calçados, em Novo Hamburgo/RS. <strong>Montagem de estandes corporativos</strong> com qualidade e pontualidade.
           </p>
         </motion.div>
 
@@ -177,7 +111,7 @@ export default function PortfolioSection() {
             <span className="font-heading font-semibold text-white text-sm tracking-wide">Clientes VIP</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6">
-            {vipClientes.map((c) => (
+            {["BiQ Adesivos", "COIM Brasil", "Grupo Stickfran"].map((c) => (
               <span key={c} className="font-heading font-bold text-[oklch(0.85_0.10_78)] text-sm tracking-wide border-r border-white/20 last:border-0 pr-6 last:pr-0">
                 {c}
               </span>
@@ -185,19 +119,19 @@ export default function PortfolioSection() {
           </div>
         </motion.div>
 
-        {/* Feira Filter Tabs */}
+        {/* Filter Tabs */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-          {feiras.map((feira) => (
+          {categorias.map((cat) => (
             <button
-              key={feira}
-              onClick={() => setFiltroFeira(feira)}
+              key={cat}
+              onClick={() => setFiltro(cat)}
               className={`px-5 py-2 rounded-sm font-heading text-xs font-semibold tracking-wide transition-all duration-200 ${
-                filtroFeira === feira
+                filtro === cat
                   ? "bg-[oklch(0.22_0.07_240)] text-white shadow-md"
                   : "bg-[oklch(0.97_0.003_240)] text-[oklch(0.4_0.02_240)] hover:bg-[oklch(0.94_0.005_240)]"
               }`}
             >
-              {feira}
+              {cat}
             </button>
           ))}
         </div>
@@ -219,32 +153,18 @@ export default function PortfolioSection() {
                 className="group relative rounded-sm overflow-hidden cursor-pointer card-elegant bg-[oklch(0.97_0.003_240)]"
                 onClick={() => abrirProjeto(projeto)}
               >
-                <div className="aspect-[4/3] overflow-hidden relative bg-[oklch(0.12_0.08_240)]">
-                  {projeto.galeria.length > 0 ? (
-                    <img
-                      src={projeto.imagem}
-                      alt={`Stand personalizado ${projeto.cliente} - Montagem de stands para feiras - SAMS Locações`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <video
-                      src={projeto.video}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  )}
+                <div className="aspect-[4/3] overflow-hidden relative">
+                  <img
+                    src={projeto.imagem}
+                    alt={`Stand personalizado ${projeto.cliente} - Montagem de stands para feiras - SAMS Locações`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
                   {/* Video indicator */}
                   {projeto.video && (
                     <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
                       <Play size={14} className="text-white ml-0.5" fill="white" />
                     </div>
                   )}
-                  {/* Feira badge */}
-                  <div className="absolute top-3 left-3 bg-[oklch(0.75_0.14_75)] text-[oklch(0.12_0.02_240)] px-2.5 py-1 rounded-full text-[10px] font-heading font-bold tracking-wide">
-                    {projeto.feira}
-                  </div>
                 </div>
 
                 {/* Overlay on hover */}
@@ -264,11 +184,16 @@ export default function PortfolioSection() {
 
                 {/* VIP Badge */}
                 {projeto.vip && (
-                  <div className="absolute top-10 left-3 flex items-center gap-1 bg-[oklch(0.22_0.07_240)/90] text-[oklch(0.85_0.10_78)] px-2.5 py-1 rounded-full text-xs font-heading font-bold tracking-wide">
+                  <div className="absolute top-3 left-3 flex items-center gap-1 bg-[oklch(0.75_0.14_75)] text-[oklch(0.12_0.02_240)] px-2.5 py-1 rounded-full text-xs font-heading font-bold tracking-wide">
                     <Star size={10} fill="currentColor" />
                     VIP
                   </div>
                 )}
+
+                {/* Category badge */}
+                <div className="absolute top-3 right-3 bg-[oklch(0.22_0.07_240)/80] backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-heading tracking-wide">
+                  {projeto.categoria}
+                </div>
 
                 {/* Bottom info */}
                 <div className="p-4">
@@ -337,70 +262,60 @@ export default function PortfolioSection() {
                     autoPlay
                     className="w-full h-full object-contain"
                   />
-                ) : selecionado.galeria.length > 0 ? (
+                ) : (
                   <img
                     src={selecionado.galeria[fotoAtiva]}
                     alt={selecionado.titulo}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <video
-                    key={selecionado.video}
-                    src={selecionado.video}
-                    controls
-                    autoPlay
                     className="w-full h-full object-contain"
                   />
                 )}
               </div>
 
               {/* Thumbnails + video toggle */}
-              {(selecionado.galeria.length > 0 || selecionado.videoExtra) && (
-                <div className="flex items-center gap-2 px-4 pt-3 pb-1 overflow-x-auto">
-                  {selecionado.galeria.map((foto, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => { setFotoAtiva(idx); setVideoAtivo(null); }}
-                      className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
-                        !videoAtivo && fotoAtiva === idx
-                          ? "border-[oklch(0.75_0.14_75)]"
-                          : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <img src={foto} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                  {selecionado.video && selecionado.galeria.length > 0 && (
-                    <button
-                      onClick={() => setVideoAtivo(selecionado.video!)}
-                      className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
-                        videoAtivo === selecionado.video
-                          ? "border-[oklch(0.75_0.14_75)]"
-                          : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
-                      title="Assistir vídeo"
-                    >
-                      <Play size={20} className="text-white" fill="white" />
-                    </button>
-                  )}
-                  {selecionado.videoExtra && (
-                    <button
-                      onClick={() => setVideoAtivo(selecionado.videoExtra!)}
-                      className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
-                        videoAtivo === selecionado.videoExtra
-                          ? "border-[oklch(0.75_0.14_75)]"
-                          : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
-                      title="Assistir vídeo 2"
-                    >
-                      <div className="flex flex-col items-center">
-                        <Play size={16} className="text-white" fill="white" />
-                        <span className="text-white text-[9px] font-heading mt-0.5">2</span>
-                      </div>
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-2 px-4 pt-3 pb-1 overflow-x-auto">
+                {selecionado.galeria.map((foto, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { setFotoAtiva(idx); setVideoAtivo(null); }}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                      !videoAtivo && fotoAtiva === idx
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={foto} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+                {selecionado.video && (
+                  <button
+                    onClick={() => setVideoAtivo(selecionado.video!)}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
+                      videoAtivo === selecionado.video
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                    title="Assistir vídeo"
+                  >
+                    <Play size={20} className="text-white" fill="white" />
+                  </button>
+                )}
+                {selecionado.videoExtra && (
+                  <button
+                    onClick={() => setVideoAtivo(selecionado.videoExtra!)}
+                    className={`flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all flex items-center justify-center bg-[oklch(0.12_0.08_240)] ${
+                      videoAtivo === selecionado.videoExtra
+                        ? "border-[oklch(0.75_0.14_75)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                    title="Assistir vídeo 2"
+                  >
+                    <div className="flex flex-col items-center">
+                      <Play size={16} className="text-white" fill="white" />
+                      <span className="text-white text-[9px] font-heading mt-0.5">2</span>
+                    </div>
+                  </button>
+                )}
+              </div>
 
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -409,7 +324,7 @@ export default function PortfolioSection() {
                     <p className="text-[oklch(0.75_0.14_75)] text-sm font-heading">{selecionado.cliente} · {selecionado.evento}</p>
                   </div>
                   <span className="bg-[oklch(0.75_0.14_75)/20] text-[oklch(0.85_0.10_78)] px-3 py-1 rounded-full text-xs font-heading border border-[oklch(0.75_0.14_75)/30] whitespace-nowrap">
-                    {selecionado.feira}
+                    {selecionado.categoria}
                   </span>
                 </div>
                 <p className="text-white/70 text-sm font-sans mt-3 leading-relaxed">{selecionado.descricao}</p>
