@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumb from "@/components/Breadcrumb";
 
 const feiras = [
   {
@@ -137,7 +138,21 @@ export default function Feiras2026() {
 
       {/* Hero — padding-top compensa a Navbar fixa (h-20 = 80px) */}
       <section className="relative bg-[#0a1628] text-white pt-36 pb-20 px-4">
-        <div className="max-w-5xl mx-auto text-center">
+        <div className="max-w-5xl mx-auto">
+          {/* Breadcrumb + Voltar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <Breadcrumb items={[{ label: "Feiras 2026" }]} />
+            <button
+              onClick={() => { navigate("/"); window.scrollTo({ top: 0 }); }}
+              className="inline-flex items-center gap-2 text-white/50 hover:text-[#c9a84c] text-sm font-medium transition-colors duration-200 group self-start sm:self-auto"
+            >
+              <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar ao Início
+            </button>
+          </div>
+          <div className="text-center">
           <span className="inline-block bg-[#c9a84c]/20 text-[#c9a84c] text-sm font-semibold tracking-widest uppercase px-4 py-1 rounded-full mb-4">
             Agenda Oficial
           </span>
@@ -164,6 +179,7 @@ export default function Feiras2026() {
               WhatsApp
             </a>
           </div>
+          </div>{/* end text-center */}
         </div>
       </section>
 

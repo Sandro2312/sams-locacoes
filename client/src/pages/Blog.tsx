@@ -2,11 +2,22 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumb from "@/components/Breadcrumb";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight, Tag } from "lucide-react";
 import { useLocation } from "wouter";
 
 export const artigos = [
+  {
+    slug: "expoapras-2026-sams-locacoes",
+    titulo: "ExpoApras 2026: SAMS Locações entrega 4 stands de alto impacto em Pinhais/PR",
+    resumo: "A SAMS Locações marcou presença na 43ª ExpoApras com 4 stands personalizados: Neugebauer, Aromasil, Popper e AlcaFoods. Confira os destaques de cada projeto no Expotrade Convention Center.",
+    categoria: "Portfólio",
+    data: "17 de abril de 2026",
+    tempoLeitura: "4 min",
+    imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
+    palavrasChave: ["ExpoApras 2026", "stands supermercados", "Neugebauer", "Aromasil", "Popper", "AlcaFoods"],
+  },
   {
     slug: "como-escolher-montadora-de-stands",
     titulo: "Como Escolher uma Montadora de Stands para Sua Empresa",
@@ -64,12 +75,16 @@ export default function Blog() {
 
       {/* Hero do Blog */}
       <section className="bg-[oklch(0.18_0.07_240)] pt-32 pb-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
+            {/* Breadcrumb */}
+            <Breadcrumb items={[{ label: "Blog" }]} />
+
+            <div className="text-center">
             <div className="inline-flex items-center gap-2 border border-[oklch(0.75_0.14_75)/50] bg-[oklch(0.75_0.14_75)/10] text-[oklch(0.85_0.10_78)] px-4 py-1.5 rounded-full text-xs font-heading font-semibold tracking-[0.2em] uppercase mb-6">
               Blog SAMS Locações
             </div>
@@ -80,6 +95,7 @@ export default function Blog() {
             <p className="text-white/70 text-lg max-w-2xl mx-auto font-sans leading-relaxed">
               Conteúdo especializado sobre stands para feiras, eventos corporativos, tendências de design e estratégias para maximizar o impacto da sua marca.
             </p>
+            </div>
           </motion.div>
         </div>
       </section>

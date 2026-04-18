@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowLeft, Tag, ArrowRight } from "lucide-react";
 import { artigos } from "./Blog";
+import Breadcrumb from "@/components/Breadcrumb";
 
 const conteudos: Record<string, { html: string }> = {
   "como-escolher-montadora-de-stands": {
@@ -132,6 +133,39 @@ const conteudos: Record<string, { html: string }> = {
       <p>A <strong>SAMS Locações</strong> oferece orçamentos gratuitos e personalizados para cada projeto. Entre em contato e descubra a melhor solução para o seu orçamento.</p>
     `,
   },
+  "expoapras-2026-sams-locacoes": {
+    html: `
+      <p>A <strong>43ª ExpoApras — Feira e Convenção Paranaense de Supermercados</strong> aconteceu de 14 a 16 de abril de 2026 no <strong>Expotrade Convention Center</strong>, em Pinhais/PR. O evento é o maior do setor supermercadista do Paraná e um dos mais importantes do Brasil, reunindo fornecedores, varejistas e líderes do setor de alimentos e bebidas.</p>
+
+      <p>A <strong>SAMS Locações</strong> marcou presença com 4 stands de alto impacto, entregando projetos personalizados para marcas reconhecidas no mercado nacional. Confira os destaques de cada projeto:</p>
+
+      <h2>Stand Neugebauer</h2>
+      <p>A <strong>Neugebauer</strong>, uma das marcas de chocolates e balas mais tradicionais do Brasil, confiou à SAMS Locações a montagem do seu stand na ExpoApras 2026. O projeto foi desenvolvido com identidade visual marcante, área de degustação de produtos e exposição da linha completa de chocolates, balas e biscoitos. A iluminação estratégica valorizou cada produto em exposição, criando um ambiente aconchegante e atrativo para os visitantes.</p>
+
+      <h2>Stand Aromasil</h2>
+      <p>A <strong>Aromasil</strong>, especialista em ingredientes aromáticos para a indústria alimentar, teve seu stand projetado com foco em sofisticação e funcionalidade. O design valorizou a identidade da marca com área de atendimento personalizado, exposição de produtos e espaço para reuniões com clientes. A estrutura transmitiu a qualidade e a precisão que caracterizam os produtos da empresa.</p>
+
+      <h2>Stand Popper</h2>
+      <p>O stand da <strong>Popper</strong> foi desenvolvido com estrutura modular de alta qualidade, otimizando o espaço disponível e garantindo máximo impacto visual. O projeto priorizou a exposição dos produtos de forma clara e atrativa, facilitando a abordagem comercial da equipe de vendas durante os três dias de feira.</p>
+
+      <h2>Stand AlcaFoods</h2>
+      <p>A <strong>AlcaFoods</strong> apostou em um stand personalizado com foco em exposição de alimentos e área de degustação. O projeto criou uma experiência sensorial para os visitantes, combinando a apresentação dos produtos com um ambiente convidativo que estimulou o engajamento e as conversões comerciais.</p>
+
+      <h2>ExpoApras 2026 em Números</h2>
+      <ul>
+        <li><strong>Data:</strong> 14 a 16 de abril de 2026</li>
+        <li><strong>Local:</strong> Expotrade Convention Center — Pinhais/PR</li>
+        <li><strong>Edição:</strong> 43ª Feira e Convenção Paranaense de Supermercados</li>
+        <li><strong>Promoção:</strong> APRAS — Associação Paranaense de Supermercados</li>
+        <li><strong>Stands SAMS entregues:</strong> Neugebauer, Aromasil, Popper e AlcaFoods</li>
+      </ul>
+
+      <h2>Por que a SAMS Locações?</h2>
+      <p>Com mais de <strong>15 anos de experiência</strong> em montagem de stands para feiras e eventos corporativos em todo o Brasil, a SAMS Locações entrega projetos que combinam criatividade, qualidade de execução e pontualidade. Cada stand é tratado como um projeto único, com atenção especial à identidade visual da marca e aos objetivos comerciais do cliente.</p>
+
+      <p>A ExpoApras 2026 foi mais uma comprovação do nosso compromisso com a excelência. Parabéns às equipes da Neugebauer, Aromasil, Popper e AlcaFoods pela presença marcante na feira!</p>
+    `,
+  },
   "maiores-eventos-negocios-brasil-2026": {
     html: `
       <p>O Brasil é um dos países com maior número de feiras e eventos corporativos da América Latina. Em 2026, o calendário está repleto de oportunidades para empresas que querem expandir seus negócios, gerar leads e fortalecer sua presença de marca.</p>
@@ -231,6 +265,12 @@ export default function BlogArtigo() {
         </div>
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            {/* Breadcrumb */}
+            <Breadcrumb items={[
+              { label: "Blog", href: "/blog" },
+              { label: artigo.titulo }
+            ]} />
+
             <button
               onClick={() => navigate("/blog")}
               className="flex items-center gap-2 text-white/60 hover:text-white text-sm font-sans mb-6 transition-colors"
