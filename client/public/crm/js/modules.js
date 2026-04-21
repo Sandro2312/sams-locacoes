@@ -2626,77 +2626,7 @@ const ModuleSystem = {
             }
         },
 
-        bindAdminTools() {
-            const panel = document.getElementById('adminToolsPanel');
-            const btn = document.getElementById('adminResetDataBtn');
-            if (!panel || !btn) return;
-
-            const current =
-                (window.AuthSystem && typeof window.AuthSystem.getCurrentUser === 'function')
-                    ? (window.AuthSystem.getCurrentUser() || null)
-                    : ((window.AuthSystem && window.AuthSystem.currentUser) ? window.AuthSystem.currentUser : null);
-            const role = current && current.role != null ? String(current.role).toLowerCase() : '';
-            const isAdmin = role === 'administrador' || role === 'admin';
-
-            if (!isAdmin) {
-                panel.classList.add('hidden');
-                return;
-            }
-            panel.classList.remove('hidden');
-
-            if (btn.getAttribute('data-bound') === 'true') return;
-            btn.setAttribute('data-bound', 'true');
-
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (!confirm('Tem certeza que deseja ZERAR todos os dados? Esta ação não pode ser desfeita.')) return;
-                const typed = prompt('Para confirmar, digite ZERAR');
-                if (String(typed || '').trim().toUpperCase() !== 'ZERAR') return;
-
-                const setBusy = (busy) => {
-                    try { btn.disabled = !!busy; } catch {}
-                    try { btn.setAttribute('aria-busy', busy ? 'true' : 'false'); } catch {}
-                };
-                setBusy(true);
-
-                try {
-                    const resp = await fetch('/api/crm/admin/reset-data', { method: 'POST', credentials: 'include' });
-                    const payload = await resp.json().catch(() => null);
-                    if (!resp.ok) {
-                        const msg = payload && payload.error ? String(payload.error) : 'Falha ao zerar dados.';
-                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                            window.NotificationSystem.error(msg);
-                        } else {
-                            alert(msg);
-                        }
-                        return;
-                    }
-
-                    try { localStorage.clear(); } catch {}
-                    try { sessionStorage.clear(); } catch {}
-
-                    if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
-                        window.NotificationSystem.success('Dados zerados com sucesso. Recarregando...');
-                    }
-                    setTimeout(() => {
-                        try { window.location.reload(); } catch { window.location.href = '/'; }
-                    }, 200);
-                } catch (err) {
-                    const msg = (err && err.message) ? String(err.message) : 'Falha ao zerar dados.';
-                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                        window.NotificationSystem.error(msg);
-                    } else {
-                        alert(msg);
-                    }
-                } finally {
-                    setBusy(false);
-                }
-            });
-        },
-
-        refreshTarefasAdminApi(force = false) {
+                refreshTarefasAdminApi(force = false) {
             const now = Date.now();
             const last = this._tarefasAdminApiLastFetch || 0;
             if (!force && now - last < 60000) return;
