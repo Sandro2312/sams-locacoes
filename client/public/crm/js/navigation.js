@@ -460,6 +460,12 @@ const NavigationSystem = {
                 this.navigateToPage('kanban', 'board');
             }, 0);
         }
+
+        if (module === 'acervo') {
+            setTimeout(() => {
+                this.navigateToPage('acervo', 'documentos');
+            }, 0);
+        }
     },
 
     // Navegar para página específica
