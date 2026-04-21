@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Phone, Lock } from "lucide-react";
 import { useLocation } from "wouter";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/sams-logo_9fc7a984.jpg";
@@ -122,8 +122,17 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* CTA Button */}
+          {/* CTA Button + CRM */}
           <div className="hidden lg:flex items-center gap-3">
+            {/* Link CRM — acesso interno da equipe */}
+            <a
+              href="/crm"
+              title="Área da Equipe — CRM/ERP SAMS"
+              className="flex items-center gap-1.5 text-white/40 hover:text-[#c9a84c] transition-all duration-200 text-xs font-heading tracking-wide px-2 py-1.5 rounded-sm hover:bg-white/5 border border-transparent hover:border-white/10"
+            >
+              <Lock size={12} />
+              <span>Equipe</span>
+            </a>
             <button
               onClick={goToOrcamento}
               className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#b8963d] text-[#0a1628] font-heading font-semibold text-sm px-5 py-2.5 rounded-sm tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -167,7 +176,7 @@ export default function Navbar() {
               </button>
             );
           })}
-          <div className="pt-2 border-t border-white/10">
+          <div className="pt-2 border-t border-white/10 space-y-2">
             <button
               onClick={goToOrcamento}
               className="flex items-center justify-center gap-2 w-full bg-[#c9a84c] hover:bg-[#b8963d] text-[#0a1628] font-heading font-semibold text-sm px-5 py-3 rounded-sm tracking-wide transition-all duration-300"
@@ -175,6 +184,14 @@ export default function Navbar() {
               <Phone size={15} />
               Solicitar Orçamento
             </button>
+            {/* Link CRM mobile */}
+            <a
+              href="/crm"
+              className="flex items-center justify-center gap-2 w-full text-white/40 hover:text-[#c9a84c] font-heading text-xs px-5 py-2 rounded-sm tracking-wide transition-all duration-200 hover:bg-white/5"
+            >
+              <Lock size={12} />
+              Área da Equipe (CRM)
+            </a>
           </div>
         </div>
       </div>
