@@ -1,0 +1,284 @@
+/* =====================================================
+   SAMS CRM/ERP — Mobile Responsive CSS
+   Otimizado para smartphones (320px–768px)
+   ===================================================== */
+
+/* ── Header mobile ─────────────────────────────────── */
+@media (max-width: 640px) {
+  header .container > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header h1 {
+    font-size: 1rem !important;
+  }
+
+  header p.text-blue-100 {
+    font-size: 0.7rem !important;
+  }
+
+  /* Ocultar texto "Auditoria" no mobile — só ícone */
+  #auditBtn span {
+    display: none !important;
+  }
+
+  #auditBtn {
+    padding: 6px 10px !important;
+  }
+
+  /* Nome do usuário — reduzir */
+  #userNameDisplay {
+    font-size: 0.8rem !important;
+  }
+
+  #userRoleDisplay {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* ── Dashboard — grid de módulos ───────────────────── */
+@media (max-width: 768px) {
+  /* Grid de módulos: 2 colunas no mobile */
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  /* Cards de módulos — compactar */
+  .module-card {
+    padding: 14px !important;
+  }
+
+  .module-card .w-12 {
+    width: 36px !important;
+    height: 36px !important;
+    margin-right: 10px !important;
+  }
+
+  .module-card h3 {
+    font-size: 0.85rem !important;
+  }
+
+  .module-card p.text-gray-600 {
+    font-size: 0.72rem !important;
+  }
+
+  /* Ocultar descrição longa dos módulos no mobile */
+  .module-card > p.text-gray-600.text-sm:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  /* Em telas muito pequenas: 1 coluna */
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Main content — padding ────────────────────────── */
+@media (max-width: 640px) {
+  main.container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 16px !important;
+  }
+
+  main h2.text-3xl {
+    font-size: 1.4rem !important;
+  }
+}
+
+/* ── Tabelas — scroll horizontal ───────────────────── */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  table th,
+  table td {
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Ocultar colunas menos importantes em mobile */
+  table .hidden-mobile {
+    display: none !important;
+  }
+}
+
+/* ── Formulários — campos full width ───────────────── */
+@media (max-width: 640px) {
+  .grid.grid-cols-2,
+  .grid.grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Evita zoom automático no iOS */
+    width: 100% !important;
+  }
+
+  /* Botões de ação — full width em mobile */
+  .flex.items-center.space-x-2 button,
+  .flex.items-center.gap-2 button {
+    padding: 8px 12px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ── Modal / Drawer ────────────────────────────────── */
+@media (max-width: 640px) {
+  .modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0 auto !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  .drawer {
+    width: 100vw !important;
+  }
+
+  .modal-h,
+  .drawer-h {
+    padding: 12px !important;
+  }
+
+  .modal-h h3,
+  .drawer-h h3 {
+    font-size: 1rem !important;
+  }
+}
+
+/* ── Kanban — scroll horizontal ───────────────────── */
+@media (max-width: 768px) {
+  .kanban {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+  }
+
+  .kanban .col {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* ── Breadcrumb ────────────────────────────────────── */
+@media (max-width: 640px) {
+  #breadcrumb {
+    font-size: 0.75rem !important;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
+/* ── Botões de ação do header ──────────────────────── */
+@media (max-width: 480px) {
+  /* Esconder texto de botões, manter apenas ícones */
+  .btn-text-mobile {
+    display: none !important;
+  }
+
+  /* Botão Novo Lead, Novo Cliente etc — compactar */
+  button.bg-blue-600,
+  button.bg-green-600,
+  button.bg-teal-600,
+  button.bg-indigo-600 {
+    padding: 7px 10px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ── Cards de KPI / Estatísticas ───────────────────── */
+@media (max-width: 640px) {
+  .grid.grid-cols-2.md\:grid-cols-4,
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Valores KPI — reduzir tamanho */
+  .text-2xl.font-bold,
+  .text-3xl.font-bold {
+    font-size: 1.3rem !important;
+  }
+}
+
+/* ── Agenda / Dashboard cards ──────────────────────── */
+@media (max-width: 640px) {
+  .bg-white.rounded-lg.shadow-lg.p-6 {
+    padding: 14px !important;
+  }
+
+  /* Botões Atualizar / Abrir Kanban — coluna no mobile */
+  .flex.items-center.space-x-2 {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+/* ── Login screen ──────────────────────────────────── */
+@media (max-width: 480px) {
+  #loginScreen .bg-white {
+    width: 92vw !important;
+    padding: 24px 20px !important;
+  }
+
+  #loginScreen h2 {
+    font-size: 1.3rem !important;
+  }
+}
+
+/* ── Scrollbar fina em mobile ──────────────────────── */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+}
+
+/* ── Touch targets — mínimo 44px ───────────────────── */
+@media (max-width: 768px) {
+  button,
+  a[role="button"],
+  .module-card {
+    min-height: 44px;
+  }
+
+  .module-card {
+    min-height: auto;
+  }
+}
+
+/* ── Texto de boas-vindas ──────────────────────────── */
+@media (max-width: 640px) {
+  #dashboardContent > .mb-8 > h2 {
+    font-size: 1.4rem !important;
+  }
+
+  #dashboardContent > .mb-8 > p {
+    font-size: 0.85rem !important;
+  }
+}
