@@ -49,6 +49,11 @@ function getSession(token: string) {
   return s;
 }
 
+// Exportado para uso em outros módulos (ex: crm-acervo.ts)
+export function getSessionFromCrm(token: string) {
+  return getSession(token);
+}
+
 // ─── Middleware de autenticação CRM ──────────────────────────────────────────
 function requireCrmAuth(req: Request, res: Response, next: NextFunction) {
   const token = getCookie(req, "crm_session");

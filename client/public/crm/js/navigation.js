@@ -105,6 +105,13 @@ const NavigationSystem = {
                 comissoes: { name: 'Comissões', icon: 'fas fa-percentage' },
                 logs: { name: 'Logs', icon: 'fas fa-history' }
             }
+        },
+        acervo: {
+            name: 'Acervo',
+            icon: 'fas fa-archive',
+            pages: {
+                documentos: { name: 'Documentos', icon: 'fas fa-folder-open' }
+            }
         }
     },
 
@@ -749,6 +756,8 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.administracao?.listComissoes?.() || '';
         } else if (module === 'administracao' && page === 'logs') {
             pageContent = ModuleSystem?.administracao?.listLogs?.() || '';
+        } else if (module === 'acervo' && page === 'documentos') {
+            pageContent = '<div id="acervo-container" class="acervo-wrapper"></div>';
         } else if (module === 'kanban' && page === 'board') {
             pageContent = ModuleSystem?.kanban?.renderBoard?.() || '';
         }
@@ -987,6 +996,21 @@ const NavigationSystem = {
             setTimeout(() => {
                 try { ModuleSystem?.administracao?.initLogs?.(); } catch {}
             }, 50);
+        }
+        // Módulo Acervo Documental
+        if (module === 'acervo' && page === 'documentos') {
+            setTimeout(() => {
+                try {
+                    if (window.AcervoModule && typeof window.AcervoModule.init === 'function') {
+                        window.AcervoModule.init();
+                        console.log('✅ [NavigationSystem] AcervoModule inicializado');
+                    } else {
+                        console.warn('⚠️ [NavigationSystem] AcervoModule não encontrado');
+                    }
+                } catch (e) {
+                    console.warn('Falha ao inicializar AcervoModule:', e);
+                }
+            }, 100);
         }
     },
 

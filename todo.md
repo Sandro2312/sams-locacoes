@@ -60,3 +60,15 @@
 - [x] Instalar pixel do Meta (Facebook) no site - ID: 754354964297671
 - [x] Criar conta Meta Business Manager
 - [x] Exportar apresentação institucional para PDF e adicionar botão de download no site
+
+## Módulo Acervo Documental (CRM)
+- [x] Criar tabela MySQL: crm_acervo (com campos para evento, cliente, tipo, arquivo S3, link Drive)
+- [x] Endpoints REST: GET/POST/PUT/DELETE /api/crm/acervo
+- [x] Interface HTML/CSS/JS no CRM frontend (organização por Feira → Cliente → Tipo)
+- [x] Upload de arquivos para S3 (PDF, imagens, ZIP, DWG, até 50 MB)
+- [x] Campo para vincular URL do Google Drive
+- [x] Busca por nome, tipo, evento e ano
+- [x] Visualização de PDFs e imagens no navegador
+- [x] Integrar módulo ao menu lateral do CRM (card Acervo no dashboard)
+- [x] CSS responsivo mobile para o módulo
+- [x] Build de produção e checkpoint

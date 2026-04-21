@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerCrmRoutes } from "../crm";
+import { registerAcervoRoutes } from "../crm-acervo";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -39,6 +40,8 @@ async function startServer() {
   registerStorageProxy(app);
   // CRM/ERP routes under /api/crm
   registerCrmRoutes(app);
+  // Acervo Documental routes under /api/crm/acervo
+  registerAcervoRoutes(app);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
