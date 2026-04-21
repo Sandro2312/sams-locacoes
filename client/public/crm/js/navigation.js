@@ -1005,18 +1005,22 @@ const NavigationSystem = {
         }
         // Módulo Acervo Documental
         if (module === 'acervo' && page === 'documentos') {
-            setTimeout(() => {
-                try {
-                    if (window.AcervoModule && typeof window.AcervoModule.init === 'function') {
+            const tryInitAcervo = (attempts) => {
+                if (window.AcervoModule && typeof window.AcervoModule.init === 'function') {
+                    try {
                         window.AcervoModule.init();
                         console.log('✅ [NavigationSystem] AcervoModule inicializado');
-                    } else {
-                        console.warn('⚠️ [NavigationSystem] AcervoModule não encontrado');
+                    } catch (e) {
+                        console.warn('Falha ao inicializar AcervoModule:', e);
                     }
-                } catch (e) {
-                    console.warn('Falha ao inicializar AcervoModule:', e);
+                } else if (attempts < 20) {
+                    console.warn(`⚠️ [NavigationSystem] AcervoModule não encontrado, tentativa ${attempts}/20...`);
+                    setTimeout(() => tryInitAcervo(attempts + 1), 200);
+                } else {
+                    console.error('❌ [NavigationSystem] AcervoModule não disponível após 20 tentativas');
                 }
-            }, 100);
+            };
+            setTimeout(() => tryInitAcervo(1), 100);
         }
     },
 
