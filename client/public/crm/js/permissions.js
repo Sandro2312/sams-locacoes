@@ -162,6 +162,18 @@ const PermissionSystem = {
                 'admin.backup.create': 'Criar backups',
                 'admin.backup.restore': 'Restaurar backups'
             }
+        },
+        acervo: {
+            name: 'Acervo Documental',
+            permissions: {
+                'acervo.documentos.view': 'Visualizar documentos',
+                'acervo.documentos.create': 'Adicionar documentos',
+                'acervo.documentos.edit': 'Editar documentos',
+                'acervo.documentos.delete': 'Excluir documentos',
+                'acervo.arquivos.upload': 'Fazer upload de arquivos',
+                'acervo.arquivos.download': 'Baixar arquivos',
+                'acervo.drive.link': 'Vincular Google Drive'
+            }
         }
     },
 
