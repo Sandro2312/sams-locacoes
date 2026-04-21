@@ -20,6 +20,14 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  // Serve CRM static files from client/public/crm (dev mode)
+  const crmPublicPath = path.resolve(import.meta.dirname, "../..", "client", "public", "crm");
+  if (fs.existsSync(crmPublicPath)) {
+    app.use("/crm", express.static(crmPublicPath));
+    app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
+    app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
+  }
+
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
@@ -59,6 +67,14 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath));
+
+  // Serve CRM static files (production)
+  const crmDistPath = path.resolve(distPath, "crm");
+  if (fs.existsSync(crmDistPath)) {
+    app.use("/crm", express.static(crmDistPath));
+    app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
+    app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
+  }
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
