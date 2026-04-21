@@ -14,57 +14,57 @@ const AuthSystem = {
         'administrador': {
             name: 'Administrador',
             permissions: ['all'],
-            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'administracao']
+            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'administracao', 'acervo']
         },
         'marketing': {
             name: 'Marketing',
-            permissions: ['marketing', 'kanban'],
-            modules: ['marketing', 'kanban']
+            permissions: ['marketing', 'kanban', 'acervo'],
+            modules: ['marketing', 'kanban', 'acervo']
         },
         'comercial': {
             name: 'Comercial',
-            permissions: ['marketing', 'comercial', 'financeiro', 'kanban'],
-            modules: ['marketing', 'comercial', 'financeiro', 'kanban']
+            permissions: ['marketing', 'comercial', 'financeiro', 'kanban', 'acervo'],
+            modules: ['marketing', 'comercial', 'financeiro', 'kanban', 'acervo']
         },
         'vendedor': {
             name: 'Vendedor',
-            permissions: ['comercial', 'financeiro', 'kanban'],
-            modules: ['comercial', 'financeiro', 'kanban']
+            permissions: ['comercial', 'financeiro', 'kanban', 'acervo'],
+            modules: ['comercial', 'financeiro', 'kanban', 'acervo']
         },
         'projetos': {
             name: 'Projetos',
-            permissions: ['projetos', 'kanban'],
-            modules: ['projetos', 'kanban']
+            permissions: ['projetos', 'kanban', 'acervo'],
+            modules: ['projetos', 'kanban', 'acervo']
         },
         'montagem': {
             name: 'Montagem',
-            permissions: ['montagem', 'kanban'],
-            modules: ['montagem', 'kanban']
+            permissions: ['montagem', 'kanban', 'acervo'],
+            modules: ['montagem', 'kanban', 'acervo']
         },
         'financeiro': {
             name: 'Financeiro',
-            permissions: ['financeiro', 'kanban'],
-            modules: ['financeiro', 'kanban']
+            permissions: ['financeiro', 'kanban', 'acervo'],
+            modules: ['financeiro', 'kanban', 'acervo']
         },
         'administrativo': {
             name: 'Administrativo',
-            permissions: ['administrativo', 'kanban'],
-            modules: ['administrativo', 'kanban']
+            permissions: ['administrativo', 'kanban', 'acervo'],
+            modules: ['administrativo', 'kanban', 'acervo']
         },
         'juridico': {
             name: 'Jurídico',
-            permissions: ['juridico', 'kanban'],
-            modules: ['juridico', 'kanban']
+            permissions: ['juridico', 'kanban', 'acervo'],
+            modules: ['juridico', 'kanban', 'acervo']
         },
         'gerente': {
             name: 'Gerente',
-            permissions: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban'],
-            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban']
+            permissions: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'acervo'],
+            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'acervo']
         },
         'gerencia': {
             name: 'Gerência',
-            permissions: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban'],
-            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban']
+            permissions: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'acervo'],
+            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'acervo']
         }
     },
 
