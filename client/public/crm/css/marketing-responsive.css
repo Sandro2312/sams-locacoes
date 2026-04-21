@@ -1,0 +1,408 @@
+/* Marketing Forms - Responsive Design */
+/* Arquivo CSS dedicado para responsividade dos formulários de marketing */
+
+/* Base styles for all marketing forms */
+.marketing-form {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.marketing-form .form-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.marketing-form .form-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.marketing-form .form-content {
+    padding: 20px;
+}
+
+/* Grid system for form fields */
+.marketing-form .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.marketing-form .form-grid.two-columns {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.marketing-form .form-grid.full-width {
+    grid-template-columns: 1fr;
+}
+
+/* Form field styles */
+.marketing-form .form-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.marketing-form .form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.marketing-form .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+}
+
+.marketing-form .form-input,
+.marketing-form .form-select,
+.marketing-form .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.marketing-form .form-input:focus,
+.marketing-form .form-select:focus,
+.marketing-form .form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.marketing-form .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Button styles */
+.marketing-form .form-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.marketing-form .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.marketing-form .btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+}
+
+.marketing-form .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #d1d5db;
+}
+
+.marketing-form .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Validation styles */
+.marketing-form .field-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.marketing-form .error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.marketing-form .success-message {
+    color: #10b981;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Responsive breakpoints */
+
+/* Large screens (desktops) */
+@media (min-width: 1024px) {
+    .marketing-form {
+        padding: 30px;
+    }
+    
+    .marketing-form .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+    
+    .marketing-form .form-grid.three-columns {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .marketing-form .form-content {
+        padding: 30px;
+    }
+}
+
+/* Medium screens (tablets) */
+@media (max-width: 1023px) and (min-width: 768px) {
+    .marketing-form {
+        padding: 20px;
+    }
+    
+    .marketing-form .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .marketing-form .form-grid.single-column-tablet {
+        grid-template-columns: 1fr;
+    }
+    
+    .marketing-form .form-buttons {
+        justify-content: center;
+    }
+}
+
+/* Small screens (mobile phones) */
+@media (max-width: 767px) {
+    .marketing-form {
+        padding: 15px;
+        margin: 10px;
+    }
+    
+    .marketing-form .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .marketing-form .form-content {
+        padding: 15px;
+    }
+    
+    .marketing-form .form-header {
+        padding: 15px;
+        font-size: 1.1em;
+    }
+    
+    .marketing-form .form-input,
+    .marketing-form .form-select,
+    .marketing-form .form-textarea {
+        padding: 14px 16px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .marketing-form .form-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .marketing-form .btn {
+        width: 100%;
+        padding: 16px 24px;
+        font-size: 1rem;
+    }
+    
+    /* Stack form sections vertically on mobile */
+    .marketing-form .form-section {
+        margin-bottom: 15px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .marketing-form {
+        padding: 10px;
+        margin: 5px;
+    }
+    
+    .marketing-form .form-content {
+        padding: 12px;
+    }
+    
+    .marketing-form .form-header {
+        padding: 12px;
+        font-size: 1em;
+    }
+    
+    .marketing-form .form-input,
+    .marketing-form .form-select,
+    .marketing-form .form-textarea {
+        padding: 12px 14px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .marketing-form {
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    .marketing-form .form-section {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        break-inside: avoid;
+    }
+    
+    .marketing-form .form-buttons {
+        display: none;
+    }
+    
+    .marketing-form .form-header {
+        background: #f5f5f5 !important;
+        color: #333 !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .marketing-form .form-input,
+    .marketing-form .form-select,
+    .marketing-form .form-textarea {
+        border-width: 3px;
+    }
+    
+    .marketing-form .form-input:focus,
+    .marketing-form .form-select:focus,
+    .marketing-form .form-textarea:focus {
+        border-width: 4px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .marketing-form .form-input,
+    .marketing-form .form-select,
+    .marketing-form .form-textarea,
+    .marketing-form .btn {
+        transition: none;
+    }
+    
+    .marketing-form .btn:hover {
+        transform: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .marketing-form .form-section {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .marketing-form .form-input,
+    .marketing-form .form-select,
+    .marketing-form .form-textarea {
+        background: #374151;
+        border-color: #4b5563;
+        color: #f9fafb;
+    }
+    
+    .marketing-form .form-label {
+        color: #e5e7eb;
+    }
+    
+    .marketing-form .btn-secondary {
+        background: #374151;
+        color: #f9fafb;
+        border-color: #4b5563;
+    }
+}
+
+/* Accessibility improvements */
+.marketing-form .form-input:invalid {
+    border-color: #ef4444;
+}
+
+.marketing-form .form-input:valid {
+    border-color: #10b981;
+}
+
+/* Focus visible for keyboard navigation */
+.marketing-form .form-input:focus-visible,
+.marketing-form .form-select:focus-visible,
+.marketing-form .form-textarea:focus-visible,
+.marketing-form .btn:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Loading states */
+.marketing-form .form-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.marketing-form .form-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Utility classes for specific marketing form needs */
+.marketing-form .highlight-field {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+}
+
+.marketing-form .required-field::after {
+    content: ' *';
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.marketing-form .optional-field {
+    opacity: 0.8;
+}
+
+.marketing-form .field-help {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 4px;
+    font-style: italic;
+}
