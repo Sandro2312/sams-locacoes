@@ -77,7 +77,20 @@ export function serveStatic(app: Express) {
   const crmDistPath = path.resolve(distPath, "crm");
   if (fs.existsSync(crmDistPath)) {
     console.log(`[CRM] Serving CRM from: ${crmDistPath}`);
-    app.use("/crm", express.static(crmDistPath));
+    // JS/CSS com ?v= no URL: cache de 1 ano (imutável)
+    // HTML e arquivos sem versão: sem cache (sempre busca novo)
+    app.use("/crm", express.static(crmDistPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+          // Arquivos JS/CSS sem cache para garantir sempre a versão mais recente
+          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        }
+      }
+    }));
     app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
     app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
   } else {
