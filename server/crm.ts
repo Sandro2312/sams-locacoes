@@ -32,36 +32,50 @@ async function dbOne<T = any>(sql: string, params: any[] = []): Promise<T | null
   return rows[0] ?? null;
 }
 
-// ─── Session store (in-memory, suficiente para uso interno) ──────────────────
-const sessions = new Map<string, { userId: number; role: string; name: string; expiresAt: number }>();
+/// ─── Session store (MySQL — persiste entre reinicializações do servidor) ────────────
 const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 horas
 
-function createSession(userId: number, role: string, name: string): string {
+async function createSession(userId: number, role: string, name: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { userId, role, name, expiresAt: Date.now() + SESSION_TTL });
+  const expiresAt = Date.now() + SESSION_TTL;
+  await db(
+    "INSERT INTO crm_sessions (token, user_id, role, name, expires_at) VALUES (?, ?, ?, ?, ?)",
+    [token, userId, role, name, expiresAt]
+  );
   return token;
 }
 
-function getSession(token: string) {
-  const s = sessions.get(token);
-  if (!s) return null;
-  if (s.expiresAt < Date.now()) { sessions.delete(token); return null; }
-  return s;
+async function getSession(token: string): Promise<{ userId: number; role: string; name: string; expiresAt: number } | null> {
+  const row = await dbOne<{ user_id: number; role: string; name: string; expires_at: number }>(
+    "SELECT user_id, role, name, expires_at FROM crm_sessions WHERE token = ?",
+    [token]
+  );
+  if (!row) return null;
+  if (row.expires_at < Date.now()) {
+    await db("DELETE FROM crm_sessions WHERE token = ?", [token]).catch(() => {});
+    return null;
+  }
+  return { userId: row.user_id, role: row.role, name: row.name, expiresAt: row.expires_at };
+}
+
+async function deleteSession(token: string): Promise<void> {
+  await db("DELETE FROM crm_sessions WHERE token = ?", [token]).catch(() => {});
 }
 
 // Exportado para uso em outros módulos (ex: crm-acervo.ts)
-export function getSessionFromCrm(token: string) {
+export async function getSessionFromCrm(token: string) {
   return getSession(token);
 }
 
-// ─── Middleware de autenticação CRM ──────────────────────────────────────────
+// ─── Middleware de autenticação CRM ────────────────────────────────────────────
 function requireCrmAuth(req: Request, res: Response, next: NextFunction) {
   const token = getCookie(req, "crm_session");
   if (!token) return res.status(401).json({ error: "Não autenticado" });
-  const session = getSession(token);
-  if (!session) return res.status(401).json({ error: "Sessão expirada" });
-  (req as any).crmUser = session;
-  next();
+  getSession(token).then(session => {
+    if (!session) return res.status(401).json({ error: "Sessão expirada" });
+    (req as any).crmUser = session;
+    next();
+  }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
 function requireCrmAdmin(req: Request, res: Response, next: NextFunction) {
@@ -117,10 +131,10 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   });
 
-  r.post("/logout", (req, res) => {
+  r.post("/logout", async (req, res) => {
     const token = getCookie(req, "crm_session");
-    if (token) sessions.delete(token);
-    res.clearCookie("crm_session", { path: "/crm" });
+    if (token) await deleteSession(token);
+    res.clearCookie("crm_session", { path: "/" });
     res.json({ ok: true });
   });
 
