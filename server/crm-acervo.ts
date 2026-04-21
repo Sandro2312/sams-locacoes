@@ -38,10 +38,11 @@ function getCookie(req: Request, name: string): string | undefined {
 function requireCrmAuth(req: Request, res: Response, next: Function) {
   const token = getCookie(req, "crm_session");
   if (!token) return res.status(401).json({ error: "Não autenticado" });
-  const session = getSessionFromCrm(token);
-  if (!session) return res.status(401).json({ error: "Sessão expirada" });
-  (req as any).crmUser = session;
-  next();
+  getSessionFromCrm(token).then(session => {
+    if (!session) return res.status(401).json({ error: "Sessão expirada" });
+    (req as any).crmUser = session;
+    next();
+  }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
 // ─── Multer (memória — depois enviamos para S3) ────────────────────────────────
