@@ -156,19 +156,7 @@ const AuthSystem = {
             logoutBtn.addEventListener('click', this.logout.bind(this));
         }
 
-        // Audit button
-    const auditBtn = document.getElementById('auditBtn');
-    if (auditBtn) {
-        auditBtn.addEventListener('click', () => {
-            if (window.AuditSystem) {
-                window.AuditSystem.showAuditViewer();
-            } else {
-                console.error('Sistema de Auditoria não disponível');
-            }
-        });
-    }
-
-    // Botão de desbloqueio (somente em ambiente localhost)
+        // Botão de desbloqueio (somente em ambiente localhost)
     const isDev = ['localhost', '127.0.0.1'].includes(location.hostname);
     const devUnlockBtn = document.getElementById('devUnlockBtn');
     if (isDev && devUnlockBtn) {
