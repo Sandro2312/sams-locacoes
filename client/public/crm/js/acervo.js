@@ -11,22 +11,47 @@ const AcervoModule = {
   filtros: { busca: '', tipo_doc: '', evento_id: '', cliente_id: '', ano: '' },
   eventos: [],
   clientes: [],
-  anos: [],
   uploading: false,
 
-  // ─── Inicialização ─────────────────────────────────────────────────────────
+  // ─── Inicialização ──────────────────────────────────────────────────────────────────────
   async init() {
-    await Promise.all([
-      this.loadEventos(),
-      this.loadClientes(),
-      this.loadAnos(),
-    ]);
-    await this.loadDocs();
+    // 1. Aguardar o container estar no DOM (MutationObserver, máx 5s)
+    const container = await new Promise(resolve => {
+      const el = document.getElementById('acervo-container');
+      if (el) return resolve(el);
+      const obs = new MutationObserver(() => {
+        const found = document.getElementById('acervo-container');
+        if (found) { obs.disconnect(); resolve(found); }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+      setTimeout(() => { obs.disconnect(); resolve(null); }, 5000);
+    });
+    if (!container) {
+      console.error('[AcervoModule] #acervo-container não encontrado no DOM após 5s');
+      return;
+    }
+    // 2. Renderizar interface vazia imediatamente (mostra skeleton)
     this.renderInterface();
-    this.bindEvents();
+    // 3. Carregar metadados e documentos com tratamento de erro
+    try {
+      await Promise.all([
+        this.loadEventos(),
+        this.loadClientes(),
+        this.loadAnos(),
+      ]);
+    } catch (e) {
+      console.warn('[AcervoModule] Erro ao carregar metadados:', e.message);
+    }
+    try {
+      await this.loadDocs();
+    } catch (e) {
+      console.warn('[AcervoModule] Erro ao carregar documentos:', e.message);
+    }
+    // 4. Re-renderizar com dados carregados
+    this.renderInterface();
   },
 
-  // ─── Chamadas à API ────────────────────────────────────────────────────────
+  // ─── Chamadas à API ──────────────────────────────────────────────────────────────────────
   async api(method, path, body, isFormData = false) {
     const opts = { method, credentials: 'include' };
     if (body) {
