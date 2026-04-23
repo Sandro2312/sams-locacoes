@@ -138,6 +138,32 @@ const ModuleSystem = {
         this.data = { ...base };
     },
 
+    async loadTransacoes() {
+        try {
+            const response = await fetch('/api/crm/transacoes', { credentials: 'include' });
+            if (!response.ok) return;
+            const rawRows = await response.json().catch(() => []);
+            if (Array.isArray(rawRows)) {
+                // Mapear snake_case da API para camelCase usado pelo frontend
+                const rows = rawRows.map(r => ({
+                    ...r,
+                    centroCusto: r.centro_custo || r.centroCusto || null,
+                    eventoId: r.evento_id || r.eventoId || null,
+                    clienteId: r.cliente_id || r.clienteId || null,
+                    clienteNome: r.cliente_nome || r.clienteNome || null,
+                    eventoNome: r.evento_nome || r.eventoNome || null,
+                    recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,
+                    recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null
+                }));
+                this.data.transacoes = rows;
+                this.saveData();
+                console.log(`✅ [ModuleSystem] Transações carregadas da API: ${rows.length} registros`);
+            }
+        } catch (e) {
+            console.warn('[ModuleSystem] Falha ao carregar transações da API:', e);
+        }
+    },
+
     async loadProjetos() {
         try {
             const response = await fetch('/api/crm/projetos', { credentials: 'include' });
@@ -4641,37 +4667,29 @@ const ModuleSystem = {
                     const b = Math.max(0, Number(data.despesas || 0));
                     const c = lucro;
                     const maxV = Math.max(a, b, Math.abs(c), 1);
-                    const h = (v) => Math.round((Math.min(Math.abs(v), maxV) / maxV) * 100);
+                    // Limitar altura máxima a 85% para sempre mostrar o fundo cinza
+                    const h = (v) => Math.min(85, Math.round((Math.min(Math.abs(v), maxV) / maxV) * 85));
                     const lucroBarCls = c >= 0 ? 'bg-green-500' : 'bg-red-500';
                     const lucroTextCls = c >= 0 ? 'text-green-700' : 'text-red-700';
+                    const barItem = (heightPct, barCls, label, valueHtml, textCls) => (
+                        '<div class="flex-1 flex flex-col items-center" style="min-width:80px">' +
+                            '<div class="w-full flex flex-col justify-end" style="height:100px;background:#f3f4f6;border-radius:8px;overflow:hidden;">' +
+                                '<div class="w-full ' + barCls + ' transition-all" style="height:' + String(heightPct) + '%;min-height:' + (heightPct > 0 ? '4' : '0') + 'px"></div>' +
+                            '</div>' +
+                            '<div class="mt-2 text-xs text-gray-600 text-center">' + label + '</div>' +
+                            '<div class="text-xs font-semibold ' + textCls + ' text-center">' + valueHtml + '</div>' +
+                        '</div>'
+                    );
                     return (
                         '<div class="bg-white border border-gray-200 rounded-lg p-4">' +
                             '<div class="flex items-center justify-between mb-3">' +
                                 '<div class="font-semibold text-gray-800">Comparação do Fluxo de Caixa</div>' +
                                 '<div class="text-xs text-gray-500">Total</div>' +
                             '</div>' +
-                            '<div class="flex items-end gap-4 h-32">' +
-                                '<div class="flex-1 flex flex-col items-center gap-2">' +
-                                    '<div class="w-full bg-gray-100 rounded-lg overflow-hidden h-28 flex items-end">' +
-                                        '<div class="w-full bg-green-500" style="height:' + String(h(a)) + '%"></div>' +
-                                    '</div>' +
-                                    '<div class="text-xs text-gray-600">Receitas</div>' +
-                                    '<div class="text-xs font-semibold text-green-700">' + toBR(totalReceitas) + '</div>' +
-                                '</div>' +
-                                '<div class="flex-1 flex flex-col items-center gap-2">' +
-                                    '<div class="w-full bg-gray-100 rounded-lg overflow-hidden h-28 flex items-end">' +
-                                        '<div class="w-full bg-red-500" style="height:' + String(h(b)) + '%"></div>' +
-                                    '</div>' +
-                                    '<div class="text-xs text-gray-600">Despesas</div>' +
-                                    '<div class="text-xs font-semibold text-red-700">' + toBR(data.despesas) + '</div>' +
-                                '</div>' +
-                                '<div class="flex-1 flex flex-col items-center gap-2">' +
-                                    '<div class="w-full bg-gray-100 rounded-lg overflow-hidden h-28 flex items-end">' +
-                                        '<div class="w-full ' + lucroBarCls + '" style="height:' + String(h(c)) + '%"></div>' +
-                                    '</div>' +
-                                    '<div class="text-xs text-gray-600">Lucro</div>' +
-                                    '<div class="text-xs font-semibold ' + lucroTextCls + '">' + toBR(lucro) + '</div>' +
-                                '</div>' +
+                            '<div class="flex items-end gap-4" style="padding-bottom:4px">' +
+                                barItem(h(a), 'bg-green-500', 'Receitas', toBR(totalReceitas), 'text-green-700') +
+                                barItem(h(b), 'bg-red-500', 'Despesas', toBR(data.despesas), 'text-red-700') +
+                                barItem(h(c), lucroBarCls, 'Lucro', toBR(lucro), lucroTextCls) +
                             '</div>' +
                         '</div>'
                     );
@@ -4736,16 +4754,17 @@ const ModuleSystem = {
                         return { ym, receitas: r, despesas: d, saldo: r - d };
                     });
                     const maxV = Math.max(...points.map(p => Math.max(p.receitas, p.despesas)), 1);
-                    const h = (v) => Math.round((Math.min(Math.max(v, 0), maxV) / maxV) * 100);
+                    // Limitar a 85% para sempre mostrar fundo cinza (evitar blocos sólidos)
+                    const h = (v) => Math.min(85, Math.round((Math.min(Math.max(v, 0), maxV) / maxV) * 85));
                     const bars = points.map(p => {
                         return (
                             '<div class="flex flex-col items-center w-16">' +
-                                '<div class="flex items-end gap-1 h-28 w-full">' +
-                                    '<div class="flex-1 bg-gray-100 rounded overflow-hidden flex items-end">' +
-                                        '<div class="w-full bg-green-500" style="height:' + String(h(p.receitas)) + '%"></div>' +
+                                '<div class="flex items-end gap-1 w-full" style="height:112px">' +
+                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6">' +
+                                        '<div class="w-full bg-green-500" style="height:' + String(h(p.receitas)) + '%;min-height:' + (h(p.receitas) > 0 ? '3' : '0') + 'px"></div>' +
                                     '</div>' +
-                                    '<div class="flex-1 bg-gray-100 rounded overflow-hidden flex items-end">' +
-                                        '<div class="w-full bg-red-500" style="height:' + String(h(p.despesas)) + '%"></div>' +
+                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6">' +
+                                        '<div class="w-full bg-red-500" style="height:' + String(h(p.despesas)) + '%;min-height:' + (h(p.despesas) > 0 ? '3' : '0') + 'px"></div>' +
                                     '</div>' +
                                 '</div>' +
                                 '<div class="mt-2 text-xs text-gray-600">' + escapeHtml(monthLabel(p.ym)) + '</div>' +

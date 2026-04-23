@@ -449,6 +449,18 @@ const AuthSystem = {
             console.warn('⚠️ ModuleSystem não disponível para inicialização');
         }
 
+        // 🔄 Sincronização inicial: carregar transações do servidor (garante mobile/desktop em sincronia)
+        setTimeout(async () => {
+            try {
+                if (typeof ModuleSystem !== 'undefined' && typeof ModuleSystem.loadTransacoes === 'function') {
+                    await ModuleSystem.loadTransacoes();
+                    console.log('✅ [AuthSystem] Transações sincronizadas após login');
+                }
+            } catch (e) {
+                console.warn('[AuthSystem] Falha ao sincronizar transações após login:', e);
+            }
+        }, 500);
+
         setTimeout(() => {
             this.maybeShowDailyWelcome();
         }, 350);
