@@ -34,9 +34,11 @@ function requireAuth(req: any, res: any, next: any) {
   }).catch(() => res.status(401).json({ error: "Erro de autenticação" }));
 }
 
+const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
+
 function requireAdmin(req: any, res: any, next: any) {
   requireAuth(req, res, () => {
-    if (req.crmUser.role !== "admin" && req.crmUser.role !== "manager") {
+    if (!ADMIN_ROLES.includes(req.crmUser.role)) {
       return res.status(403).json({ error: "Acesso negado" });
     }
     next();
