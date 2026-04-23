@@ -1312,15 +1312,53 @@ const FormSystem = {
                     return out;
                 };
 
+                const buildApiPayload = (item) => ({
+                    descricao: item.descricao || item.nome || '',
+                    tipo: item.tipo || 'pagar',
+                    valor: parseFloat(String(item.valor || 0).replace(',', '.')) || 0,
+                    status: item.status || 'Pendente',
+                    centro_custo: item.centroCusto || item.centro_custo || null,
+                    data: item.data || null,
+                    observacoes: item.observacoes || null,
+                    evento_id: item.eventoId || item.evento_id || null,
+                    cliente_id: item.clienteId || item.cliente_id || null,
+                    recorrencia: item.recorrencia || 'nenhuma',
+                    recorrencia_grupo_id: item.recorrenciaGrupoId || null,
+                    recorrencia_indice: item.recorrenciaIndice || null
+                });
+
+                const postTransacao = async (item) => {
+                    try {
+                        const resp = await fetch('/api/crm/transacoes', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify(buildApiPayload(item))
+                        });
+                        const json = await resp.json().catch(() => ({}));
+                        if (resp.ok && json && json.id != null) {
+                            return json.id;
+                        } else {
+                            console.warn('[FormSystem] POST /api/crm/transacoes não OK:', json);
+                            // Fallback local
+                            if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
+                                return ModuleSystem.addItem('transacoes', { ...item, _localOnly: true });
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[FormSystem] Falha ao criar transação no backend, usando fallback local:', err);
+                        if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
+                            return ModuleSystem.addItem('transacoes', { ...item, _localOnly: true });
+                        }
+                    }
+                    return null;
+                };
+
                 if (!isRecorrente) {
                     const payload = normalizeItem({ ...data, recorrenciaQtd: 1 });
-                    if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                        createdId = ModuleSystem.addItem('transacoes', payload);
-                    }
+                    createdId = await postTransacao(payload);
                 } else {
-                    const groupId = (window.ModuleSystem && typeof ModuleSystem.generateId === 'function')
-                        ? `rec_${ModuleSystem.generateId()}`
-                        : `rec_${Date.now()}`;
+                    const groupId = `rec_${Date.now()}`;
                     const getDueDate = (index) => {
                         switch (recorrencia) {
                             case 'diaria': return addDays(baseDate, index);
@@ -1348,10 +1386,8 @@ const FormSystem = {
                             delete item.dataPagamento;
                             delete item.formaPagamento;
                         }
-                        if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                            const newId = ModuleSystem.addItem('transacoes', item);
-                            if (i === 0) createdId = newId;
-                        }
+                        const newId = await postTransacao(item);
+                        if (i === 0) createdId = newId;
                     }
                 }
             } else if (module === 'clientes') {
@@ -2014,6 +2050,35 @@ const FormSystem = {
                         delete nextData.comprovanteMime;
                     }
                     ModuleSystem.updateItem('contasReceber', id, nextData);
+                }
+            } else if (module === 'transacoes') {
+                // Atualizar transação via API REST
+                try {
+                    const resp = await fetch(`/api/crm/transacoes/${encodeURIComponent(id)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            descricao: data.descricao || data.nome || '',
+                            tipo: data.tipo || 'pagar',
+                            valor: parseFloat(String(data.valor || 0).replace(',', '.')) || 0,
+                            status: data.status || 'Pendente',
+                            centro_custo: data.centroCusto || data.centro_custo || null,
+                            data: data.data || null,
+                            observacoes: data.observacoes || null,
+                            evento_id: data.eventoId || data.evento_id || null,
+                            cliente_id: data.clienteId || data.cliente_id || null
+                        })
+                    });
+                    if (!resp.ok) {
+                        console.warn('[FormSystem] PUT /api/crm/transacoes/:id não OK, atualizando apenas localmente');
+                    }
+                } catch (err) {
+                    console.warn('[FormSystem] Falha ao atualizar transação no backend, atualizando apenas localmente:', err);
+                } finally {
+                    if (window.ModuleSystem && typeof ModuleSystem.updateItem === 'function') {
+                        ModuleSystem.updateItem('transacoes', id, data);
+                    }
                 }
             } else {
                 // Atualizar no ModuleSystem para demais módulos

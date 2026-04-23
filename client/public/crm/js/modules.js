@@ -7335,6 +7335,22 @@ const ModuleSystem = {
             }
 
             const toRemove = new Set(idsToRemove.filter(Boolean));
+
+            // Excluir via API REST (backend MySQL)
+            const numericIds = idsToRemove.filter(rid => /^[0-9]+$/.test(rid));
+            if (numericIds.length > 0) {
+                try {
+                    await Promise.all(numericIds.map(rid =>
+                        fetch(`/api/crm/transacoes/${encodeURIComponent(rid)}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        }).catch(e => console.warn('[ModuleSystem] Falha ao excluir transação no backend:', e))
+                    ));
+                } catch (e) {
+                    console.warn('[ModuleSystem] Erro ao excluir transações no backend:', e);
+                }
+            }
+
             const next = moduleData.filter(t => !(t && t.id != null && toRemove.has(String(t.id))));
             moduleData.splice(0, moduleData.length, ...next);
             this.saveData();
