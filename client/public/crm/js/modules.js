@@ -163,6 +163,30 @@ const ModuleSystem = {
                 this.data.transacoes = rows;
                 this.saveData();
                 console.log(`✅ [ModuleSystem] Transações carregadas da API: ${rows.length} registros`);
+
+                // Re-renderizar automaticamente se o módulo financeiro estiver aberto
+                try {
+                    if (window.NavigationSystem) {
+                        const curMod = window.NavigationSystem.currentModule;
+                        const curPage = window.NavigationSystem.currentPage;
+                        if (curMod === 'financeiro') {
+                            if (curPage) {
+                                // Está em uma página específica (ex: despesas) - re-navegar
+                                window.NavigationSystem.navigateToPage(curMod, curPage);
+                            } else {
+                                // Está no overview do módulo financeiro - re-renderizar dashboard
+                                if (this.financeiro && typeof this.financeiro.initDashboardHome === 'function') {
+                                    this.financeiro.initDashboardHome();
+                                } else {
+                                    window.NavigationSystem.navigateToModule('financeiro');
+                                }
+                            }
+                            console.log('🔄 [ModuleSystem] Dashboard financeiro re-renderizado após sync');
+                        }
+                    }
+                } catch (rerenderErr) {
+                    console.warn('[ModuleSystem] Falha ao re-renderizar após sync:', rerenderErr);
+                }
             }
         } catch (e) {
             console.warn('[ModuleSystem] Falha ao carregar transações da API:', e);
