@@ -75,10 +75,12 @@ function requireCrmAuth(req: Request, res: Response, next: NextFunction) {
   }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
+const CRM_ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
+
 function requireCrmAdmin(req: Request, res: Response, next: NextFunction) {
   requireCrmAuth(req, res, () => {
     const user = (req as any).crmUser;
-    if (user.role !== "admin" && user.role !== "manager") {
+    if (!CRM_ADMIN_ROLES.includes(user.role)) {
       return res.status(403).json({ error: "Acesso restrito" });
     }
     next();
