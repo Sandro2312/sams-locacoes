@@ -16,9 +16,10 @@ const db = async (sql: string, params: any[] = []) => {
 
 async function getSession(token: string) {
   if (!token) return null;
+  const now = Date.now();
   const rows = await db(
-    "SELECT s.*, u.id as userId, u.name, u.email, u.role FROM crm_sessions s JOIN crm_users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > NOW()",
-    [token]
+    "SELECT s.*, u.id as userId, u.name, u.email, u.role FROM crm_sessions s JOIN crm_users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+    [token, now]
   );
   return rows[0] || null;
 }

@@ -46,16 +46,13 @@ async function createSession(userId: number, role: string, name: string): Promis
 }
 
 async function getSession(token: string): Promise<{ userId: number; role: string; name: string; expiresAt: number } | null> {
+  const now = Date.now();
   const row = await dbOne<{ user_id: number; role: string; name: string; expires_at: number }>(
-    "SELECT user_id, role, name, expires_at FROM crm_sessions WHERE token = ?",
-    [token]
+    "SELECT user_id, role, name, expires_at FROM crm_sessions WHERE token = ? AND expires_at > ?",
+    [token, now]
   );
   if (!row) return null;
-  if (row.expires_at < Date.now()) {
-    await db("DELETE FROM crm_sessions WHERE token = ?", [token]).catch(() => {});
-    return null;
-  }
-  return { userId: row.user_id, role: row.role, name: row.name, expiresAt: row.expires_at };
+  return { userId: row.user_id, role: row.role, name: row.name, expiresAt: Number(row.expires_at) };
 }
 
 async function deleteSession(token: string): Promise<void> {
@@ -120,7 +117,7 @@ export function registerCrmRoutes(app: any) {
     await db("UPDATE crm_users SET last_login = NOW() WHERE id = ?", [user.id]);
     await audit(user.id, "login", "crm_users", user.id, null, req.ip);
 
-    const token = createSession(user.id, user.role, user.name);
+    const token = await createSession(user.id, user.role, user.name);
     res.cookie("crm_session", token, {
       httpOnly: true,
       sameSite: "lax",
