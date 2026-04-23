@@ -555,6 +555,18 @@ const NavigationSystem = {
                     ModuleSystem.financeiro.initDashboardHome();
                 }
             } catch {}
+
+            // Sincronizar transações da API ao abrir o módulo financeiro (garante dados atualizados no mobile)
+            setTimeout(async () => {
+                try {
+                    if (window.ModuleSystem && typeof window.ModuleSystem.loadTransacoes === 'function') {
+                        await window.ModuleSystem.loadTransacoes();
+                        console.log('✅ [NavigationSystem] Transações sincronizadas ao abrir módulo financeiro');
+                    }
+                } catch (e) {
+                    console.warn('[NavigationSystem] Falha ao sincronizar transações:', e);
+                }
+            }, 200);
         }
         if (module === 'comercial') {
             try {
