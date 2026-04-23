@@ -100,10 +100,11 @@ export function registerAcervoRoutes(app: any) {
       if (cliente_id) { sql += " AND cliente_id = ?"; params.push(parseInt(cliente_id)); }
       if (ano) { sql += " AND ano = ?"; params.push(parseInt(ano)); }
 
-      sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-      params.push(parseInt(limit), parseInt(offset));
+      const limitNum = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+      const offsetNum = Math.max(parseInt(offset) || 0, 0);
+      sql += " ORDER BY created_at DESC";
 
-      const rows = await db(sql, params);
+      const rows = await db(sql + ` LIMIT ${limitNum} OFFSET ${offsetNum}`, params);
 
       // Contar total
       let countSql = "SELECT COUNT(*) as total FROM crm_acervo WHERE 1=1";
@@ -118,9 +119,10 @@ export function registerAcervoRoutes(app: any) {
       if (cliente_id) { countSql += " AND cliente_id = ?"; countParams.push(parseInt(cliente_id)); }
       if (ano) { countSql += " AND ano = ?"; countParams.push(parseInt(ano)); }
 
-      const [{ total }] = await db<{ total: number }>(countSql, countParams);
+      const countResult = await db<{ total: number }>(countSql, countParams);
+      const total = countResult[0]?.total ?? 0;
 
-      res.json({ docs: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
+      res.json({ docs: rows, total, limit: limitNum, offset: offsetNum });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -153,27 +155,33 @@ export function registerAcervoRoutes(app: any) {
       let nome_arquivo_original: string | null = null;
       let tamanho_bytes: number | null = null;
       let mime_type: string | null = null;
+      let s3_key: string | null = null;
 
       // Upload para S3 se arquivo enviado
       if (req.file) {
         const ext = path.extname(req.file.originalname) || "";
         const randomSuffix = crypto.randomBytes(8).toString("hex");
         const anoStr = ano || new Date().getFullYear();
-        const eventoSlug = (evento_nome || "geral").toLowerCase().replace(/[^a-z0-9]/g, "-");
+        const eventoSlug = (evento_nome || "geral").toLowerCase().replace(/[^a-z0-9]/g, "-").substring(0, 40);
         const key = `acervo/${anoStr}/${eventoSlug}/${randomSuffix}${ext}`;
         const result = await storagePut(key, req.file.buffer, req.file.mimetype);
         url_arquivo = result.url;
+        s3_key = result.key;
         nome_arquivo_original = req.file.originalname;
         tamanho_bytes = req.file.size;
         mime_type = req.file.mimetype;
       }
 
+      // Obter userId e nome do usuário
+      const userId = user.userId || user.user_id || null;
+      const userName = user.name || user.user_nome || null;
+
       const [result] = await getPool().execute(
         `INSERT INTO crm_acervo 
           (nome, descricao, tipo_doc, evento_id, evento_nome, cliente_id, cliente_nome, ano, 
-           url_arquivo, url_drive, nome_arquivo_original, tamanho_bytes, mime_type, tags,
+           url_arquivo, url_drive, nome_arquivo_original, tamanho_bytes, mime_type, s3_key, tags,
            criado_por, criado_por_nome)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           nome, descricao || null,
           TIPOS_DOC.includes(tipo_doc) ? tipo_doc : "outro",
@@ -187,9 +195,10 @@ export function registerAcervoRoutes(app: any) {
           nome_arquivo_original,
           tamanho_bytes,
           mime_type,
+          s3_key,
           tags || null,
-          user.user_id,
-          user.user_nome,
+          userId,
+          userName,
         ]
       ) as any;
 
