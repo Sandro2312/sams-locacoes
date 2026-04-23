@@ -72,6 +72,11 @@ const ModuleSystem = {
         this.bindGlobalEvents();
         this.initialized = true;
         console.log('ModuleSystem inicializado com sucesso');
+
+        // Sincronizar transações do servidor após inicialização (garante mobile/desktop em sincronia)
+        setTimeout(() => {
+            this.loadTransacoes().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar transações:', e));
+        }, 800);
     },
 
     // Carregar dados iniciais
@@ -6599,6 +6604,42 @@ const ModuleSystem = {
                 syncPermissionLocks();
 
                 let saving = false;
+
+                // Função de recuperação: reativar usuário inativo com mesmo e-mail
+                const tryRecoverCreateByReactivatingInactive = async (payload, errorMessage) => {
+                    const msg = String(errorMessage || '');
+                    const looksLikeEmailConflict = /email\s+j[aá]\s+cadastrado/i.test(msg) || /http\s*409/i.test(msg) || /409/i.test(msg) || /duplicate/i.test(msg) || /já existe/i.test(msg);
+                    if (!looksLikeEmailConflict) return false;
+
+                    const emailTarget = String(payload && payload.email ? payload.email : '').trim().toLowerCase();
+                    if (!emailTarget) return false;
+
+                    let users = [];
+                    try {
+                        users = await api('/api/admin/users');
+                    } catch {
+                        return false;
+                    }
+
+                    const existing = (Array.isArray(users) ? users : []).find(u => {
+                        const e = String(u && u.email != null ? u.email : '').trim().toLowerCase();
+                        return e === emailTarget;
+                    });
+                    if (!existing) return false;
+                    if (Number(existing.active) === 1) return false;
+
+                    const label = String(existing.name || existing.email || existing.id || '').trim();
+                    const ok = confirm(`Já existe um usuário desativado com este e-mail (${label}). Deseja reativar e atualizar este usuário com os dados informados?`);
+                    if (!ok) return false;
+
+                    const reactivatePayload = { ...payload, active: 1 };
+                    await api(`/api/admin/users/${encodeURIComponent(existing.id)}`, { method: 'PUT', body: JSON.stringify(reactivatePayload) });
+                    toast('Usuário desativado reativado e atualizado com sucesso.', 'success');
+                    try { window.FormSystem.closeModal(); } catch {}
+                    await refresh();
+                    return true;
+                };
+
                 const runSave = async () => {
                     if (saving) return;
                     saving = true;
