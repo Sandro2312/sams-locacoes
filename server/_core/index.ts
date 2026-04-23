@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerCrmRoutes } from "../crm";
 import { registerAcervoRoutes } from "../crm-acervo";
+import { registerCrmAdminRoutes } from "../crm-admin";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -42,6 +43,8 @@ async function startServer() {
   registerCrmRoutes(app);
   // Acervo Documental routes under /api/crm/acervo
   registerAcervoRoutes(app);
+  // Admin, Transações, Tarefas, Projetos, Memoriais, Metas, Contatos
+  registerCrmAdminRoutes(app);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API

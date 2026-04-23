@@ -72,3 +72,18 @@
 - [x] Integrar módulo ao menu lateral do CRM (card Acervo no dashboard)
 - [x] CSS responsivo mobile para o módulo
 - [x] Build de produção e checkpoint
+
+## Importação em Lote — Google Drive
+
+- [ ] Endpoint POST /api/crm/acervo/importar-lote (aceita array de itens com url_drive, nome, tipo_doc, ano, evento_nome, cliente_nome)
+- [ ] Modal de importação em lote no acervo.js com textarea para colar links
+- [ ] Parsing automático do link do Google Drive para extrair nome da pasta/arquivo
+- [ ] Tabela de preview com campos editáveis antes de confirmar importação
+- [ ] Feedback de progresso durante importação (X de Y cadastrados)
+- [ ] Checkpoint e publicação
+
+## Bugs Críticos (CRM)
+
+- [ ] Bug 1: Despesas cadastradas no desktop não aparecem no celular (possível cache de sessão ou dados em memória)
+- [ ] Bug 2: Cadastro de usuário salva mas não aparece na lista após fechar o formulário
+- [ ] Bug 3: Formulário de cadastro de usuário no mobile não mostra o botão Salvar (overflow/scroll)
