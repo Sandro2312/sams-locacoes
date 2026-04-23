@@ -282,3 +282,136 @@
     font-size: 0.85rem !important;
   }
 }
+
+/* ── Modal overlay — fix para mobile (botão Salvar visível) ── */
+#modal-overlay {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#modal-overlay > div {
+  min-height: 100%;
+  padding: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+#modal-overlay > div > div {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100dvh - 16px) !important;
+  width: 100% !important;
+  margin: auto;
+}
+
+#modal-content {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#modal-footer {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  padding: 10px 16px !important;
+}
+
+@media (max-width: 480px) {
+  #modal-footer {
+    justify-content: stretch !important;
+  }
+  #modal-footer button {
+    flex: 1 1 auto !important;
+    min-width: 80px !important;
+    text-align: center !important;
+  }
+  #modal-save {
+    order: -1 !important; /* Botão Salvar aparece primeiro no mobile */
+    background-color: #2563eb !important;
+    color: white !important;
+  }
+}
+
+/* ── Formulários dentro do modal — campos full width ── */
+@media (max-width: 640px) {
+  #modal-content .grid-cols-2,
+  #modal-content .grid-cols-3,
+  #modal-content .md\:grid-cols-2,
+  #modal-content .md\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #modal-content label {
+    font-size: 0.82rem !important;
+  }
+
+  #modal-content input,
+  #modal-content select,
+  #modal-content textarea {
+    font-size: 16px !important; /* Evita zoom no iOS */
+  }
+}
+
+/* ── Tabelas — garantir scroll horizontal em todos os módulos ── */
+@media (max-width: 768px) {
+  .overflow-x-auto table,
+  div[class*="overflow-x"] table {
+    min-width: 600px;
+  }
+
+  /* Cabeçalhos de página — compactar */
+  .flex.items-center.justify-between.mb-6,
+  .flex.items-center.justify-between.mb-4 {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Botões de ação no topo das páginas */
+  .flex.items-center.justify-between button {
+    font-size: 0.78rem !important;
+    padding: 7px 10px !important;
+  }
+}
+
+/* ── Filtros e barra de busca — full width no mobile ── */
+@media (max-width: 640px) {
+  .flex.items-center.space-x-4.mb-4,
+  .flex.items-center.gap-4.mb-4,
+  .flex.flex-wrap.gap-4 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .flex.items-center.space-x-4.mb-4 input,
+  .flex.items-center.gap-4.mb-4 input,
+  .flex.items-center.space-x-4.mb-4 select,
+  .flex.items-center.gap-4.mb-4 select {
+    width: 100% !important;
+  }
+}
+
+/* ── Cards de estatísticas — 2 colunas no mobile ── */
+@media (max-width: 640px) {
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.md\:grid-cols-3,
+  .grid.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── Acervo Documental — responsividade ── */
+@media (max-width: 640px) {
+  #acervo-container .grid-cols-3,
+  #acervo-container .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #acervo-container .flex.gap-4 {
+    flex-direction: column !important;
+  }
+}

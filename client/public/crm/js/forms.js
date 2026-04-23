@@ -227,31 +227,31 @@ const FormSystem = {
 
         // Criar estrutura do modal
         const modalHTML = `
-            <div id="${this.config.overlayId}" class="fixed inset-0 bg-black bg-opacity-50 hidden" style="z-index:2147483000;">
-                <div class="flex items-center justify-center min-h-screen p-4">
-                    <div class="bg-white rounded-lg shadow-xl w-full max-w-full md:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-screen overflow-y-auto">
-                        <div class="flex justify-between items-center p-6 border-b">
-                            <h2 id="modal-title" class="text-xl font-semibold text-gray-900"></h2>
-                            <button id="modal-close" class="text-gray-400 hover:text-gray-600" title="Fechar modal" aria-label="Fechar modal">
+            <div id="${this.config.overlayId}" class="fixed inset-0 bg-black bg-opacity-50 hidden" style="z-index:2147483000; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+                <div class="flex items-start justify-center" style="min-height:100%; padding:8px;">
+                    <div class="bg-white rounded-lg shadow-xl w-full" style="max-width:min(100%, 1280px); display:flex; flex-direction:column; max-height:calc(100dvh - 16px); margin:auto;">
+                        <div class="flex justify-between items-center border-b flex-shrink-0" style="padding:12px 16px;">
+                            <h2 id="modal-title" class="font-semibold text-gray-900" style="font-size:clamp(15px,4vw,20px); padding-right:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:calc(100% - 40px);"></h2>
+                            <button id="modal-close" class="text-gray-400 hover:text-gray-600 flex-shrink-0" title="Fechar modal" aria-label="Fechar modal" style="padding:4px;">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </div>
-                        <div id="modal-content" class="p-6">
+                        <div id="modal-content" style="padding:12px 16px; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch;">
                             <!-- Conteúdo será inserido aqui -->
                         </div>
-                        <div id="modal-footer" class="flex justify-end space-x-3 p-6 border-t bg-gray-50">
-                            <button type="button" id="modal-dashboard" class="px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700">
-                                Voltar ao Dashboard
+                        <div id="modal-footer" class="border-t bg-gray-50 flex-shrink-0" style="padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center;">
+                            <button type="button" id="modal-dashboard" class="text-white bg-gray-600 rounded-md hover:bg-gray-700" style="padding:8px 12px; font-size:13px; font-weight:500; white-space:nowrap;">
+                                Dashboard
                             </button>
-                            <button type="button" id="modal-kanban" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md hover:bg-emerald-700 hidden">
+                            <button type="button" id="modal-kanban" class="text-white bg-emerald-600 rounded-md hover:bg-emerald-700 hidden" style="padding:8px 12px; font-size:13px; font-weight:500; white-space:nowrap;">
                                 Criar Card
                             </button>
-                            <button type="button" id="modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            <button type="button" id="modal-cancel" class="text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" style="padding:8px 12px; font-size:13px; font-weight:500; white-space:nowrap;">
                                 Cancelar
                             </button>
-                            <button type="submit" id="modal-save" form="crud-form" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700">
+                            <button type="submit" id="modal-save" form="crud-form" class="text-white bg-blue-600 rounded-md hover:bg-blue-700" style="padding:8px 16px; font-size:13px; font-weight:600; white-space:nowrap; min-width:80px;">
                                 Salvar
                             </button>
                         </div>
