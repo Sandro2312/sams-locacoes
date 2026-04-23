@@ -234,11 +234,11 @@ export function registerCrmAdminRoutes(app: any) {
   rt.post("/", requireAuth, async (req, res) => {
     try {
       const u = (req as any).crmUser;
-      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id } = req.body;
+      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_grupo_id, recorrencia_indice } = req.body;
       if (!descricao || !tipo || valor === undefined) return res.status(400).json({ error: "Campos obrigatórios: descricao, tipo, valor" });
       const [result] = await getPool().execute(
-        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, u.userId]
+        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, u.userId, recorrencia || null, recorrencia_grupo_id || null, recorrencia_indice || null]
       );
       res.json({ id: (result as any).insertId, ok: true });
     } catch (e: any) {

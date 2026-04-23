@@ -978,6 +978,39 @@ const NavigationSystem = {
                 try { ModuleSystem?.financeiro?.initComissoes?.(); } catch {}
             }, 50);
         }
+        // Sincronização: ao abrir qualquer página do módulo financeiro, buscar transações da API
+        if (module === 'financeiro') {
+            setTimeout(async () => {
+                try {
+                    const resp = await fetch('/api/crm/transacoes', { credentials: 'include' });
+                    if (resp.ok) {
+                        const rawRows = await resp.json().catch(() => []);
+                        if (Array.isArray(rawRows) && window.ModuleSystem && ModuleSystem.data) {
+                            // Mapear snake_case da API para camelCase usado pelo frontend
+                            const rows = rawRows.map(r => ({
+                                ...r,
+                                centroCusto: r.centro_custo || r.centroCusto || null,
+                                eventoId: r.evento_id || r.eventoId || null,
+                                clienteId: r.cliente_id || r.clienteId || null,
+                                clienteNome: r.cliente_nome || r.clienteNome || null,
+                                eventoNome: r.evento_nome || r.eventoNome || null,
+                                recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,
+                                recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null
+                            }));
+                            ModuleSystem.data.transacoes = rows;
+                            if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
+                            console.log(`✅ [NavigationSystem] Transações sincronizadas da API: ${rows.length} registros`);
+                            // Re-renderizar a página atual para mostrar dados atualizados
+                            if (this.currentModule === 'financeiro' && this.currentPage === page) {
+                                this.navigateToPage(this.currentModule, this.currentPage);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[NavigationSystem] Falha ao sincronizar transações da API:', e);
+                }
+            }, 100);
+        }
         if (module === 'comercial' && page === 'contratos') {
             setTimeout(() => {
                 try { ModuleSystem?.comercial?.initContratos?.(); } catch {}
