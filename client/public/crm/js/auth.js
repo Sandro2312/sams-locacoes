@@ -450,16 +450,22 @@ const AuthSystem = {
         }
 
         // 🔄 Sincronização inicial: carregar transações do servidor (garante mobile/desktop em sincronia)
-        setTimeout(async () => {
-            try {
-                if (typeof ModuleSystem !== 'undefined' && typeof ModuleSystem.loadTransacoes === 'function') {
-                    await ModuleSystem.loadTransacoes();
-                    console.log('✅ [AuthSystem] Transações sincronizadas após login');
-                }
-            } catch (e) {
-                console.warn('[AuthSystem] Falha ao sincronizar transações após login:', e);
+        // Usa retry com polling pois no mobile o ModuleSystem pode ainda não estar pronto
+        const syncTransacoesWithRetry = (attemptsLeft) => {
+            if (attemptsLeft <= 0) {
+                console.warn('[AuthSystem] Falha ao sincronizar transações: ModuleSystem não disponível após várias tentativas');
+                return;
             }
-        }, 500);
+            if (typeof ModuleSystem !== 'undefined' && typeof ModuleSystem.loadTransacoes === 'function') {
+                ModuleSystem.loadTransacoes()
+                    .then(() => console.log('✅ [AuthSystem] Transações sincronizadas após login'))
+                    .catch(e => console.warn('[AuthSystem] Falha ao sincronizar transações:', e));
+            } else {
+                // ModuleSystem ainda não está pronto, tentar novamente em 300ms
+                setTimeout(() => syncTransacoesWithRetry(attemptsLeft - 1), 300);
+            }
+        };
+        setTimeout(() => syncTransacoesWithRetry(15), 500); // até 15 tentativas = ~5 segundos
 
         setTimeout(() => {
             this.maybeShowDailyWelcome();
