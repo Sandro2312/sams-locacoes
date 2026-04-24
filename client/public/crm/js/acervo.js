@@ -125,16 +125,10 @@ const AcervoModule = {
     ].map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
 
     return `
-      <!-- Header -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <i class="fas fa-archive text-amber-600"></i> Acervo Documental
-          </h2>
-          <p class="text-gray-500 text-sm mt-1">Documentos históricos organizados por feira, evento e cliente</p>
-        </div>
-        <button id="acervo-btn-novo" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg font-semibold flex items-center gap-2 transition">
-          <i class="fas fa-plus"></i> Novo Documento
+      <!-- Botão principal de ação - sempre visível no topo -->
+      <div class="mb-4">
+        <button id="acervo-btn-novo" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition shadow-md">
+          <i class="fas fa-plus-circle text-lg"></i> + Novo Documento
         </button>
       </div>
 
