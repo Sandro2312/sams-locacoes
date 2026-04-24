@@ -127,8 +127,8 @@ const AcervoModule = {
     return `
       <!-- Botão principal de ação - sempre visível no topo -->
       <div class="mb-4">
-        <button id="acervo-btn-novo" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition shadow-md">
-          <i class="fas fa-plus-circle text-lg"></i> + Novo Documento
+        <button id="acervo-btn-novo" style="background-color:#d97706;color:#ffffff;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);width:auto;" onmouseover="this.style.backgroundColor='#b45309'" onmouseout="this.style.backgroundColor='#d97706'">
+          <i class="fas fa-plus-circle" style="font-size:16px;"></i> + Novo Documento
         </button>
       </div>
 
