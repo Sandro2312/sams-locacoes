@@ -11,6 +11,7 @@ const AcervoModule = {
   filtros: { busca: '', tipo_doc: '', evento_id: '', cliente_id: '', ano: '' },
   eventos: [],
   clientes: [],
+  anos: [],
   uploading: false,
 
   // ─── Inicialização ──────────────────────────────────────────────────────────────────────
