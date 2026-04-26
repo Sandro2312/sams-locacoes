@@ -167,9 +167,11 @@ export function registerCrmRoutes(app: any) {
     if (status) { where += " AND l.status = ?"; params.push(status); }
     if (temperatura) { where += " AND l.temperatura = ?"; params.push(temperatura); }
     if (responsavel_id) { where += " AND l.responsavel_id = ?"; params.push(responsavel_id); }
+    const limitNum = parseInt(limit) || 50;
+    const offsetNum = parseInt(offset) || 0;
     const rows = await db(
-      `SELECT l.*, u.name as responsavel_nome FROM crm_leads l LEFT JOIN crm_users u ON l.responsavel_id = u.id ${where} ORDER BY l.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), parseInt(offset)]
+      `SELECT l.*, u.name as responsavel_nome FROM crm_leads l LEFT JOIN crm_users u ON l.responsavel_id = u.id ${where} ORDER BY l.created_at DESC LIMIT ${limitNum} OFFSET ${offsetNum}`,
+      params
     );
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_leads l ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
@@ -186,9 +188,10 @@ export function registerCrmRoutes(app: any) {
     const u = (req as any).crmUser;
     const { nome, email, telefone, whatsapp, status = "novo", origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura = "frio", proximo_contato, observacoes, utm_source, utm_medium, utm_campaign } = req.body;
     if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
+    const n = (v: any) => (v === undefined ? null : v);
     const [result] = await getPool().execute(
       "INSERT INTO crm_leads (nome, email, telefone, whatsapp, status, origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura, proximo_contato, observacoes, utm_source, utm_medium, utm_campaign) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [nome, email, telefone, whatsapp, status, origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura, proximo_contato, observacoes, utm_source, utm_medium, utm_campaign]
+      [n(nome), n(email), n(telefone), n(whatsapp), n(status), n(origem), n(segmento), n(evento_interesse), n(metragem_estimada), n(responsavel_id), n(temperatura), n(proximo_contato), n(observacoes), n(utm_source), n(utm_medium), n(utm_campaign)]
     );
     const id = (result as any).insertId;
     await audit(u.userId, "create", "crm_leads", id, { nome }, req.ip);
