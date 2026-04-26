@@ -7726,10 +7726,12 @@ window.MarketingModule.loadLeads = async function() {
     let apiLeads = [];
     let apiOk = false;
     try {
-      const response = await fetch('/api/crm/leads', { credentials: 'include' });
+      const response = await fetch('/api/crm/leads?limit=500', { credentials: 'include' });
       const data = await response.json().catch(() => []);
-      if (response.ok && Array.isArray(data)) {
-        apiLeads = data;
+      // A API retorna { data: [...], total: N } — extrair o array
+      const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);
+      if (response.ok && dataArray) {
+        apiLeads = dataArray;
         apiOk = true;
       } else {
         console.warn('[MarketingModule] API /api/leads indisponível ou retornou erro – usando somente dados locais');
