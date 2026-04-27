@@ -7287,9 +7287,35 @@ const ModuleSystem = {
         }
         ,
         initPermissoes() {},
-        listPermissoes() {
-            const users = (typeof AuthSystem !== 'undefined' && AuthSystem.getAllUsers) ? (AuthSystem.getAllUsers() || []) : [];
-            const rows = Array.isArray(users) ? users : [];
+        async listPermissoes() {
+            // Buscar usuários da API (inclui modules_json e permissions_json do banco)
+            let rows = [];
+            try {
+                const resp = await fetch('/api/crm/users', { credentials: 'include' });
+                if (resp.ok) {
+                    const data = await resp.json().catch(() => []);
+                    rows = Array.isArray(data) ? data : [];
+                    // Popular AuthSystem.users para que showUserPermissions funcione
+                    if (typeof AuthSystem !== 'undefined') {
+                        rows.forEach(u => {
+                            const key = u.email || String(u.id);
+                            AuthSystem.users[key] = {
+                                id: u.id,
+                                name: u.name,
+                                email: u.email,
+                                role: u.role,
+                                active: u.active,
+                                modules_json: u.modules_json,
+                                permissions_json: u.permissions_json,
+                                modules: u.modules_json ? (() => { try { return JSON.parse(u.modules_json); } catch { return []; } })() : [],
+                                permissions: u.permissions_json ? (() => { try { return JSON.parse(u.permissions_json); } catch { return []; } })() : []
+                            };
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar usuários para permissões:', e);
+            }
             return `
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-6 border-b border-gray-200 flex items-center justify-between">

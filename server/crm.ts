@@ -33,7 +33,7 @@ async function dbOne<T = any>(sql: string, params: any[] = []): Promise<T | null
 }
 
 /// ─── Session store (MySQL — persiste entre reinicializações do servidor) ────────────
-const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 horas
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
 async function createSession(userId: number, role: string, name: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
@@ -137,8 +137,23 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true });
   });
 
-  r.get("/me", requireCrmAuth, (req, res) => {
-    res.json({ user: (req as any).crmUser });
+  r.get("/me", requireCrmAuth, async (req, res) => {
+    const session = (req as any).crmUser;
+    // Buscar dados completos do usuário incluindo modules_json e permissions_json
+    const userRow = await dbOne<any>(
+      "SELECT id, name, email, role, active, modules_json, permissions_json FROM crm_users WHERE id = ?",
+      [session.userId]
+    );
+    if (!userRow) return res.json({ user: session });
+    res.json({
+      user: {
+        ...session,
+        id: userRow.id,
+        email: userRow.email,
+        modules_json: userRow.modules_json,
+        permissions_json: userRow.permissions_json,
+      }
+    });
   });
 
   // ── Dashboard KPIs ──────────────────────────────────────────────────────────
@@ -235,7 +250,8 @@ export function registerCrmRoutes(app: any) {
     const params: any[] = [];
     if (status) { where += " AND status = ?"; params.push(status); }
     if (q) { where += " AND (nome LIKE ? OR email LIKE ? OR documento LIKE ?)"; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
-    const rows = await db(`SELECT * FROM crm_clientes ${where} ORDER BY nome ASC LIMIT ? OFFSET ?`, [...params, parseInt(limit), parseInt(offset)]);
+    const lim = parseInt(limit) || 50; const off = parseInt(offset) || 0;
+    const rows = await db(`SELECT * FROM crm_clientes ${where} ORDER BY nome ASC LIMIT ${lim} OFFSET ${off}`, params);
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_clientes ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
   });
@@ -276,7 +292,8 @@ export function registerCrmRoutes(app: any) {
     let where = "WHERE 1=1";
     const params: any[] = [];
     if (status) { where += " AND status = ?"; params.push(status); }
-    const rows = await db(`SELECT * FROM crm_briefings ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, parseInt(limit), parseInt(offset)]);
+    const lim = parseInt(limit) || 50; const off = parseInt(offset) || 0;
+    const rows = await db(`SELECT * FROM crm_briefings ${where} ORDER BY created_at DESC LIMIT ${lim} OFFSET ${off}`, params);
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_briefings ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
   });
@@ -406,8 +423,8 @@ export function registerCrmRoutes(app: any) {
     const params: any[] = [];
     if (status) { where += " AND cr.status = ?"; params.push(status); }
     const rows = await db(
-      `SELECT cr.*, c.nome as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), parseInt(offset)]
+      `SELECT cr.*, c.nome as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ${parseInt(limit)||50} OFFSET ${parseInt(offset)||0}`,
+      params
     );
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_contas_receber cr ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
@@ -465,18 +482,20 @@ export function registerCrmRoutes(app: any) {
 
   // ── Usuários (admin) ────────────────────────────────────────────────────────
   r.get("/users", requireCrmAuth, async (_req, res) => {
-    const rows = await db("SELECT id, name, email, role, active, last_login, created_at FROM crm_users ORDER BY name ASC");
+    const rows = await db("SELECT id, name, email, role, active, last_login, created_at, modules_json, permissions_json FROM crm_users ORDER BY name ASC");
     res.json(rows);
   });
 
   r.post("/users", requireCrmAdmin, async (req, res) => {
     const u = (req as any).crmUser;
-    const { name, email, password, role = "vendedor" } = req.body;
+    const { name, email, password, role = "vendedor", modules_json, permissions_json } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: "Nome, email e senha obrigatórios" });
     const hash = await bcrypt.hash(password, 10);
+    const mj = modules_json ? (typeof modules_json === 'string' ? modules_json : JSON.stringify(modules_json)) : null;
+    const pj = permissions_json ? (typeof permissions_json === 'string' ? permissions_json : JSON.stringify(permissions_json)) : null;
     const [result] = await getPool().execute(
-      "INSERT INTO crm_users (name, email, password, role) VALUES (?,?,?,?)",
-      [name, email.trim().toLowerCase(), hash, role]
+      "INSERT INTO crm_users (name, email, password, role, modules_json, permissions_json) VALUES (?,?,?,?,?,?)",
+      [name, email.trim().toLowerCase(), hash, role, mj, pj]
     );
     await audit(u.userId, "create_user", "crm_users", (result as any).insertId, { name, email, role }, req.ip);
     res.json({ id: (result as any).insertId, ok: true });
@@ -484,9 +503,36 @@ export function registerCrmRoutes(app: any) {
 
   r.put("/users/:id", requireCrmAdmin, async (req, res) => {
     const u = (req as any).crmUser;
+    // Aceitar tanto modules_json/permissions_json quanto modules/permissions (array)
     const { name, email, role, active } = req.body;
-    await db("UPDATE crm_users SET name=?, email=?, role=?, active=? WHERE id=?", [name, email, role, active ?? 1, req.params.id]);
+    const rawModules = req.body.modules_json !== undefined ? req.body.modules_json : req.body.modules;
+    const rawPerms = req.body.permissions_json !== undefined ? req.body.permissions_json : req.body.permissions;
+    const mj = rawModules !== undefined && rawModules !== null
+      ? (typeof rawModules === 'string' ? rawModules : JSON.stringify(rawModules))
+      : null;
+    const pj = rawPerms !== undefined && rawPerms !== null
+      ? (typeof rawPerms === 'string' ? rawPerms : JSON.stringify(rawPerms))
+      : null;
+    if (mj !== null || pj !== null) {
+      await db(
+        "UPDATE crm_users SET name=?, email=?, role=?, active=?, modules_json=?, permissions_json=? WHERE id=?",
+        [name, email, role, active ?? 1, mj, pj, req.params.id]
+      );
+    } else {
+      await db("UPDATE crm_users SET name=?, email=?, role=?, active=? WHERE id=?", [name, email, role, active ?? 1, req.params.id]);
+    }
     await audit(u.userId, "update_user", "crm_users", parseInt(req.params.id), req.body, req.ip);
+    res.json({ ok: true });
+  });
+
+  // Rota dedicada para salvar módulos/permissões de um usuário
+  r.put("/users/:id/modules", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    const { modules, permissions } = req.body;
+    const mj = Array.isArray(modules) ? JSON.stringify(modules) : null;
+    const pj = Array.isArray(permissions) ? JSON.stringify(permissions) : null;
+    await db("UPDATE crm_users SET modules_json=?, permissions_json=? WHERE id=?", [mj, pj, req.params.id]);
+    await audit(u.userId, "update_user_modules", "crm_users", parseInt(req.params.id), { modules, permissions }, req.ip);
     res.json({ ok: true });
   });
 
@@ -504,8 +550,8 @@ export function registerCrmRoutes(app: any) {
   r.get("/auditoria", requireCrmAdmin, async (req, res) => {
     const { limit = 100, offset = 0 } = req.query as any;
     const rows = await db(
-      "SELECT a.*, u.name as user_nome FROM crm_auditoria a LEFT JOIN crm_users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT ? OFFSET ?",
-      [parseInt(limit), parseInt(offset)]
+      `SELECT a.*, u.name as user_nome FROM crm_auditoria a LEFT JOIN crm_users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT ${parseInt(limit)||100} OFFSET ${parseInt(offset)||0}`,
+      []
     );
     res.json(rows);
   });

@@ -28,8 +28,8 @@ const AuthSystem = {
         },
         'vendedor': {
             name: 'Vendedor',
-            permissions: ['comercial', 'financeiro', 'kanban', 'acervo'],
-            modules: ['comercial', 'financeiro', 'kanban', 'acervo']
+            permissions: ['marketing', 'comercial', 'financeiro', 'kanban', 'acervo'],
+            modules: ['marketing', 'comercial', 'financeiro', 'kanban', 'acervo']
         },
         'projetos': {
             name: 'Projetos',
