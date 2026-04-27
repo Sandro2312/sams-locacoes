@@ -589,7 +589,7 @@ const NavigationSystem = {
     },
 
     // Carregar conteúdo da página
-    loadPageContent(module, page) {
+    async loadPageContent(module, page) {
         const dashboardContent = document.getElementById('dashboardContent');
         const moduleContent = document.getElementById('moduleContent');
         dashboardContent?.classList.add('hidden');
@@ -603,7 +603,7 @@ const NavigationSystem = {
             return;
         }
 
-        const content = this.generatePageHTML(module, page, pageInfo);
+        const content = await this.generatePageHTML(module, page, pageInfo);
         if (moduleContent) {
             moduleContent.innerHTML = content;
         }
@@ -716,7 +716,7 @@ const NavigationSystem = {
     },
 
     // Gerar HTML da página
-    generatePageHTML(module, page, pageInfo) {
+    async generatePageHTML(module, page, pageInfo) {
         // Verificar se existe conteúdo específico no ModuleSystem
         let pageContent = '';
         
@@ -767,7 +767,7 @@ const NavigationSystem = {
         } else if (module === 'administracao' && page === 'usuarios') {
             pageContent = ModuleSystem?.administracao?.listUsuarios?.() || '';
         } else if (module === 'administracao' && page === 'permissoes') {
-            pageContent = ModuleSystem?.administracao?.listPermissoes?.() || '';
+            pageContent = (await ModuleSystem?.administracao?.listPermissoes?.()) || '';
         } else if (module === 'administracao' && page === 'configuracoes') {
             pageContent = ModuleSystem?.administracao?.listConfiguracoes?.() || '';
         } else if (module === 'administracao' && page === 'comissoes') {

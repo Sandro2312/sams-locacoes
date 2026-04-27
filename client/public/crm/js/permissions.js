@@ -665,32 +665,41 @@ const PermissionSystem = {
         });
     },
 
-    // Salvar permissões
-    savePermissions() {
+     // Salvar permissões
+    async savePermissions() {
         const form = document.getElementById('permission-form');
         if (!form) return;
-
         const userId = form.getAttribute('data-user-id');
         const formData = new FormData(form);
         const permissions = formData.getAll('permissions');
 
+        // Derivar lista de módulos a partir das permissões marcadas
+        // Cada permissão tem o formato "modulo.acao" ou apenas "modulo"
+        const modulesSet = new Set();
+        permissions.forEach(p => {
+            const mod = String(p).split('.')[0].toLowerCase();
+            if (mod) modulesSet.add(mod);
+        });
+        const modules = Array.from(modulesSet);
+
         try {
-            if (typeof AuthSystem !== 'undefined' && AuthSystem.setUserPermissions) {
-                const success = AuthSystem.setUserPermissions(userId, permissions);
-                
-                if (success) {
-                    Utils.notifications.success('Permissões salvas com sucesso!');
-                    this.closeModal();
-                    
-                    // Recarregar a página se for o módulo de administração
-                    if (NavigationSystem && NavigationSystem.getCurrentModule() === 'administracao') {
-                        NavigationSystem.loadModulePage('administracao', 'usuarios');
-                    }
-                } else {
-                    Utils.notifications.error('Erro ao salvar permissões.');
-                }
-            } else {
-                Utils.notifications.error('Sistema de autenticação não disponível.');
+            // Salvar no banco via API
+            const resp = await fetch(`/api/crm/users/${userId}/modules`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modules, permissions })
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                Utils.notifications.error('Erro ao salvar permissões: ' + (err.error || resp.status));
+                return;
+            }
+            Utils.notifications.success('Permissões salvas com sucesso!');
+            this.closeModal();
+            // Recarregar a lista de usuários se estiver no módulo de administração
+            if (typeof NavigationSystem !== 'undefined' && NavigationSystem.getCurrentModule && NavigationSystem.getCurrentModule() === 'administracao') {
+                NavigationSystem.loadModulePage('administracao', 'usuarios');
             }
         } catch (error) {
             Utils.notifications.error('Erro ao salvar permissões: ' + error.message);
