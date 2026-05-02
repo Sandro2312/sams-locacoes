@@ -937,14 +937,25 @@ const NavigationSystem = {
         if (module === 'marketing' && page === 'leads') {
             setTimeout(() => {
                 try {
+                    const container = document.getElementById('leads-list-container');
+                    if (!container) {
+                        console.warn('[NavigationSystem] Container #leads-list-container não encontrado, tentando novamente...');
+                        setTimeout(() => {
+                            if (window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function') {
+                                window.MarketingModule.loadLeads();
+                                console.log('✅ [NavigationSystem] Leads auto-carregados via MarketingModule.loadLeads (retry)');
+                            }
+                        }, 300);
+                        return;
+                    }
                     if (window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function') {
                         window.MarketingModule.loadLeads();
                         console.log('✅ [NavigationSystem] Leads auto-carregados via MarketingModule.loadLeads');
                     }
                 } catch (error) {
-                    console.warn('⚠️ [NavigationSystem] Falha ao auto-carregar leads:', error);
+                    console.warn('[NavigationSystem] Falha ao auto-carregar leads:', error);
                 }
-            }, 50);
+            }, 200);
         }
         
         // Integração específica para o módulo Kanban
