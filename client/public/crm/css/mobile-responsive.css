@@ -415,3 +415,94 @@
     flex-direction: column !important;
   }
 }
+
+/* ── Leads e Clientes — melhor renderização mobile ── */
+@media (max-width: 768px) {
+  #leads-list-container,
+  #clientes-list-container {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #leads-list-container .p-6,
+  #clientes-list-container .p-6 {
+    padding: 12px !important;
+  }
+
+  #leads-list-container .flex.justify-between.items-center,
+  #clientes-list-container .flex.justify-between.items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Botões de view (Lista/Pipeline) — compactar */
+  #leads-list-container .flex.items-center.gap-2 button,
+  #leads-list-container .flex.items-center.gap-3 button {
+    font-size: 0.75rem !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Tabela de leads — garantir scroll */
+  #leads-view-list {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100vw !important;
+  }
+
+  #leads-view-list table {
+    min-width: 700px !important;
+  }
+
+  /* Pipeline de leads — colunas empilhadas */
+  #leads-view-pipeline .flex {
+    flex-direction: column !important;
+  }
+
+  #leads-view-pipeline .flex > div {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* ── Leads mobile — cards view para telas < 480px ── */
+@media (max-width: 480px) {
+  #leads-list-container h3 {
+    font-size: 0.9rem !important;
+  }
+
+  /* Botão Novo Lead — full width */
+  #leads-list-container button[data-action="create"] {
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+
+  /* Ocultar colunas menos importantes na tabela de leads */
+  #leads-view-list table th:nth-child(4),
+  #leads-view-list table td:nth-child(4),
+  #leads-view-list table th:nth-child(5),
+  #leads-view-list table td:nth-child(5) {
+    display: none !important;
+  }
+
+  #leads-view-list table {
+    min-width: 400px !important;
+  }
+}
+
+/* ── moduleContent — garantir visibilidade no mobile ── */
+@media (max-width: 768px) {
+  #moduleContent {
+    display: block !important;
+    width: 100% !important;
+    min-height: 50vh !important;
+    padding: 0 !important;
+  }
+
+  #moduleContent:not(.hidden) {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
