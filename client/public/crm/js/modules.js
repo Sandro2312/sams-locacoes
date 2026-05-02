@@ -7845,57 +7845,7 @@ window.MarketingModule.loadLeads = async function() {
     if (modesEl) modesEl.classList.toggle('hidden', currentView !== 'pipeline');
 
     if (currentView !== 'pipeline') {
-      if (!tbody) {
-        console.warn('[MarketingModule] tbody não encontrado, tentando renderizar tabela inteira');
-        if (listEl) {
-          listEl.innerHTML = `
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  ${mergedLeads.map(lead => `
-                    <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${lead.nome || ''}</div>
-                        <div class="text-sm text-gray-500">${lead.email || ''}</div>
-                      </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.empresa || ''}</td>
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${window.UIHelpers ? UIHelpers.computeStatusClass(lead.status) : 'bg-blue-100 text-blue-800'}">
-                          ${lead.status || '—'}
-                        </span>
-                      </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.origem || ''}</td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.dataContato || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '')}</td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button data-action="read" data-module="leads" data-id="${lead.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar lead">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button data-action="update" data-module="leads" data-id="${lead.id}" class="text-green-600 hover:text-green-900" title="Editar lead">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button data-action="delete" data-module="leads" data-id="${lead.id}" class="text-red-600 hover:text-red-900" title="Excluir lead">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          `;
-        }
-        return;
-      }
+      if (!tbody) return;
       const rows = mergedLeads.map(lead => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
