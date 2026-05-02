@@ -2798,6 +2798,14 @@ ENTREGA
         }
         
         this.openModal(title, formHtml);
+        
+        // Vincular eventos específicos após abrir o modal
+        if (module === 'eventos') {
+            try {
+                const root = document.getElementById('modal-content') || document;
+                this.bindEventoAI(root);
+            } catch {}
+        }
         try {
             const saveBtn = document.getElementById('modal-save');
             if (saveBtn) {
@@ -5805,6 +5813,14 @@ ENTREGA
 
         if (module === 'transacoes' || module === 'financeiro' || module === 'contasReceber') {
             this.setupCentroCustoAutocomplete(form);
+            return;
+        }
+
+        if (module === 'eventos') {
+            try {
+                const root = document.getElementById('modal-content') || document;
+                this.bindEventoAI(root);
+            } catch {}
             return;
         }
 
