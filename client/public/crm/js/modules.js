@@ -7957,6 +7957,7 @@ if (!window.MarketingModule) {
 
 window.MarketingModule.loadLeads = async function() {
   try {
+<<<<<<< Updated upstream
     const retryKey = '_leadsLoadDomRetries';
     window.MarketingModule[retryKey] = window.MarketingModule[retryKey] || 0;
 
@@ -7970,6 +7971,20 @@ window.MarketingModule.loadLeads = async function() {
         setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
       } else {
         console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
+=======
+    console.log('[MarketingModule] loadLeads() iniciado');
+    const container = document.getElementById('leads-list-container');
+    const tbody = document.getElementById('leads-list-body');
+    console.log('[MarketingModule] container:', container ? 'encontrado' : 'NÃO ENCONTRADO');
+    console.log('[MarketingModule] tbody:', tbody ? 'encontrado' : 'NÃO ENCONTRADO');
+    if (!container) {
+      console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
+      // Tentar renderizar a tabela inteira se o container não existir
+      const parentContainer = document.getElementById('moduleContent');
+      if (parentContainer) {
+        console.log('[MarketingModule] Renderizando tabela inteira no moduleContent');
+        // Renderizar a tabela aqui
+>>>>>>> Stashed changes
       }
       return;
     }
@@ -8010,18 +8025,30 @@ window.MarketingModule.loadLeads = async function() {
     let apiLeads = [];
     let apiOk = false;
     try {
+<<<<<<< Updated upstream
       const response = await fetch('/api/crm/leads?limit=500', {
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       });
       const data = await response.json().catch(() => null);
+=======
+      console.log('[MarketingModule] Fazendo fetch para /api/crm/leads?limit=500');
+      const response = await fetch('/api/crm/leads?limit=500', { credentials: 'include' });
+      console.log('[MarketingModule] Fetch retornou status:', response.status, response.statusText);
+      const data = await response.json().catch((e) => { console.warn('[MarketingModule] Erro ao parsear JSON:', e); return []; });
+>>>>>>> Stashed changes
       // A API retorna { data: [...], total: N } — extrair o array
       const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);
+      console.log('[MarketingModule] API response:', { ok: response.ok, status: response.status, dataLength: dataArray ? dataArray.length : 0, dataType: typeof data });
       if (response.ok && dataArray) {
         apiLeads = dataArray;
         apiOk = true;
+        console.log('[MarketingModule] ✅ Leads carregados da API:', apiLeads.length);
+      } else if (response.status === 401) {
+        console.warn('[MarketingModule] ⚠️ 401 Unauthorized - sessão expirada ou inválida');
       } else {
+<<<<<<< Updated upstream
         if (response.status === 401 || response.status === 403) {
           try {
             if (window.Toast && typeof Toast.show === 'function') Toast.show('Sessão expirada. Faça login novamente.', 'warning');
@@ -8032,6 +8059,9 @@ window.MarketingModule.loadLeads = async function() {
           const errMsg = (data && data.error) ? data.error : `HTTP ${response.status}`;
           console.warn('[MarketingModule] API /api/crm/leads retornou erro – usando somente dados locais:', errMsg);
         }
+=======
+        console.warn('[MarketingModule] API /api/leads indisponível ou retornou erro – usando somente dados locais. Status:', response.status, 'Data:', data);
+>>>>>>> Stashed changes
       }
     } catch (err) {
       console.warn('[MarketingModule] Falha ao consultar API /api/leads – usando somente dados locais:', err);
@@ -8117,6 +8147,7 @@ window.MarketingModule.loadLeads = async function() {
 
     if (currentView !== 'pipeline') {
       if (!tbody) {
+<<<<<<< Updated upstream
         const attempt = (window.MarketingModule[retryKey] || 0) + 1;
         window.MarketingModule[retryKey] = attempt;
         if (attempt <= 12) {
@@ -8124,6 +8155,12 @@ window.MarketingModule.loadLeads = async function() {
         }
         return;
       }
+=======
+        console.warn('[MarketingModule] tbody não encontrado, não é possível renderizar a lista');
+        return;
+      }
+      console.log('[MarketingModule] Renderizando', mergedLeads.length, 'leads na tabela');
+>>>>>>> Stashed changes
       const rows = mergedLeads.map(lead => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
