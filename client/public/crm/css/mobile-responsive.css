@@ -506,3 +506,163 @@
     opacity: 1 !important;
   }
 }
+
+
+/* ── Leads Cards View para Mobile (< 640px) ── */
+@media (max-width: 640px) {
+  /* Ocultar tabela de leads e mostrar cards view */
+  #leads-view-list {
+    display: none !important;
+  }
+
+  /* Container de cards de leads */
+  #leads-cards-view {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 !important;
+  }
+
+  /* Card individual de lead */
+  .lead-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .lead-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .lead-card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .lead-card-temperature {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .lead-card-temperature.hot {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  .lead-card-temperature.warm {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .lead-card-temperature.cold {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .lead-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .lead-card-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lead-card-label {
+    font-weight: 500;
+    color: #6b7280;
+    min-width: 70px;
+  }
+
+  .lead-card-value {
+    color: #1f2937;
+    text-align: right;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .lead-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .lead-card-actions button {
+    flex: 1;
+    padding: 7px 8px;
+    font-size: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .lead-card-actions button.edit {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .lead-card-actions button.edit:active {
+    background-color: #1d4ed8;
+  }
+
+  .lead-card-actions button.delete {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .lead-card-actions button.delete:active {
+    background-color: #b91c1c;
+  }
+}
+
+/* ── Leads Cards View para telas muito pequenas (< 480px) ── */
+@media (max-width: 480px) {
+  #leads-cards-view {
+    gap: 10px !important;
+  }
+
+  .lead-card {
+    padding: 12px;
+  }
+
+  .lead-card-name {
+    font-size: 0.9rem;
+  }
+
+  .lead-card-body {
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .lead-card-label {
+    min-width: 60px;
+  }
+
+  .lead-card-actions button {
+    padding: 6px 6px;
+    font-size: 0.7rem;
+  }
+}
