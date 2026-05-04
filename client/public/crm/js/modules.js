@@ -910,6 +910,44 @@ const ModuleSystem = {
             const modeBtnCls = (active) => active
                 ? 'bg-indigo-600 text-white border-indigo-600'
                 : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50';
+            
+            // Função para renderizar card de lead (mobile)
+            const renderLeadCard = (lead) => {
+                const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
+                const tempLabel = lead.temperatura === 'quente' ? '🔴 Quente' : lead.temperatura === 'morno' ? '🟡 Morno' : '🔵 Frio';
+                return `
+                    <div class="lead-card">
+                        <div class="lead-card-header">
+                            <div class="lead-card-name">${lead.nome}</div>
+                            <span class="lead-card-temperature ${tempClass}">${tempLabel}</span>
+                        </div>
+                        <div class="lead-card-body">
+                            <div class="lead-card-field">
+                                <span class="lead-card-label">Empresa:</span>
+                                <span class="lead-card-value">${lead.empresa || '—'}</span>
+                            </div>
+                            <div class="lead-card-field">
+                                <span class="lead-card-label">Email:</span>
+                                <span class="lead-card-value">${lead.email || '—'}</span>
+                            </div>
+                            <div class="lead-card-field">
+                                <span class="lead-card-label">Telefone:</span>
+                                <span class="lead-card-value">${lead.telefone || '—'}</span>
+                            </div>
+                            <div class="lead-card-field">
+                                <span class="lead-card-label">Origem:</span>
+                                <span class="lead-card-value">${lead.origem || '—'}</span>
+                            </div>
+                        </div>
+                        <div class="lead-card-actions">
+                            <button data-action="read" data-module="leads" data-id="${lead.id}" class="edit">Visualizar</button>
+                            <button data-action="update" data-module="leads" data-id="${lead.id}" class="edit">Editar</button>
+                            <button data-action="delete" data-module="leads" data-id="${lead.id}" class="delete">Excluir</button>
+                        </div>
+                    </div>
+                `;
+            };
+            
             return `
                 <div class="mb-6">
                     <div class="flex justify-between items-center">
@@ -980,7 +1018,8 @@ const ModuleSystem = {
                         </div>
                     </div>
                     <div id="leads-view-list" class="${currentView === 'pipeline' ? 'hidden' : ''}">
-                        <div class="overflow-x-auto">
+                        <!-- Tabela para desktop -->
+                        <div class="overflow-x-auto hidden md:block">
                         <table class="w-full">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -1031,6 +1070,10 @@ const ModuleSystem = {
                                 `).join('')}
                             </tbody>
                         </table>
+                        </div>
+                        <!-- Cards para mobile -->
+                        <div id="leads-cards-view" class="block md:hidden p-4">
+                            ${leads.map(renderLeadCard).join('')}
                         </div>
                     </div>
                     <div id="leads-view-pipeline" class="${currentView === 'pipeline' ? '' : 'hidden'}">

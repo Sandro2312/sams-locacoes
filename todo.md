@@ -82,6 +82,12 @@
 - [ ] Feedback de progresso durante importação (X de Y cadastrados)
 - [ ] Checkpoint e publicação
 
+## Layout Responsivo (CRM)
+
+- [x] Implementar layout responsivo com cards para leads no mobile
+- [ ] Testar renderização de leads em telas < 768px
+- [ ] Adicionar filtros mobile-friendly para leads
+
 ## Bugs Críticos (CRM)
 
 - [ ] Bug 1: Despesas cadastradas no desktop não aparecem no celular (possível cache de sessão ou dados em memória)
