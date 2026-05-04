@@ -331,6 +331,131 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true });
   });
 
+  r.post("/briefings/:id/enviar-projetista", requireCrmAuth, async (req: any, res: any) => {
+    const u = req.crmUser;
+    const briefingId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(briefingId)) return res.status(400).json({ error: "ID inválido" });
+
+    const enviadoParaIdRaw = req.body && req.body.enviado_para_id != null ? String(req.body.enviado_para_id).trim() : "";
+    const enviadoParaId = parseInt(enviadoParaIdRaw, 10);
+    if (!enviadoParaIdRaw || !Number.isFinite(enviadoParaId)) {
+      return res.status(400).json({ error: "Selecione o projetista/engenheiro (enviado_para_id)" });
+    }
+
+    const briefing = await dbOne<any>("SELECT * FROM crm_briefings WHERE id = ?", [briefingId]);
+    if (!briefing) return res.status(404).json({ error: "Briefing não encontrado" });
+
+    const statusAtual = briefing && briefing.status != null ? String(briefing.status) : "";
+    if (String(statusAtual).toLowerCase() === "enviado") {
+      return res.status(409).json({ error: "Briefing já foi enviado" });
+    }
+
+    const destinatario = await dbOne<any>("SELECT id, name, role, active FROM crm_users WHERE id = ?", [enviadoParaId]);
+    if (!destinatario || !destinatario.active) return res.status(400).json({ error: "Projetista/engenheiro inválido ou inativo" });
+
+    const normalizeMoney = (value: any) => {
+      const n = typeof value === "string" ? Number(String(value).replace(",", ".")) : Number(value);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const normalizeMetragem = (value: any) => {
+      const n = typeof value === "string" ? Number(String(value).replace(",", ".")) : Number(value);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const ymd = (d: Date) => {
+      try { return d.toISOString().slice(0, 10); } catch { return null; }
+    };
+
+    const metragemM2 = normalizeMetragem(briefing.metragem);
+    const orcamentoEstimado = normalizeMoney(briefing.orcamento_estimado);
+    const dataHoje = ymd(new Date());
+
+    const custoM2Row = await dbOne<any>("SELECT valor FROM crm_settings WHERE chave = ?", ["custo_projeto_m2"]);
+    const custoProjetoM2 = normalizeMoney(custoM2Row && custoM2Row.valor != null ? custoM2Row.valor : 0);
+    const valorContaPagar = Math.round((metragemM2 * custoProjetoM2) * 100) / 100;
+
+    const tituloProjeto = `Projeto - ${briefing.empresa || "Cliente"} - ${briefing.nome_evento || "Evento"}`;
+    const descricaoProjeto = `Gerado automaticamente a partir do briefing #${briefingId}.`;
+    const statusProjeto = "em_andamento";
+
+    const [projResult] = await getPool().execute(
+      "INSERT INTO crm_projetos (titulo, descricao, status, cliente_id, evento_id, data_inicio, data_fim, valor, responsavel_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)",
+      [
+        tituloProjeto,
+        descricaoProjeto,
+        statusProjeto,
+        null,
+        null,
+        briefing.data_inicio || null,
+        briefing.data_termino || null,
+        orcamentoEstimado || null,
+        destinatario.id,
+        u.userId
+      ]
+    );
+    const projetoId = (projResult as any).insertId;
+
+    let payloadJsonToSave: string | null = briefing.payload_json || null;
+    try {
+      if (briefing.payload_json) {
+        const parsed = JSON.parse(String(briefing.payload_json));
+        const next = (parsed && typeof parsed === "object") ? parsed : {};
+        next.workflow = next.workflow && typeof next.workflow === "object" ? next.workflow : {};
+        next.workflow.enviado_para_id = destinatario.id;
+        next.workflow.enviado_em = new Date().toISOString();
+        next.workflow.projeto_id = projetoId;
+        next.workflow.metragem_m2 = metragemM2;
+        payloadJsonToSave = JSON.stringify(next);
+      }
+    } catch {}
+
+    await db(
+      "UPDATE crm_briefings SET status = ?, payload_json = ? WHERE id = ?",
+      ["Enviado", payloadJsonToSave, briefingId]
+    );
+    await audit(u.userId, "send_to_projetista", "crm_briefings", briefingId, { enviado_para_id: destinatario.id, projeto_id: projetoId }, req.ip);
+
+    let transacaoId: number | null = null;
+    try {
+      const marker = `"briefing_id":${briefingId}`;
+      const existing = await dbOne<any>(
+        "SELECT id FROM crm_transacoes WHERE descricao LIKE ? AND observacoes LIKE ? LIMIT 1",
+        ["Confecção de projeto%", `%${marker}%`]
+      );
+      if (!existing) {
+        const obs = JSON.stringify({
+          origem: "briefings.enviar-projetista",
+          briefing_id: briefingId,
+          projeto_id: projetoId,
+          metragem_m2: metragemM2,
+          custo_projeto_m2: custoProjetoM2
+        });
+        const [txResult] = await getPool().execute(
+          "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [
+            `Confecção de projeto (Briefing #${briefingId})`,
+            "contas a pagar",
+            valorContaPagar,
+            "pendente",
+            "Projetos",
+            dataHoje,
+            obs,
+            null,
+            null,
+            u.userId,
+            null,
+            null,
+            null
+          ]
+        );
+        transacaoId = (txResult as any).insertId;
+      } else {
+        transacaoId = existing.id;
+      }
+    } catch {}
+
+    res.json({ ok: true, projetoId, transacaoId, valorContaPagar, custoProjetoM2, metragemM2 });
+  });
+
   // ── Oportunidades (Kanban) ──────────────────────────────────────────────────
   r.get("/oportunidades", requireCrmAuth, async (req, res) => {
     const { etapa, responsavel_id } = req.query as any;
