@@ -928,21 +928,26 @@ const NavigationSystem = {
     // Vincular eventos específicos da página
     bindPageEvents(module, page) {
         // Eventos específicos podem ser adicionados aqui
-        console.log(`Eventos vinculados para ${module}/${page}`);
+        console.log(`[NavigationSystem] bindPageEvents chamado para ${module}/${page}`);
         
         // Proteção Global Anti-Clear para Formulários - v4.9.4
         this.setupGlobalMouseProtection();
         
         // Auto carregar leads via API ao entrar na página de Marketing > Leads
         if (module === 'marketing' && page === 'leads') {
+            console.log('[NavigationSystem] Detectado módulo marketing/leads - agendando loadLeads');
             setTimeout(() => {
                 try {
+                    console.log('[NavigationSystem] Verificando window.MarketingModule:', typeof window.MarketingModule);
                     if (window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function') {
+                        console.log('[NavigationSystem] Chamando window.MarketingModule.loadLeads()');
                         window.MarketingModule.loadLeads();
                         console.log('✅ [NavigationSystem] Leads auto-carregados via MarketingModule.loadLeads');
+                    } else {
+                        console.warn('[NavigationSystem] ⚠️ window.MarketingModule ou loadLeads não disponível');
                     }
                 } catch (error) {
-                    console.warn('⚠️ [NavigationSystem] Falha ao auto-carregar leads:', error);
+                    console.warn('[NavigationSystem] ⚠️ Falha ao auto-carregar leads:', error);
                 }
             }, 50);
         }
