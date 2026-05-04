@@ -369,9 +369,14 @@ export function registerCrmRoutes(app: any) {
     const orcamentoEstimado = normalizeMoney(briefing.orcamento_estimado);
     const dataHoje = ymd(new Date());
 
-    const custoM2Row = await dbOne<any>("SELECT valor FROM crm_settings WHERE chave = ?", ["custo_projeto_m2"]);
-    const custoProjetoM2 = normalizeMoney(custoM2Row && custoM2Row.valor != null ? custoM2Row.valor : 0);
+    const custoM2RowUser = await dbOne<any>("SELECT valor FROM crm_settings WHERE chave = ?", [`custo_projeto_m2_user_${destinatario.id}`]);
+    const custoM2RowGlobal = await dbOne<any>("SELECT valor FROM crm_settings WHERE chave = ?", ["custo_projeto_m2"]);
+    const custoProjetoM2 = normalizeMoney(
+      (custoM2RowUser && custoM2RowUser.valor != null ? custoM2RowUser.valor : null) ??
+      (custoM2RowGlobal && custoM2RowGlobal.valor != null ? custoM2RowGlobal.valor : 0)
+    );
     const valorContaPagar = Math.round((metragemM2 * custoProjetoM2) * 100) / 100;
+    const centroCusto = (briefing && briefing.nome_evento != null ? String(briefing.nome_evento).trim() : "") || "Projetos";
 
     const tituloProjeto = `Projeto - ${briefing.empresa || "Cliente"} - ${briefing.nome_evento || "Evento"}`;
     const descricaoProjeto = `Gerado automaticamente a partir do briefing #${briefingId}.`;
@@ -427,7 +432,9 @@ export function registerCrmRoutes(app: any) {
           briefing_id: briefingId,
           projeto_id: projetoId,
           metragem_m2: metragemM2,
-          custo_projeto_m2: custoProjetoM2
+          custo_projeto_m2: custoProjetoM2,
+          centro_custo: centroCusto,
+          nome_evento: briefing.nome_evento || null
         });
         const [txResult] = await getPool().execute(
           "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -436,7 +443,7 @@ export function registerCrmRoutes(app: any) {
             "contas a pagar",
             valorContaPagar,
             "pendente",
-            "Projetos",
+            centroCusto,
             dataHoje,
             obs,
             null,
@@ -453,7 +460,7 @@ export function registerCrmRoutes(app: any) {
       }
     } catch {}
 
-    res.json({ ok: true, projetoId, transacaoId, valorContaPagar, custoProjetoM2, metragemM2 });
+    res.json({ ok: true, projetoId, transacaoId, valorContaPagar, custoProjetoM2, metragemM2, centroCusto });
   });
 
   // ── Oportunidades (Kanban) ──────────────────────────────────────────────────
