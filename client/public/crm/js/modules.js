@@ -7932,7 +7932,10 @@ window.MarketingModule.loadLeads = async function() {
           </td>
         </tr>
       `).join('');
-      tbody.innerHTML = rows || `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">Nenhum lead encontrado.</td></tr>`;
+      const syncWarning = !apiOk
+        ? `<tr><td colspan="6" class="px-6 py-3 text-xs text-amber-700 bg-amber-50">Aviso: sem sincronização com o servidor no momento. Verifique login/conexão e atualize a página.</td></tr>`
+        : '';
+      tbody.innerHTML = rows ? `${syncWarning}${rows}` : (syncWarning || `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">Nenhum lead encontrado.</td></tr>`);
       try { window.MarketingModule[retryKey] = 0; } catch {}
       return;
     }
