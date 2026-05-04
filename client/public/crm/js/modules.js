@@ -7735,11 +7735,47 @@ if (!window.MarketingModule) {
 
 window.MarketingModule.loadLeads = async function() {
   try {
+    const retryKey = '_leadsLoadDomRetries';
+    window.MarketingModule[retryKey] = window.MarketingModule[retryKey] || 0;
+
     const container = document.getElementById('leads-list-container');
-    const tbody = document.getElementById('leads-list-body');
+    const leadsViewListEl = document.getElementById('leads-view-list');
+    let tbody = document.getElementById('leads-list-body');
     if (!container) {
-      console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
+      const attempt = (window.MarketingModule[retryKey] || 0) + 1;
+      window.MarketingModule[retryKey] = attempt;
+      if (attempt <= 12) {
+        setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
+      } else {
+        console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
+      }
       return;
+    }
+
+    if (!tbody) {
+      tbody = document.querySelector('#leads-view-list tbody');
+    }
+
+    if (!tbody && leadsViewListEl) {
+      const tableHost = document.querySelector('#leads-view-list table') || leadsViewListEl;
+      tableHost.innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200" aria-label="Tabela de leads">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="leads-list-body" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      `;
+      tbody = document.getElementById('leads-list-body') || document.querySelector('#leads-view-list tbody');
     }
 
     // Estado de carregamento
@@ -7752,15 +7788,28 @@ window.MarketingModule.loadLeads = async function() {
     let apiLeads = [];
     let apiOk = false;
     try {
-      const response = await fetch('/api/crm/leads?limit=500', { credentials: 'include' });
-      const data = await response.json().catch(() => []);
+      const response = await fetch('/api/crm/leads?limit=500', {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      const data = await response.json().catch(() => null);
       // A API retorna { data: [...], total: N } — extrair o array
       const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);
       if (response.ok && dataArray) {
         apiLeads = dataArray;
         apiOk = true;
       } else {
-        console.warn('[MarketingModule] API /api/leads indisponível ou retornou erro – usando somente dados locais');
+        if (response.status === 401 || response.status === 403) {
+          try {
+            if (window.Toast && typeof Toast.show === 'function') Toast.show('Sessão expirada. Faça login novamente.', 'warning');
+            if (window.AuthSystem && typeof AuthSystem.showLogin === 'function') AuthSystem.showLogin();
+          } catch {}
+          console.warn('[MarketingModule] Não autenticado ao carregar leads (401/403).');
+        } else {
+          const errMsg = (data && data.error) ? data.error : `HTTP ${response.status}`;
+          console.warn('[MarketingModule] API /api/crm/leads retornou erro – usando somente dados locais:', errMsg);
+        }
       }
     } catch (err) {
       console.warn('[MarketingModule] Falha ao consultar API /api/leads – usando somente dados locais:', err);
@@ -7845,7 +7894,14 @@ window.MarketingModule.loadLeads = async function() {
     if (modesEl) modesEl.classList.toggle('hidden', currentView !== 'pipeline');
 
     if (currentView !== 'pipeline') {
-      if (!tbody) return;
+      if (!tbody) {
+        const attempt = (window.MarketingModule[retryKey] || 0) + 1;
+        window.MarketingModule[retryKey] = attempt;
+        if (attempt <= 12) {
+          setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
+        }
+        return;
+      }
       const rows = mergedLeads.map(lead => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
@@ -7877,11 +7933,19 @@ window.MarketingModule.loadLeads = async function() {
         </tr>
       `).join('');
       tbody.innerHTML = rows || `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">Nenhum lead encontrado.</td></tr>`;
+      try { window.MarketingModule[retryKey] = 0; } catch {}
       return;
     }
 
     const board = document.getElementById('leads-pipeline-board');
-    if (!board) return;
+    if (!board) {
+      const attempt = (window.MarketingModule[retryKey] || 0) + 1;
+      window.MarketingModule[retryKey] = attempt;
+      if (attempt <= 12) {
+        setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
+      }
+      return;
+    }
 
     const mode = currentMode === 'temperatura' ? 'temperatura' : (currentMode === 'funnel' ? 'funnel' : 'status');
     const columns = mode === 'temperatura'
@@ -7958,6 +8022,7 @@ window.MarketingModule.loadLeads = async function() {
     board.style.gridTemplateColumns = `repeat(${columns.length}, minmax(280px, 1fr))`;
     board.style.gap = '16px';
     board.innerHTML = htmlCols;
+    try { window.MarketingModule[retryKey] = 0; } catch {}
 
     const updateLocalLead = (id, patch) => {
       try {
