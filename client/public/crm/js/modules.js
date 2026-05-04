@@ -1016,6 +1016,49 @@ const ModuleSystem = {
                                 Funil
                             </button>
                         </div>
+                        <div class="mt-4 flex flex-col gap-3">
+                            <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                                <div class="flex-1">
+                                    <input id="leads-search-input"
+                                           type="search"
+                                           placeholder="Buscar por nome, empresa ou e-mail..."
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <button id="leads-filters-toggle" type="button"
+                                        class="md:hidden bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition duration-300">
+                                    <i class="fas fa-filter mr-2"></i>Filtros
+                                </button>
+                                <button id="leads-filters-clear" type="button"
+                                        class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition duration-300">
+                                    <i class="fas fa-eraser mr-2"></i>Limpar
+                                </button>
+                            </div>
+                            <div id="leads-filters-panel" class="hidden md:block bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Temperatura</label>
+                                        <select id="leads-filter-temperatura" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                                            <option value="">Todas</option>
+                                            <option value="quente">Quente</option>
+                                            <option value="morno">Morno</option>
+                                            <option value="frio">Frio</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Segmento</label>
+                                        <select id="leads-filter-segmento" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                                            <option value="">Todos</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Evento</label>
+                                        <select id="leads-filter-evento" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                                            <option value="">Todos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div id="leads-view-list" class="${currentView === 'pipeline' ? 'hidden' : ''}">
                         <!-- Tabela para desktop -->
@@ -7998,48 +8041,31 @@ if (!window.MarketingModule) {
   window.MarketingModule = {};
 }
 
-window.MarketingModule.loadLeads = async function() {
+window.MarketingModule.loadLeads = async function(options) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const skipFetch = !!opts.skipFetch;
   try {
-<<<<<<< Updated upstream
     const retryKey = '_leadsLoadDomRetries';
     window.MarketingModule[retryKey] = window.MarketingModule[retryKey] || 0;
 
     const container = document.getElementById('leads-list-container');
     const leadsViewListEl = document.getElementById('leads-view-list');
+    const cardsView = document.getElementById('leads-cards-view');
     let tbody = document.getElementById('leads-list-body');
+
     if (!container) {
       const attempt = (window.MarketingModule[retryKey] || 0) + 1;
       window.MarketingModule[retryKey] = attempt;
-      if (attempt <= 12) {
-        setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
-      } else {
-        console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
-=======
-    console.log('[MarketingModule] loadLeads() iniciado');
-    const container = document.getElementById('leads-list-container');
-    const tbody = document.getElementById('leads-list-body');
-    console.log('[MarketingModule] container:', container ? 'encontrado' : 'NÃO ENCONTRADO');
-    console.log('[MarketingModule] tbody:', tbody ? 'encontrado' : 'NÃO ENCONTRADO');
-    if (!container) {
-      console.warn('[MarketingModule] Container da lista de leads não encontrado. ID esperado: #leads-list-container');
-      // Tentar renderizar a tabela inteira se o container não existir
-      const parentContainer = document.getElementById('moduleContent');
-      if (parentContainer) {
-        console.log('[MarketingModule] Renderizando tabela inteira no moduleContent');
-        // Renderizar a tabela aqui
->>>>>>> Stashed changes
-      }
+      if (attempt <= 12) setTimeout(() => window.MarketingModule.loadLeads(opts), 150 * attempt);
       return;
     }
 
-    if (!tbody) {
-      tbody = document.querySelector('#leads-view-list tbody');
-    }
+    if (!tbody) tbody = document.querySelector('#leads-view-list tbody');
 
     if (!tbody && leadsViewListEl) {
       const tableHost = document.querySelector('#leads-view-list table') || leadsViewListEl;
       tableHost.innerHTML = `
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto hidden md:block">
           <table class="min-w-full divide-y divide-gray-200" aria-label="Tabela de leads">
             <thead class="bg-gray-50">
               <tr>
@@ -8058,60 +8084,45 @@ window.MarketingModule.loadLeads = async function() {
       tbody = document.getElementById('leads-list-body') || document.querySelector('#leads-view-list tbody');
     }
 
-    // Estado de carregamento
     container.setAttribute('aria-busy', 'true');
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">Carregando leads...</td></tr>`;
-    }
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">${skipFetch ? 'Atualizando visão...' : 'Carregando leads...'}</td></tr>`;
+    if (cardsView) cardsView.innerHTML = `<div class="text-sm text-gray-500">Carregando...</div>`;
 
     const localLeads = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.leads)) ? [...ModuleSystem.data.leads] : [];
     let apiLeads = [];
     let apiOk = false;
-    try {
-<<<<<<< Updated upstream
-      const response = await fetch('/api/crm/leads?limit=500', {
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      const data = await response.json().catch(() => null);
-=======
-      console.log('[MarketingModule] Fazendo fetch para /api/crm/leads?limit=500');
-      const response = await fetch('/api/crm/leads?limit=500', { credentials: 'include' });
-      console.log('[MarketingModule] Fetch retornou status:', response.status, response.statusText);
-      const data = await response.json().catch((e) => { console.warn('[MarketingModule] Erro ao parsear JSON:', e); return []; });
->>>>>>> Stashed changes
-      // A API retorna { data: [...], total: N } — extrair o array
-      const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);
-      console.log('[MarketingModule] API response:', { ok: response.ok, status: response.status, dataLength: dataArray ? dataArray.length : 0, dataType: typeof data });
-      if (response.ok && dataArray) {
-        apiLeads = dataArray;
-        apiOk = true;
-        console.log('[MarketingModule] ✅ Leads carregados da API:', apiLeads.length);
-      } else if (response.status === 401) {
-        console.warn('[MarketingModule] ⚠️ 401 Unauthorized - sessão expirada ou inválida');
-      } else {
-<<<<<<< Updated upstream
-        if (response.status === 401 || response.status === 403) {
-          try {
-            if (window.Toast && typeof Toast.show === 'function') Toast.show('Sessão expirada. Faça login novamente.', 'warning');
-            if (window.AuthSystem && typeof AuthSystem.showLogin === 'function') AuthSystem.showLogin();
-          } catch {}
-          console.warn('[MarketingModule] Não autenticado ao carregar leads (401/403).');
+
+    if (skipFetch) {
+      apiOk = !!window.MarketingModule._leadsLastApiOk;
+    } else {
+      try {
+        const response = await fetch('/api/crm/leads?limit=500', {
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        const data = await response.json().catch(() => null);
+        const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);
+        if (response.ok && dataArray) {
+          apiLeads = dataArray;
+          apiOk = true;
+          try { window.MarketingModule._leadsLastApiOk = true; } catch {}
         } else {
-          const errMsg = (data && data.error) ? data.error : `HTTP ${response.status}`;
-          console.warn('[MarketingModule] API /api/crm/leads retornou erro – usando somente dados locais:', errMsg);
+          try { window.MarketingModule._leadsLastApiOk = false; } catch {}
+          if (response.status === 401 || response.status === 403) {
+            try {
+              if (window.Toast && typeof Toast.show === 'function') Toast.show('Sessão expirada. Faça login novamente.', 'warning');
+              if (window.AuthSystem && typeof AuthSystem.showLogin === 'function') AuthSystem.showLogin();
+            } catch {}
+          }
         }
-=======
-        console.warn('[MarketingModule] API /api/leads indisponível ou retornou erro – usando somente dados locais. Status:', response.status, 'Data:', data);
->>>>>>> Stashed changes
+      } catch {
+        try { window.MarketingModule._leadsLastApiOk = false; } catch {}
       }
-    } catch (err) {
-      console.warn('[MarketingModule] Falha ao consultar API /api/leads – usando somente dados locais:', err);
     }
 
     const mergedLeads = (() => {
-      if (!apiOk) return localLeads;
+      if (skipFetch || !apiOk) return localLeads;
       const out = Array.isArray(apiLeads) ? [...apiLeads] : [];
       const ids = new Set(out.map(x => (x && x.id != null) ? String(x.id) : ''));
       const isNumericId = (id) => {
@@ -8128,9 +8139,9 @@ window.MarketingModule.loadLeads = async function() {
     })();
 
     try {
-      if (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.leads)) {
+      if (window.ModuleSystem && ModuleSystem.data) {
         ModuleSystem.data.leads = mergedLeads;
-        ModuleSystem.saveData();
+        if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
       }
     } catch {}
 
@@ -8140,10 +8151,18 @@ window.MarketingModule.loadLeads = async function() {
           ModuleSystem.data.ui = ModuleSystem.data.ui || {};
           if (!ModuleSystem.data.ui.marketingLeadsView) ModuleSystem.data.ui.marketingLeadsView = 'list';
           if (!ModuleSystem.data.ui.marketingLeadsPipelineMode) ModuleSystem.data.ui.marketingLeadsPipelineMode = 'status';
+          ModuleSystem.data.ui.marketingLeadsFilters = ModuleSystem.data.ui.marketingLeadsFilters && typeof ModuleSystem.data.ui.marketingLeadsFilters === 'object'
+            ? ModuleSystem.data.ui.marketingLeadsFilters
+            : { q: '', temperatura: '', segmento: '', evento: '' };
+          const f = ModuleSystem.data.ui.marketingLeadsFilters;
+          if (f.q == null) f.q = '';
+          if (f.temperatura == null) f.temperatura = '';
+          if (f.segmento == null) f.segmento = '';
+          if (f.evento == null) f.evento = '';
           return ModuleSystem.data.ui;
         }
       } catch {}
-      return { marketingLeadsView: 'list', marketingLeadsPipelineMode: 'status' };
+      return { marketingLeadsView: 'list', marketingLeadsPipelineMode: 'status', marketingLeadsFilters: { q: '', temperatura: '', segmento: '', evento: '' } };
     };
 
     const normalizeKey = (value) => (value || '').toString().trim().toLowerCase();
@@ -8158,6 +8177,8 @@ window.MarketingModule.loadLeads = async function() {
       if (t === 'frio' || t === 'morno' || t === 'quente') return t;
       return t || 'frio';
     };
+    const getSegmento = (lead) => (lead && (lead.segmento ?? lead.segmento_principal ?? lead.segmentoPrincipal)) ? String(lead.segmento ?? lead.segmento_principal ?? lead.segmentoPrincipal).trim() : '';
+    const getEventoInteresse = (lead) => (lead && (lead.evento_interesse ?? lead.eventoInteresse)) ? String(lead.evento_interesse ?? lead.eventoInteresse).trim() : '';
     const funnelStageFromStatus = (statusValue) => {
       const s = normalizeStatus(statusValue);
       if (s === 'qualificado') return 'qualificado';
@@ -8175,8 +8196,153 @@ window.MarketingModule.loadLeads = async function() {
     };
 
     const ui = ensureUi();
+    const filters = ui.marketingLeadsFilters || { q: '', temperatura: '', segmento: '', evento: '' };
     const currentView = ui.marketingLeadsView === 'pipeline' ? 'pipeline' : 'list';
     const currentMode = (ui.marketingLeadsPipelineMode || 'status').toString();
+
+    const searchInput = document.getElementById('leads-search-input');
+    const toggleBtn = document.getElementById('leads-filters-toggle');
+    const clearBtn = document.getElementById('leads-filters-clear');
+    const panel = document.getElementById('leads-filters-panel');
+    const selTemp = document.getElementById('leads-filter-temperatura');
+    const selSeg = document.getElementById('leads-filter-segmento');
+    const selEvt = document.getElementById('leads-filter-evento');
+
+    const updateFilterState = (patch) => {
+      try {
+        ui.marketingLeadsFilters = { ...(ui.marketingLeadsFilters || {}), ...(patch || {}) };
+        if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
+      } catch {}
+    };
+
+    const setOptions = (selectEl, values) => {
+      if (!selectEl) return;
+      const prev = selectEl.value;
+      const base = selectEl.querySelector('option[value=""]');
+      const keepFirst = base ? base.outerHTML : '<option value="">Todos</option>';
+      const uniq = Array.from(new Set((values || []).map(v => String(v || '').trim()).filter(v => v))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      selectEl.innerHTML = keepFirst + uniq.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('');
+      if (prev) {
+        const has = Array.from(selectEl.options || []).some(o => o && String(o.value) === String(prev));
+        if (has) selectEl.value = prev;
+      }
+    };
+
+    setOptions(selSeg, mergedLeads.map(getSegmento).filter(Boolean));
+    setOptions(selEvt, mergedLeads.map(getEventoInteresse).filter(Boolean));
+
+    try { if (searchInput && searchInput.value !== String(filters.q || '')) searchInput.value = String(filters.q || ''); } catch {}
+    try { if (selTemp && selTemp.value !== String(filters.temperatura || '')) selTemp.value = String(filters.temperatura || ''); } catch {}
+    try { if (selSeg && selSeg.value !== String(filters.segmento || '')) selSeg.value = String(filters.segmento || ''); } catch {}
+    try { if (selEvt && selEvt.value !== String(filters.evento || '')) selEvt.value = String(filters.evento || ''); } catch {}
+
+    if (toggleBtn && !toggleBtn.getAttribute('data-bound')) {
+      toggleBtn.setAttribute('data-bound', '1');
+      toggleBtn.addEventListener('click', () => {
+        try { if (panel) panel.classList.toggle('hidden'); } catch {}
+      });
+    }
+
+    if (clearBtn && !clearBtn.getAttribute('data-bound')) {
+      clearBtn.setAttribute('data-bound', '1');
+      clearBtn.addEventListener('click', () => {
+        updateFilterState({ q: '', temperatura: '', segmento: '', evento: '' });
+        try {
+          if (searchInput) searchInput.value = '';
+          if (selTemp) selTemp.value = '';
+          if (selSeg) selSeg.value = '';
+          if (selEvt) selEvt.value = '';
+        } catch {}
+        window.MarketingModule.loadLeads({ skipFetch: true });
+      });
+    }
+
+    if (searchInput && !searchInput.getAttribute('data-bound')) {
+      searchInput.setAttribute('data-bound', '1');
+      searchInput.addEventListener('input', () => {
+        try { window.clearTimeout(window.MarketingModule._leadsSearchDebounce); } catch {}
+        window.MarketingModule._leadsSearchDebounce = window.setTimeout(() => {
+          const q = String(searchInput.value || '');
+          updateFilterState({ q });
+          window.MarketingModule.loadLeads({ skipFetch: true });
+        }, 120);
+      });
+    }
+
+    const bindSelect = (selectEl, key) => {
+      if (!selectEl || selectEl.getAttribute('data-bound')) return;
+      selectEl.setAttribute('data-bound', '1');
+      selectEl.addEventListener('change', () => {
+        updateFilterState({ [key]: String(selectEl.value || '') });
+        window.MarketingModule.loadLeads({ skipFetch: true });
+      });
+    };
+    bindSelect(selTemp, 'temperatura');
+    bindSelect(selSeg, 'segmento');
+    bindSelect(selEvt, 'evento');
+
+    const matchesFilters = (lead) => {
+      const wantT = String((ui.marketingLeadsFilters && ui.marketingLeadsFilters.temperatura) || '');
+      const wantS = String((ui.marketingLeadsFilters && ui.marketingLeadsFilters.segmento) || '');
+      const wantE = String((ui.marketingLeadsFilters && ui.marketingLeadsFilters.evento) || '');
+      const t = normalizeTemperatura(lead && lead.temperatura);
+      const seg = getSegmento(lead);
+      const evt = getEventoInteresse(lead);
+      if (wantT && t !== wantT) return false;
+      if (wantS && seg !== wantS) return false;
+      if (wantE && evt !== wantE) return false;
+      const q = normalizeKey((ui.marketingLeadsFilters && ui.marketingLeadsFilters.q) || '');
+      if (!q) return true;
+      const hay = normalizeKey([lead && lead.nome, lead && lead.empresa, lead && lead.email].filter(Boolean).join(' '));
+      return hay.includes(q);
+    };
+
+    const filteredLeads = mergedLeads.filter(matchesFilters);
+
+    const getWhatsappDigits = (lead) => {
+      const raw = (lead && (lead.whatsapp || lead.telefone)) ? String(lead.whatsapp || lead.telefone) : '';
+      const digits = raw.replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('55')) return digits;
+      if (digits.length >= 10) return '55' + digits;
+      return digits;
+    };
+    const whatsappText = (lead) => {
+      const nome = (lead && lead.nome) ? String(lead.nome).trim() : '';
+      const empresa = (lead && lead.empresa) ? String(lead.empresa).trim() : '';
+      const evento = getEventoInteresse(lead);
+      const temp = normalizeTemperatura(lead && lead.temperatura);
+      const base = nome ? `Olá ${nome}, tudo bem?` : 'Olá, tudo bem?';
+      const ctx = [empresa ? `Sou da SAMS Locações e estou falando com a ${empresa}.` : 'Sou da SAMS Locações.', evento ? `Vi seu interesse no evento ${evento}.` : ''].filter(Boolean).join(' ');
+      const ask = temp === 'quente'
+        ? 'Podemos avançar para fechar os detalhes do stand e do orçamento?'
+        : (temp === 'morno'
+          ? 'Posso te ajudar com opções e valores para o seu stand?'
+          : 'Quando puder, me diga o melhor horário para conversarmos sobre o seu stand.');
+      return [base, ctx, ask].filter(Boolean).join(' ');
+    };
+    const whatsappUrl = (lead) => {
+      const phone = getWhatsappDigits(lead);
+      if (!phone) return '';
+      return `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText(lead))}`;
+    };
+
+    if (container && !container.getAttribute('data-wa-bound')) {
+      container.setAttribute('data-wa-bound', 'true');
+      container.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest('[data-lead-whatsapp="1"]') : null;
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const lead = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.leads))
+          ? (ModuleSystem.data.leads.find(x => x && x.id != null && String(x.id) === String(id)) || null)
+          : null;
+        const url = whatsappUrl(lead);
+        if (!url) return;
+        try { window.open(url, '_blank', 'noopener'); } catch { try { location.href = url; } catch {} }
+      }, true);
+    }
 
     const titleEl = document.getElementById('leads-title');
     if (titleEl) titleEl.textContent = currentView === 'pipeline' ? 'Pipeline de Leads' : 'Lista de Leads';
@@ -8189,22 +8355,13 @@ window.MarketingModule.loadLeads = async function() {
     if (modesEl) modesEl.classList.toggle('hidden', currentView !== 'pipeline');
 
     if (currentView !== 'pipeline') {
-      if (!tbody) {
-<<<<<<< Updated upstream
-        const attempt = (window.MarketingModule[retryKey] || 0) + 1;
-        window.MarketingModule[retryKey] = attempt;
-        if (attempt <= 12) {
-          setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
-        }
-        return;
-      }
-=======
-        console.warn('[MarketingModule] tbody não encontrado, não é possível renderizar a lista');
-        return;
-      }
-      console.log('[MarketingModule] Renderizando', mergedLeads.length, 'leads na tabela');
->>>>>>> Stashed changes
-      const rows = mergedLeads.map(lead => `
+      if (!tbody) return;
+
+      const syncWarning = !apiOk && !skipFetch
+        ? `<tr><td colspan="6" class="px-6 py-3 text-xs text-amber-700 bg-amber-50">Aviso: sem sincronização com o servidor no momento. Verifique login/conexão e atualize a página.</td></tr>`
+        : '';
+
+      const rows = filteredLeads.map(lead => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm font-medium text-gray-900">${lead.nome || ''}</div>
@@ -8213,31 +8370,53 @@ window.MarketingModule.loadLeads = async function() {
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.empresa || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="flex items-center gap-2">
-              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${window.UIHelpers ? UIHelpers.computeStatusClass(lead.status) : 'bg-blue-100 text-blue-800'}">
-                ${lead.status || '—'}
-              </span>
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${window.UIHelpers ? UIHelpers.computeStatusClass(lead.status) : 'bg-blue-100 text-blue-800'}">${lead.status || '—'}</span>
               ${temperaturaBadge(lead)}
             </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.origem || ''}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lead.dataContato || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '')}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-            <button data-action="read" data-module="leads" data-id="${lead.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar lead" aria-label="Visualizar detalhes do lead ${lead.nome || lead.id}">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button data-action="update" data-module="leads" data-id="${lead.id}" class="text-green-600 hover:text-green-900" title="Editar lead" aria-label="Editar lead ${lead.nome || lead.id}">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button data-action="delete" data-module="leads" data-id="${lead.id}" class="text-red-600 hover:text-red-900" title="Excluir lead" aria-label="Excluir lead ${lead.nome || lead.id}">
-              <i class="fas fa-trash"></i>
-            </button>
+            ${getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${lead.id}" class="text-emerald-600 hover:text-emerald-900" title="WhatsApp" aria-label="Abrir WhatsApp para ${lead.nome || lead.id}"><i class="fab fa-whatsapp"></i></button>` : ''}
+            <button data-action="read" data-module="leads" data-id="${lead.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar"><i class="fas fa-eye"></i></button>
+            <button data-action="update" data-module="leads" data-id="${lead.id}" class="text-green-600 hover:text-green-900" title="Editar"><i class="fas fa-edit"></i></button>
+            <button data-action="delete" data-module="leads" data-id="${lead.id}" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></button>
           </td>
         </tr>
       `).join('');
-      const syncWarning = !apiOk
-        ? `<tr><td colspan="6" class="px-6 py-3 text-xs text-amber-700 bg-amber-50">Aviso: sem sincronização com o servidor no momento. Verifique login/conexão e atualize a página.</td></tr>`
-        : '';
+
       tbody.innerHTML = rows ? `${syncWarning}${rows}` : (syncWarning || `<tr><td colspan="6" class="px-6 py-4 text-sm text-gray-500">Nenhum lead encontrado.</td></tr>`);
+
+      if (cardsView) {
+        const cardWarning = (!apiOk && !skipFetch)
+          ? `<div class="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">Aviso: sem sincronização com o servidor no momento.</div>`
+          : '';
+        const renderMobileCard = (lead) => {
+          const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
+          const tempLabel = lead.temperatura === 'quente' ? '🔴 Quente' : lead.temperatura === 'morno' ? '🟡 Morno' : '🔵 Frio';
+          return `
+            <div class="lead-card">
+              <div class="lead-card-header">
+                <div class="lead-card-name">${lead.nome || ''}</div>
+                <span class="lead-card-temperature ${tempClass}">${tempLabel}</span>
+              </div>
+              <div class="lead-card-body">
+                <div class="lead-card-field"><span class="lead-card-label">Empresa:</span><span class="lead-card-value">${lead.empresa || '—'}</span></div>
+                <div class="lead-card-field"><span class="lead-card-label">Email:</span><span class="lead-card-value">${lead.email || '—'}</span></div>
+                <div class="lead-card-field"><span class="lead-card-label">Telefone:</span><span class="lead-card-value">${lead.telefone || '—'}</span></div>
+                <div class="lead-card-field"><span class="lead-card-label">Origem:</span><span class="lead-card-value">${lead.origem || '—'}</span></div>
+              </div>
+              <div class="lead-card-actions">
+                ${getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${lead.id}" class="edit">WhatsApp</button>` : ''}
+                <button data-action="read" data-module="leads" data-id="${lead.id}" class="edit">Visualizar</button>
+                <button data-action="update" data-module="leads" data-id="${lead.id}" class="edit">Editar</button>
+                <button data-action="delete" data-module="leads" data-id="${lead.id}" class="delete">Excluir</button>
+              </div>
+            </div>
+          `;
+        };
+        cardsView.innerHTML = cardWarning + (filteredLeads.map(renderMobileCard).join('') || `<div class="text-sm text-gray-500">Nenhum lead encontrado.</div>`);
+      }
       try { window.MarketingModule[retryKey] = 0; } catch {}
       return;
     }
@@ -8246,9 +8425,7 @@ window.MarketingModule.loadLeads = async function() {
     if (!board) {
       const attempt = (window.MarketingModule[retryKey] || 0) + 1;
       window.MarketingModule[retryKey] = attempt;
-      if (attempt <= 12) {
-        setTimeout(() => window.MarketingModule.loadLeads(), 150 * attempt);
-      }
+      if (attempt <= 12) setTimeout(() => window.MarketingModule.loadLeads(opts), 150 * attempt);
       return;
     }
 
@@ -8294,6 +8471,7 @@ window.MarketingModule.loadLeads = async function() {
               <div class="text-xs text-gray-500 truncate">${empresa}</div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
+              ${getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${id}" class="text-emerald-600 hover:text-emerald-900" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>` : ''}
               <button data-action="read" data-module="leads" data-id="${id}" class="text-blue-600 hover:text-blue-900" title="Visualizar"><i class="fas fa-eye"></i></button>
               <button data-action="update" data-module="leads" data-id="${id}" class="text-green-600 hover:text-green-900" title="Editar"><i class="fas fa-edit"></i></button>
               <button data-action="delete" data-module="leads" data-id="${id}" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -8309,7 +8487,7 @@ window.MarketingModule.loadLeads = async function() {
     };
 
     const htmlCols = columns.map(col => {
-      const items = mergedLeads.filter(l => keyForLead(l) === col.key);
+      const items = filteredLeads.filter(l => keyForLead(l) === col.key);
       return `
         <div class="rounded-lg border ${col.color} p-3" style="min-width: 280px;" data-drop="col" data-key="${col.key}">
           <div class="flex items-center justify-between mb-3">
@@ -8317,7 +8495,7 @@ window.MarketingModule.loadLeads = async function() {
             <div class="text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-full px-2 py-0.5">${items.length}</div>
           </div>
           <div class="space-y-2" data-drop="list">
-            ${items.map(renderCard).join('') || `<div class="text-xs text-gray-500">Arraste leads aqui</div>`}
+            ${items.map(renderCard).join('') || `<div class="text-xs text-gray-500">Arraste cards aqui</div>`}
           </div>
         </div>
       `;
@@ -8335,7 +8513,7 @@ window.MarketingModule.loadLeads = async function() {
         const idx = ModuleSystem.data.leads.findIndex(x => x && x.id != null && String(x.id) === String(id));
         if (idx === -1) return;
         ModuleSystem.data.leads[idx] = { ...ModuleSystem.data.leads[idx], ...patch };
-        ModuleSystem.saveData();
+        if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
       } catch {}
     };
 
@@ -8350,8 +8528,7 @@ window.MarketingModule.loadLeads = async function() {
       board.addEventListener('dragstart', (e) => {
         const card = e.target && e.target.closest ? e.target.closest('[data-drag-id]') : null;
         if (!card) return;
-        // Evitar arrastar a partir dos botões de ação
-        if (e.target && e.target.closest && e.target.closest('button,[data-action]')) {
+        if (e.target && e.target.closest && e.target.closest('button,[data-action],[data-lead-whatsapp]')) {
           e.preventDefault();
           return;
         }
@@ -8401,16 +8578,8 @@ window.MarketingModule.loadLeads = async function() {
         const newKey = col.getAttribute('data-key');
         if (!newKey) return;
 
-        // Mover visualmente o card imediatamente
-        const card = document.querySelector(`[data-drag-id="${CSS.escape(String(id))}"]`);
-        const list = col.querySelector('[data-drop="list"]');
-        if (card && list) {
-          list.appendChild(card);
-        }
-
         let body = null;
         let localPatch = null;
-
         if (mode === 'temperatura') {
           body = { temperatura: newKey };
           localPatch = { temperatura: newKey };
@@ -8437,31 +8606,30 @@ window.MarketingModule.loadLeads = async function() {
           }
           updateLocalLead(id, localPatch);
           removeDraggingClass();
-          setTimeout(() => window.MarketingModule.loadLeads(), 50);
+          setTimeout(() => window.MarketingModule.loadLeads({ skipFetch: true }), 50);
         } catch (err) {
           if (window.Toast && typeof window.Toast.show === 'function') {
             window.Toast.show(err && err.message ? err.message : 'Falha ao mover lead', 'error');
           } else {
             alert(err && err.message ? err.message : 'Falha ao mover lead');
           }
-          setTimeout(() => window.MarketingModule.loadLeads(), 50);
+          setTimeout(() => window.MarketingModule.loadLeads({ skipFetch: true }), 50);
         }
       });
     }
   } catch (err) {
-    console.error('[MarketingModule] Erro ao carregar leads:', err);
     const tbody = document.getElementById('leads-list-body');
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-sm text-red-600">Erro ao carregar lista de leads</td></tr>`;
-    }
-    if (window.Toast) {
-      window.Toast.show(err.message || 'Erro ao listar leads', 'error');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-sm text-red-600">Erro ao carregar lista de leads</td></tr>`;
+    try {
+      const cardsView = document.getElementById('leads-cards-view');
+      if (cardsView) cardsView.innerHTML = `<div class="text-sm text-red-600">Erro ao carregar lista de leads</div>`;
+    } catch {}
+    if (window.Toast && typeof window.Toast.show === 'function') {
+      window.Toast.show((err && err.message) || 'Erro ao listar leads', 'error');
     }
   } finally {
     const container = document.getElementById('leads-list-container');
-    if (container) {
-      container.setAttribute('aria-busy', 'false');
-    }
+    if (container) container.setAttribute('aria-busy', 'false');
   }
 };
 
