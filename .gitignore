@@ -114,3 +114,6 @@ uploads/
 tools/
 node/
 db.zip
+.xdg-cache/
+.xdg-state/
+.xdg-data/
