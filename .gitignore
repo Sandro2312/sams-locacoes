@@ -39,6 +39,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Manus
+.manus/
+.manus-logs/
+
 # Runtime data
 pids
 *.pid
