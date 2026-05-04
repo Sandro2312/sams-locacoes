@@ -4525,6 +4525,9 @@ const ModuleSystem = {
                             <div class="text-lg font-semibold text-gray-800">Resumo (Dashboard)</div>
                         </div>
                         <div class="flex items-center gap-2">
+                            <label for="financeiroDashDate" class="text-sm text-gray-600">Dia:</label>
+                            <input id="financeiroDashDate" type="date"
+                                   class="px-3 py-2 border border-gray-300 rounded-lg">
                             <button type="button" id="financeiroDashRefresh"
                                     class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition duration-300"
                                     title="Atualizar">
@@ -4543,6 +4546,7 @@ const ModuleSystem = {
         initDashboardHome() {
             const root = document.getElementById('financeiroDashBody');
             const btnRefresh = document.getElementById('financeiroDashRefresh');
+            const dateInput = document.getElementById('financeiroDashDate');
             const relRoot = document.getElementById('financeiroRelatoriosHome');
             if (!root) return;
             if (root.getAttribute('data-init') === 'true') return;
@@ -4564,6 +4568,27 @@ const ModuleSystem = {
                 try { return new Date(d).toISOString().slice(0, 10); } catch { return ''; }
             };
             const today = ymd(new Date());
+            const getStoredFocusDate = () => {
+                try {
+                    const v = window.ModuleSystem && ModuleSystem.data && ModuleSystem.data.ui ? ModuleSystem.data.ui.financeiroFocusDate : '';
+                    return v ? String(v).slice(0, 10) : '';
+                } catch { return ''; }
+            };
+            const setStoredFocusDate = (value) => {
+                try {
+                    if (!(window.ModuleSystem && ModuleSystem.data)) return;
+                    ModuleSystem.data.ui = ModuleSystem.data.ui || {};
+                    ModuleSystem.data.ui.financeiroFocusDate = value ? String(value).slice(0, 10) : '';
+                    if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
+                } catch {}
+            };
+            const getFocusDate = () => {
+                try {
+                    const v = dateInput && dateInput.value ? String(dateInput.value).slice(0, 10) : '';
+                    if (v) return v;
+                } catch {}
+                return getStoredFocusDate() || today;
+            };
             const isPaid = (status) => {
                 const s = String(status || '').toLowerCase();
                 return s.includes('pago') || s.includes('baix');
@@ -4582,8 +4607,9 @@ const ModuleSystem = {
                 return j;
             };
 
-            const compute = (contasReceber) => {
+            const compute = (contasReceber, focusDate) => {
                 const contas = Array.isArray(contasReceber) ? contasReceber : [];
+                const focus = focusDate ? String(focusDate).slice(0, 10) : today;
                 const transacoes = (() => {
                     try {
                         return (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.transacoes)) ? ModuleSystem.data.transacoes : [];
@@ -4608,6 +4634,85 @@ const ModuleSystem = {
                     return acc + (isDesp ? toMoney(t && t.valor != null ? t.valor : 0) : 0);
                 }, 0);
 
+                const resolveClienteNome = (cr) => {
+                    try {
+                        const rawId = cr?.clienteId ?? cr?.cliente_id ?? null;
+                        const id = rawId != null && String(rawId).trim() !== '' ? String(rawId) : null;
+                        if (!id) return (cr?.clienteNome || cr?.cliente_nome || '-');
+                        const all = [
+                            ...(Array.isArray(ModuleSystem.data?.clientes) ? ModuleSystem.data.clientes : []),
+                            ...(Array.isArray(ModuleSystem.data?.leads) ? ModuleSystem.data.leads : [])
+                        ];
+                        const found = all.find(c => c && c.id != null && String(c.id) === id);
+                        return (cr?.clienteNome || cr?.cliente_nome || (found ? (found.nome || found.razao_social || found.empresa) : null) || '-');
+                    } catch {
+                        return (cr?.clienteNome || cr?.cliente_nome || '-');
+                    }
+                };
+
+                const ymdOf = (value) => {
+                    const v = value == null ? '' : String(value);
+                    return v ? v.slice(0, 10) : '';
+                };
+
+                const isDespesaTx = (t) => {
+                    const tipo = String(t && t.tipo != null ? t.tipo : '').toLowerCase();
+                    return tipo.includes('pagar') || tipo.includes('desp') || tipo.includes('custo') || tipo.includes('saída') || tipo.includes('saida');
+                };
+                const isReceitaTx = (t) => {
+                    const tipo = String(t && t.tipo != null ? t.tipo : '').toLowerCase();
+                    return tipo.includes('receb') || tipo.includes('receita') || tipo.includes('contas a receber') || tipo === 'r';
+                };
+
+                const debitosDia = transacoes
+                    .filter(t => t && isDespesaTx(t) && ymdOf(t.data || t.data_vencimento || t.created_at || t.createdAt) === focus)
+                    .map(t => ({
+                        id: t.id,
+                        descricao: t.descricao || '-',
+                        valor: toMoney(t.valor),
+                        status: t.status || '-',
+                        data: ymdOf(t.data || t.data_vencimento || t.created_at || t.createdAt)
+                    }));
+
+                const creditosDiaContasPagas = contas
+                    .filter(cr => cr && isPaid(cr.status) && ymdOf(cr.dataPagamento ?? cr.data_pagamento ?? cr.data_pagamento_em ?? '') === focus)
+                    .map(cr => ({
+                        id: cr.id,
+                        cliente: resolveClienteNome(cr),
+                        descricao: cr.descricao || '-',
+                        valor: toMoney(cr.valor),
+                        status: cr.status || 'Pago',
+                        dataRef: ymdOf(cr.dataPagamento ?? cr.data_pagamento ?? cr.data_pagamento_em ?? '')
+                    }));
+
+                const creditosDiaContasVencem = contas
+                    .filter(cr => cr && !isPaid(cr.status) && ymdOf(cr.vencimento) === focus)
+                    .map(cr => ({
+                        id: cr.id,
+                        cliente: resolveClienteNome(cr),
+                        descricao: cr.descricao || '-',
+                        valor: toMoney(cr.valor),
+                        status: cr.status || 'Pendente',
+                        dataRef: ymdOf(cr.vencimento)
+                    }));
+
+                const creditosDiaTransacoes = transacoes
+                    .filter(t => t && isReceitaTx(t) && ymdOf(t.data || t.data_vencimento || t.created_at || t.createdAt) === focus)
+                    .map(t => ({
+                        id: t.id,
+                        descricao: t.descricao || '-',
+                        valor: toMoney(t.valor),
+                        status: t.status || '-',
+                        data: ymdOf(t.data || t.data_vencimento || t.created_at || t.createdAt)
+                    }));
+
+                const totalsDia = {
+                    debitos: debitosDia.reduce((a, x) => a + toMoney(x.valor), 0),
+                    creditosPagos: creditosDiaContasPagas.reduce((a, x) => a + toMoney(x.valor), 0),
+                    creditosVencem: creditosDiaContasVencem.reduce((a, x) => a + toMoney(x.valor), 0),
+                    creditosTransacoes: creditosDiaTransacoes.reduce((a, x) => a + toMoney(x.valor), 0)
+                };
+
                 let ccRows = [];
                 let ccTotals = { receitas: 0, custos: 0, saldo: 0 };
                 try {
@@ -4624,10 +4729,11 @@ const ModuleSystem = {
                     .sort(sortByVenc)
                     .slice(0, 6);
 
-                return { receitasAbertas, receitasVencidas, receitasPagas, despesas, ccRows, ccTotals, proximas };
+                return { receitasAbertas, receitasVencidas, receitasPagas, despesas, ccRows, ccTotals, proximas, focusDate: focus, debitosDia, creditosDiaContasPagas, creditosDiaContasVencem, creditosDiaTransacoes, totalsDia };
             };
 
             const render = (data) => {
+                const focus = data && data.focusDate ? String(data.focusDate).slice(0, 10) : getFocusDate();
                 const totalReceitas = Number(data.receitasAbertas || 0) + Number(data.receitasPagas || 0);
                 const lucro = totalReceitas - Number(data.despesas || 0);
                 const lucratividade = totalReceitas ? (lucro / totalReceitas) : 0;
@@ -4906,7 +5012,107 @@ const ModuleSystem = {
                     );
                 })();
 
+                const dayHtml = (() => {
+                    const br = (d) => {
+                        try { return new Date(String(d).slice(0, 10)).toLocaleDateString('pt-BR'); } catch { return String(d || ''); }
+                    };
+                    const debitos = Array.isArray(data.debitosDia) ? data.debitosDia : [];
+                    const credPagos = Array.isArray(data.creditosDiaContasPagas) ? data.creditosDiaContasPagas : [];
+                    const credVencem = Array.isArray(data.creditosDiaContasVencem) ? data.creditosDiaContasVencem : [];
+                    const credTx = Array.isArray(data.creditosDiaTransacoes) ? data.creditosDiaTransacoes : [];
+                    const totals = data.totalsDia || {};
+                    const totalCreditos = Number(totals.creditosPagos || 0) + Number(totals.creditosVencem || 0) + Number(totals.creditosTransacoes || 0);
+                    const totalDebitos = Number(totals.debitos || 0);
+
+                    const debitosRows = debitos.slice(0, 12).map(it => (
+                        '<tr class="border-t border-red-200 bg-red-50/60">' +
+                            '<td class="px-3 py-2 text-xs text-gray-900">' + escapeHtml(it.descricao || '-') + '</td>' +
+                            '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(it.status || '-') + '</td>' +
+                            '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(br(it.data || focus)) + '</td>' +
+                            '<td class="px-3 py-2 text-xs font-semibold text-right text-red-800">' + toBR(it.valor) + '</td>' +
+                        '</tr>'
+                    )).join('');
+
+                    const creditRow = (label, it, tone) => (
+                        '<tr class="border-t border-green-200 ' + (tone || 'bg-green-50/60') + '">' +
+                            '<td class="px-3 py-2 text-xs text-gray-900">' + escapeHtml(label) + '</td>' +
+                            '<td class="px-3 py-2 text-xs text-gray-900">' + escapeHtml(it.descricao || '-') + '</td>' +
+                            '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(it.status || '-') + '</td>' +
+                            '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(br(it.dataRef || it.data || focus)) + '</td>' +
+                            '<td class="px-3 py-2 text-xs font-semibold text-right text-green-800">' + toBR(it.valor) + '</td>' +
+                        '</tr>'
+                    );
+                    const creditosRows = []
+                        .concat(credPagos.slice(0, 8).map(it => creditRow('Recebido', it, 'bg-green-50/70')))
+                        .concat(credVencem.slice(0, 8).map(it => creditRow('Vence hoje', it, 'bg-emerald-50/70')))
+                        .concat(credTx.slice(0, 8).map(it => (
+                            '<tr class="border-t border-green-200 bg-green-50/60">' +
+                                '<td class="px-3 py-2 text-xs text-gray-900">Receita (tx)</td>' +
+                                '<td class="px-3 py-2 text-xs text-gray-900">' + escapeHtml(it.descricao || '-') + '</td>' +
+                                '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(it.status || '-') + '</td>' +
+                                '<td class="px-3 py-2 text-xs text-gray-700">' + escapeHtml(br(it.data || focus)) + '</td>' +
+                                '<td class="px-3 py-2 text-xs font-semibold text-right text-green-800">' + toBR(it.valor) + '</td>' +
+                            '</tr>'
+                        )))
+                        .slice(0, 12)
+                        .join('');
+
+                    const emptyDeb = '<tr><td colspan="4" class="px-3 py-3 text-xs text-gray-500">Nenhum débito neste dia.</td></tr>';
+                    const emptyCred = '<tr><td colspan="5" class="px-3 py-3 text-xs text-gray-500">Nenhum crédito neste dia.</td></tr>';
+
+                    return (
+                        '<div class="mb-6 bg-white border border-gray-200 rounded-lg p-4">' +
+                            '<div class="flex items-center justify-between gap-3 mb-3">' +
+                                '<div class="font-semibold text-gray-800">Movimento do dia</div>' +
+                                '<div class="text-xs text-gray-600">Dia: ' + escapeHtml(br(focus)) + '</div>' +
+                            '</div>' +
+                            '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">' +
+                                '<div class="border border-green-200 rounded-lg overflow-hidden">' +
+                                    '<div class="bg-green-50 px-3 py-2 flex items-center justify-between">' +
+                                        '<div class="text-sm font-semibold text-green-900">Créditos</div>' +
+                                        '<div class="text-sm font-bold text-green-900">' + toBR(totalCreditos) + '</div>' +
+                                    '</div>' +
+                                    '<div class="overflow-x-auto">' +
+                                        '<table class="w-full">' +
+                                            '<thead class="bg-gray-50">' +
+                                                '<tr>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>' +
+                                                    '<th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>' +
+                                                '</tr>' +
+                                            '</thead>' +
+                                            '<tbody class="bg-white divide-y divide-gray-200">' + (creditosRows || emptyCred) + '</tbody>' +
+                                        '</table>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="border border-red-200 rounded-lg overflow-hidden">' +
+                                    '<div class="bg-red-50 px-3 py-2 flex items-center justify-between">' +
+                                        '<div class="text-sm font-semibold text-red-900">Débitos</div>' +
+                                        '<div class="text-sm font-bold text-red-900">' + toBR(totalDebitos) + '</div>' +
+                                    '</div>' +
+                                    '<div class="overflow-x-auto">' +
+                                        '<table class="w-full">' +
+                                            '<thead class="bg-gray-50">' +
+                                                '<tr>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>' +
+                                                    '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>' +
+                                                    '<th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>' +
+                                                '</tr>' +
+                                            '</thead>' +
+                                            '<tbody class="bg-white divide-y divide-gray-200">' + (debitosRows || emptyDeb) + '</tbody>' +
+                                        '</table>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>'
+                    );
+                })();
+
                 root.innerHTML = (
+                    dayHtml +
                     '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">' +
                         '<div class="bg-green-50 border border-green-200 rounded-lg p-4">' +
                             '<div class="text-sm text-green-700">Receitas</div>' +
@@ -4969,7 +5175,14 @@ const ModuleSystem = {
                 }
 
                 try {
-                    const d = compute(contas);
+                    const focus = getFocusDate();
+                    try {
+                        if (dateInput && (!dateInput.value || String(dateInput.value).slice(0, 10) !== String(focus).slice(0, 10))) {
+                            dateInput.value = String(focus).slice(0, 10);
+                        }
+                    } catch {}
+                    setStoredFocusDate(focus);
+                    const d = compute(contas, focus);
                     render(d);
                     try {
                         if (relRoot && window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.listRelatorios === 'function') {
@@ -4988,6 +5201,15 @@ const ModuleSystem = {
             if (btnRefresh && btnRefresh.getAttribute('data-bound') !== 'true') {
                 btnRefresh.setAttribute('data-bound', 'true');
                 btnRefresh.addEventListener('click', () => load());
+            }
+
+            if (dateInput && dateInput.getAttribute('data-bound') !== 'true') {
+                dateInput.setAttribute('data-bound', 'true');
+                try {
+                    const initValue = getStoredFocusDate() || today;
+                    dateInput.value = initValue;
+                } catch {}
+                dateInput.addEventListener('change', () => load());
             }
 
             load();
