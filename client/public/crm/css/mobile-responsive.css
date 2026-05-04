@@ -1,0 +1,668 @@
+/* =====================================================
+   SAMS CRM/ERP — Mobile Responsive CSS
+   Otimizado para smartphones (320px–768px)
+   ===================================================== */
+
+/* ── Header mobile ─────────────────────────────────── */
+@media (max-width: 640px) {
+  header .container > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header h1 {
+    font-size: 1rem !important;
+  }
+
+  header p.text-blue-100 {
+    font-size: 0.7rem !important;
+  }
+
+  /* Ocultar texto "Auditoria" no mobile — só ícone */
+  #auditBtn span {
+    display: none !important;
+  }
+
+  #auditBtn {
+    padding: 6px 10px !important;
+  }
+
+  /* Nome do usuário — reduzir */
+  #userNameDisplay {
+    font-size: 0.8rem !important;
+  }
+
+  #userRoleDisplay {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* ── Dashboard — grid de módulos ───────────────────── */
+@media (max-width: 768px) {
+  /* Grid de módulos: 2 colunas no mobile */
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  /* Cards de módulos — compactar */
+  .module-card {
+    padding: 14px !important;
+  }
+
+  .module-card .w-12 {
+    width: 36px !important;
+    height: 36px !important;
+    margin-right: 10px !important;
+  }
+
+  .module-card h3 {
+    font-size: 0.85rem !important;
+  }
+
+  .module-card p.text-gray-600 {
+    font-size: 0.72rem !important;
+  }
+
+  /* Ocultar descrição longa dos módulos no mobile */
+  .module-card > p.text-gray-600.text-sm:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  /* Em telas muito pequenas: 1 coluna */
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Main content — padding ────────────────────────── */
+@media (max-width: 640px) {
+  main.container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 16px !important;
+  }
+
+  main h2.text-3xl {
+    font-size: 1.4rem !important;
+  }
+}
+
+/* ── Tabelas — scroll horizontal ───────────────────── */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  table th,
+  table td {
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Ocultar colunas menos importantes em mobile */
+  table .hidden-mobile {
+    display: none !important;
+  }
+}
+
+/* ── Formulários — campos full width ───────────────── */
+@media (max-width: 640px) {
+  .grid.grid-cols-2,
+  .grid.grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Evita zoom automático no iOS */
+    width: 100% !important;
+  }
+
+  /* Botões de ação — full width em mobile */
+  .flex.items-center.space-x-2 button,
+  .flex.items-center.gap-2 button {
+    padding: 8px 12px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ── Modal / Drawer ────────────────────────────────── */
+@media (max-width: 640px) {
+  .modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0 auto !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  .drawer {
+    width: 100vw !important;
+  }
+
+  .modal-h,
+  .drawer-h {
+    padding: 12px !important;
+  }
+
+  .modal-h h3,
+  .drawer-h h3 {
+    font-size: 1rem !important;
+  }
+}
+
+/* ── Kanban — scroll horizontal ───────────────────── */
+@media (max-width: 768px) {
+  .kanban {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+  }
+
+  .kanban .col {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* ── Breadcrumb ────────────────────────────────────── */
+@media (max-width: 640px) {
+  #breadcrumb {
+    font-size: 0.75rem !important;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
+/* ── Botões de ação do header ──────────────────────── */
+@media (max-width: 480px) {
+  /* Esconder texto de botões, manter apenas ícones */
+  .btn-text-mobile {
+    display: none !important;
+  }
+
+  /* Botão Novo Lead, Novo Cliente etc — compactar */
+  button.bg-blue-600,
+  button.bg-green-600,
+  button.bg-teal-600,
+  button.bg-indigo-600 {
+    padding: 7px 10px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ── Cards de KPI / Estatísticas ───────────────────── */
+@media (max-width: 640px) {
+  .grid.grid-cols-2.md\:grid-cols-4,
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Valores KPI — reduzir tamanho */
+  .text-2xl.font-bold,
+  .text-3xl.font-bold {
+    font-size: 1.3rem !important;
+  }
+}
+
+/* ── Agenda / Dashboard cards ──────────────────────── */
+@media (max-width: 640px) {
+  .bg-white.rounded-lg.shadow-lg.p-6 {
+    padding: 14px !important;
+  }
+
+  /* Botões Atualizar / Abrir Kanban — coluna no mobile */
+  .flex.items-center.space-x-2 {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+/* ── Login screen ──────────────────────────────────── */
+@media (max-width: 480px) {
+  #loginScreen .bg-white {
+    width: 92vw !important;
+    padding: 24px 20px !important;
+  }
+
+  #loginScreen h2 {
+    font-size: 1.3rem !important;
+  }
+}
+
+/* ── Scrollbar fina em mobile ──────────────────────── */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+}
+
+/* ── Touch targets — mínimo 44px ───────────────────── */
+@media (max-width: 768px) {
+  button,
+  a[role="button"],
+  .module-card {
+    min-height: 44px;
+  }
+
+  .module-card {
+    min-height: auto;
+  }
+}
+
+/* ── Texto de boas-vindas ──────────────────────────── */
+@media (max-width: 640px) {
+  #dashboardContent > .mb-8 > h2 {
+    font-size: 1.4rem !important;
+  }
+
+  #dashboardContent > .mb-8 > p {
+    font-size: 0.85rem !important;
+  }
+}
+
+/* ── Modal overlay — fix para mobile (botão Salvar visível) ── */
+#modal-overlay {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#modal-overlay > div {
+  min-height: 100%;
+  padding: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+#modal-overlay > div > div {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100dvh - 16px) !important;
+  width: 100% !important;
+  margin: auto;
+}
+
+#modal-content {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#modal-footer {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  padding: 10px 16px !important;
+}
+
+@media (max-width: 480px) {
+  #modal-footer {
+    justify-content: stretch !important;
+  }
+  #modal-footer button {
+    flex: 1 1 auto !important;
+    min-width: 80px !important;
+    text-align: center !important;
+  }
+  #modal-save {
+    order: -1 !important; /* Botão Salvar aparece primeiro no mobile */
+    background-color: #2563eb !important;
+    color: white !important;
+  }
+}
+
+/* ── Formulários dentro do modal — campos full width ── */
+@media (max-width: 640px) {
+  #modal-content .grid-cols-2,
+  #modal-content .grid-cols-3,
+  #modal-content .md\:grid-cols-2,
+  #modal-content .md\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #modal-content label {
+    font-size: 0.82rem !important;
+  }
+
+  #modal-content input,
+  #modal-content select,
+  #modal-content textarea {
+    font-size: 16px !important; /* Evita zoom no iOS */
+  }
+}
+
+/* ── Tabelas — garantir scroll horizontal em todos os módulos ── */
+@media (max-width: 768px) {
+  .overflow-x-auto table,
+  div[class*="overflow-x"] table {
+    min-width: 600px;
+  }
+
+  /* Cabeçalhos de página — compactar */
+  .flex.items-center.justify-between.mb-6,
+  .flex.items-center.justify-between.mb-4 {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Botões de ação no topo das páginas */
+  .flex.items-center.justify-between button {
+    font-size: 0.78rem !important;
+    padding: 7px 10px !important;
+  }
+}
+
+/* ── Filtros e barra de busca — full width no mobile ── */
+@media (max-width: 640px) {
+  .flex.items-center.space-x-4.mb-4,
+  .flex.items-center.gap-4.mb-4,
+  .flex.flex-wrap.gap-4 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .flex.items-center.space-x-4.mb-4 input,
+  .flex.items-center.gap-4.mb-4 input,
+  .flex.items-center.space-x-4.mb-4 select,
+  .flex.items-center.gap-4.mb-4 select {
+    width: 100% !important;
+  }
+}
+
+/* ── Cards de estatísticas — 2 colunas no mobile ── */
+@media (max-width: 640px) {
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.md\:grid-cols-3,
+  .grid.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── Acervo Documental — responsividade ── */
+@media (max-width: 640px) {
+  #acervo-container .grid-cols-3,
+  #acervo-container .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #acervo-container .flex.gap-4 {
+    flex-direction: column !important;
+  }
+}
+
+/* ── Leads e Clientes — melhor renderização mobile ── */
+@media (max-width: 768px) {
+  #leads-list-container,
+  #clientes-list-container {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #leads-list-container .p-6,
+  #clientes-list-container .p-6 {
+    padding: 12px !important;
+  }
+
+  #leads-list-container .flex.justify-between.items-center,
+  #clientes-list-container .flex.justify-between.items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Botões de view (Lista/Pipeline) — compactar */
+  #leads-list-container .flex.items-center.gap-2 button,
+  #leads-list-container .flex.items-center.gap-3 button {
+    font-size: 0.75rem !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Tabela de leads — garantir scroll */
+  #leads-view-list {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100vw !important;
+  }
+
+  #leads-view-list table {
+    min-width: 700px !important;
+  }
+
+  /* Pipeline de leads — colunas empilhadas */
+  #leads-view-pipeline .flex {
+    flex-direction: column !important;
+  }
+
+  #leads-view-pipeline .flex > div {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* ── Leads mobile — cards view para telas < 480px ── */
+@media (max-width: 480px) {
+  #leads-list-container h3 {
+    font-size: 0.9rem !important;
+  }
+
+  /* Botão Novo Lead — full width */
+  #leads-list-container button[data-action="create"] {
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+
+  /* Ocultar colunas menos importantes na tabela de leads */
+  #leads-view-list table th:nth-child(4),
+  #leads-view-list table td:nth-child(4),
+  #leads-view-list table th:nth-child(5),
+  #leads-view-list table td:nth-child(5) {
+    display: none !important;
+  }
+
+  #leads-view-list table {
+    min-width: 400px !important;
+  }
+}
+
+/* ── moduleContent — garantir visibilidade no mobile ── */
+@media (max-width: 768px) {
+  #moduleContent {
+    display: block !important;
+    width: 100% !important;
+    min-height: 50vh !important;
+    padding: 0 !important;
+  }
+
+  #moduleContent:not(.hidden) {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+
+/* ── Leads Cards View para Mobile (< 640px) ── */
+@media (max-width: 640px) {
+  /* Ocultar tabela de leads e mostrar cards view */
+  #leads-view-list {
+    display: none !important;
+  }
+
+  /* Container de cards de leads */
+  #leads-cards-view {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 !important;
+  }
+
+  /* Card individual de lead */
+  .lead-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .lead-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .lead-card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .lead-card-temperature {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .lead-card-temperature.hot {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  .lead-card-temperature.warm {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .lead-card-temperature.cold {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .lead-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .lead-card-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lead-card-label {
+    font-weight: 500;
+    color: #6b7280;
+    min-width: 70px;
+  }
+
+  .lead-card-value {
+    color: #1f2937;
+    text-align: right;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .lead-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .lead-card-actions button {
+    flex: 1;
+    padding: 7px 8px;
+    font-size: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .lead-card-actions button.edit {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .lead-card-actions button.edit:active {
+    background-color: #1d4ed8;
+  }
+
+  .lead-card-actions button.delete {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .lead-card-actions button.delete:active {
+    background-color: #b91c1c;
+  }
+}
+
+/* ── Leads Cards View para telas muito pequenas (< 480px) ── */
+@media (max-width: 480px) {
+  #leads-cards-view {
+    gap: 10px !important;
+  }
+
+  .lead-card {
+    padding: 12px;
+  }
+
+  .lead-card-name {
+    font-size: 0.9rem;
+  }
+
+  .lead-card-body {
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .lead-card-label {
+    min-width: 60px;
+  }
+
+  .lead-card-actions button {
+    padding: 6px 6px;
+    font-size: 0.7rem;
+  }
+}
