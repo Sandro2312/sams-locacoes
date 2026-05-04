@@ -338,7 +338,7 @@ const ModuleSystem = {
         
         // Remover listeners existentes para evitar duplicação
         if (this.globalClickHandler) {
-            document.removeEventListener('click', this.globalClickHandler);
+            document.removeEventListener('click', this.globalClickHandler, true);
         }
         if (this.globalSubmitHandler) {
             document.removeEventListener('submit', this.globalSubmitHandler, true);
@@ -346,39 +346,26 @@ const ModuleSystem = {
         
         // Criar handler persistente com contexto correto
         this.globalClickHandler = ((e) => {
-            // Ignorar cliques originados de controles de formulário para não quebrar o foco
-            if (e.target && e.target.closest && e.target.closest('input, select, textarea, [contenteditable="true"]')) {
-                return;
-            }
-            
-            // Verificar se o elemento clicado ou seus pais têm data-action
-            let target = e.target;
-            while (target && target !== document) {
-                if (target.hasAttribute && target.hasAttribute('data-action')) {
-                    // Ignorar o próprio elemento <form> com data-action
-                    const tag = (target.tagName || '').toLowerCase();
-                    if (tag === 'form') {
-                        target = target.parentElement;
-                        continue;
-                    }
-                    
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const action = target.getAttribute('data-action');
-                    const module = target.getAttribute('data-module');
-                    const id = target.getAttribute('data-id');
-                    
-                    console.log('Clique detectado em botão CRUD:', { action, module, id, element: target });
-                    this.handleCRUDAction(action, module, id);
-                    return;
-                }
-                target = target.parentElement;
-            }
+            const rawTarget = e && e.target ? e.target : null;
+            const actionEl = rawTarget && rawTarget.closest ? rawTarget.closest('[data-action]') : null;
+            if (!actionEl) return;
+
+            const tag = (actionEl.tagName || '').toLowerCase();
+            if (tag === 'form') return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const action = actionEl.getAttribute('data-action');
+            const module = actionEl.getAttribute('data-module');
+            const id = actionEl.getAttribute('data-id');
+
+            console.log('Clique detectado em botão CRUD:', { action, module, id, element: actionEl });
+            this.handleCRUDAction(action, module, id);
         }).bind(this);
         
-        // Adicionar listener em fase de bolha para não interferir com foco dos inputs
-        document.addEventListener('click', this.globalClickHandler, false);
+        // Adicionar listener em captura para funcionar mesmo se outros handlers pararem a bolha
+        document.addEventListener('click', this.globalClickHandler, true);
 
         this.globalSubmitHandler = ((e) => {
             const form = e.target;
