@@ -233,6 +233,8 @@ const BriefingSystem = {
         try { this.ensurePromptButtonInFooter(); } catch {}
         overlay?.classList.remove('hidden');
         this.bindFormAutoFill();
+        try { this.bindBriefingAI(content); } catch {}
+        try { this.applySmartDefaults(content); } catch {}
         
         // Focar no primeiro input
         setTimeout(() => {
@@ -252,6 +254,172 @@ const BriefingSystem = {
         }
         if (window.FormSystem && typeof FormSystem.closeModal === 'function') {
             FormSystem.closeModal();
+        }
+    },
+
+    getCurrentUserId() {
+        try {
+            const u = window.AuthSystem && AuthSystem.currentUser ? AuthSystem.currentUser : null;
+            if (u && u.id != null) return String(u.id);
+        } catch {}
+        try {
+            const v = localStorage.getItem('sams_last_user_id') || '';
+            return v ? String(v) : '';
+        } catch {
+            return '';
+        }
+    },
+
+    trackUiEvent(name, module, meta) {
+        try {
+            if (window.CrmTelemetry && typeof window.CrmTelemetry.track === 'function') {
+                window.CrmTelemetry.track(name, module, meta && typeof meta === 'object' ? meta : undefined);
+            }
+        } catch {}
+    },
+
+    getSmartDefaultsKey() {
+        const uid = this.getCurrentUserId();
+        if (!uid) return '';
+        return `sams_smart_defaults_${uid}`;
+    },
+
+    readSmartDefaults() {
+        try {
+            const key = this.getSmartDefaultsKey();
+            if (!key) return {};
+            const raw = localStorage.getItem(key);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return {};
+            return parsed;
+        } catch {
+            return {};
+        }
+    },
+
+    writeSmartDefaults(payload) {
+        try {
+            const key = this.getSmartDefaultsKey();
+            if (!key) return;
+            const data = payload && typeof payload === 'object' ? payload : {};
+            localStorage.setItem(key, JSON.stringify({ ...data, _at: Date.now() }));
+        } catch {}
+    },
+
+    collectSmartDefaultsFromForm(form) {
+        const out = {};
+        if (!form || !form.elements) return out;
+        const blocked = /(^|_)(empresa|responsavel|email|telefone|whatsapp|cpf|cnpj|endereco|rua|numero|cep|bairro|cidade|estado)(_|$)/i;
+
+        for (const el of Array.from(form.elements)) {
+            if (!el) continue;
+            const name = el.name != null ? String(el.name) : '';
+            if (!name) continue;
+            if (name.endsWith('[]')) continue;
+            if (blocked.test(name)) continue;
+
+            const tag = (el.tagName || '').toLowerCase();
+            const type = (el.type || '').toLowerCase();
+            if (type === 'hidden' || type === 'password' || type === 'file') continue;
+
+            if (type === 'checkbox') {
+                if (!el.checked) continue;
+                const v = el.value != null ? String(el.value).trim() : '';
+                if (v) {
+                    if (out[name] === undefined) out[name] = [v];
+                    else if (Array.isArray(out[name])) out[name].push(v);
+                    else out[name] = [out[name], v];
+                } else {
+                    out[name] = true;
+                }
+                continue;
+            }
+            if (type === 'radio') {
+                if (!el.checked) continue;
+                const v = el.value != null ? String(el.value).trim() : '';
+                if (v) out[name] = v;
+                continue;
+            }
+            if (tag === 'select') {
+                const v = el.value != null ? String(el.value).trim() : '';
+                if (v) out[name] = v;
+                continue;
+            }
+        }
+        return out;
+    },
+
+    storeSmartDefaults(form) {
+        try {
+            const cfg = window.CrmUiConfig;
+            if (cfg && cfg.features && cfg.features.personalizationSmartDefaults === false) return;
+        } catch {}
+        const collected = this.collectSmartDefaultsFromForm(form);
+        if (!collected || typeof collected !== 'object' || !Object.keys(collected).length) return;
+        const all = this.readSmartDefaults();
+        all.briefings = { ...(all.briefings || {}), ...collected };
+        this.writeSmartDefaults(all);
+    },
+
+    applySmartDefaults(rootElement) {
+        try {
+            const cfg = window.CrmUiConfig;
+            if (cfg && cfg.features && cfg.features.personalizationSmartDefaults === false) return;
+        } catch {}
+        const root = rootElement || document.getElementById('briefing-content') || document;
+        const form = root.querySelector('form#briefing-form');
+        if (!form) return;
+        if (form.getAttribute('data-smart-defaults-applied') === '1') return;
+        form.setAttribute('data-smart-defaults-applied', '1');
+
+        const all = this.readSmartDefaults();
+        const defs = all && all.briefings && typeof all.briefings === 'object' ? all.briefings : null;
+        if (!defs) return;
+
+        const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+        const setIfEmpty = (name, value) => {
+            if (value == null) return;
+            const els = Array.from(form.querySelectorAll(`[name="${esc(name)}"]`));
+            if (!els.length) return;
+            const first = els[0];
+            const tag = (first.tagName || '').toLowerCase();
+            const type = (first.type || '').toLowerCase();
+
+            if (type === 'checkbox') {
+                const checkedAny = els.some(e => e.checked);
+                if (checkedAny) return;
+                const arr = Array.isArray(value) ? value.map(v => String(v)) : [String(value)];
+                for (const e of els) {
+                    const v = e.value != null ? String(e.value) : '';
+                    if (arr.includes(v)) {
+                        e.checked = true;
+                        e.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+                return;
+            }
+            if (type === 'radio') {
+                const already = form.querySelector(`[name="${esc(name)}"]:checked`);
+                if (already) return;
+                const target = form.querySelector(`[name="${esc(name)}"][value="${esc(value)}"]`);
+                if (target) {
+                    target.checked = true;
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            if (tag === 'select') {
+                const cur = first.value != null ? String(first.value).trim() : '';
+                if (cur) return;
+                first.value = String(value);
+                first.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+        };
+
+        for (const k of Object.keys(defs)) {
+            setIfEmpty(k, defs[k]);
         }
     },
 
@@ -744,6 +912,26 @@ Apresente a proposta de forma clara, criativa e técnica, adequada para ser apre
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white border border-gray-200 rounded-lg p-4" data-briefing-ai="1">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-800">Assistente IA</div>
+                            <div class="text-xs text-gray-500">Sugere preenchimento, melhora textos e gera uma apresentação a partir do briefing.</div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" data-briefing-ai-action="suggest"
+                                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
+                                <i class="fas fa-wand-magic-sparkles mr-2"></i>Sugerir
+                            </button>
+                            <button type="button" data-briefing-ai-action="presentation"
+                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-file-powerpoint mr-2"></i>Apresentação
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 hidden" data-briefing-ai-results></div>
+                </div>
                 <!-- Informações do Cliente -->
                 <div class="bg-gray-50 p-6 rounded-lg">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -912,13 +1100,37 @@ Apresente a proposta de forma clara, criativa e técnica, adequada para ser apre
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div class="md:col-span-2">
-                            <label for="produtosServicos_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Produtos/Serviços a Expor</label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label for="produtosServicos_${formId}" class="block text-sm font-medium text-gray-700">Produtos/Serviços a Expor</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" data-briefing-ai-voice="produtosServicos"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-microphone mr-2"></i>Voz
+                                    </button>
+                                    <button type="button" data-ai-rewrite="produtosServicos"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-pen mr-2"></i>Melhorar
+                                    </button>
+                                </div>
+                            </div>
                             <textarea name="produtosServicos" id="produtosServicos_${formId}" rows="3"
                                       placeholder="Descreva os produtos ou serviços que serão apresentados no stand"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${r.produtosServicos || ''}</textarea>
                         </div>
                         <div class="md:col-span-2">
-                            <label for="objetivos_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Objetivos do Stand</label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label for="objetivos_${formId}" class="block text-sm font-medium text-gray-700">Objetivos do Stand</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" data-briefing-ai-voice="objetivos"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-microphone mr-2"></i>Voz
+                                    </button>
+                                    <button type="button" data-ai-rewrite="objetivos"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-pen mr-2"></i>Melhorar
+                                    </button>
+                                </div>
+                            </div>
                             <textarea name="objetivos" id="objetivos_${formId}" rows="3"
                                       placeholder="Ex: Geração de leads, lançamento de produto, networking"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${r.objetivos || ''}</textarea>
@@ -1112,7 +1324,19 @@ Apresente a proposta de forma clara, criativa e técnica, adequada para ser apre
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div class="md:col-span-2">
-                            <label for="observacoes_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Observações Especiais</label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label for="observacoes_${formId}" class="block text-sm font-medium text-gray-700">Observações Especiais</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" data-briefing-ai-voice="observacoes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-microphone mr-2"></i>Voz
+                                    </button>
+                                    <button type="button" data-ai-rewrite="observacoes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-pen mr-2"></i>Melhorar
+                                    </button>
+                                </div>
+                            </div>
                             <textarea name="observacoes" id="observacoes_${formId}" rows="4"
                                       placeholder="Informações adicionais, requisitos especiais, restrições, etc."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">${get('observacoes')}</textarea>
@@ -1418,6 +1642,475 @@ Apresente a proposta de forma clara, criativa e técnica, adequada para ser apre
             }
         };
         tryFill(0);
+    },
+
+    bindBriefingAI(rootElement) {
+        const root = rootElement || document.getElementById('briefing-content') || document;
+        const form = root.querySelector('form#briefing-form');
+        if (!form) return;
+        const wrap = root.querySelector('[data-briefing-ai="1"]');
+        if (!wrap) return;
+        try {
+            const cfg = window.CrmUiConfig;
+            const disabledByFlag = cfg && cfg.features && cfg.features.aiForms === false;
+            const disabledByExp = cfg && cfg.experiments && cfg.experiments.aiPanels && cfg.experiments.aiPanels.variant === 'off';
+            const disabledByServer = cfg && cfg.aiEnabled === false;
+            if (disabledByFlag || disabledByExp || disabledByServer) {
+                wrap.classList.add('hidden');
+                return;
+            }
+        } catch {}
+        if (wrap.getAttribute('data-bound') === '1') return;
+        wrap.setAttribute('data-bound', '1');
+
+        const resultsEl = wrap.querySelector('[data-briefing-ai-results]');
+        const btnSuggest = wrap.querySelector('[data-briefing-ai-action="suggest"]');
+        const btnPresentation = wrap.querySelector('[data-briefing-ai-action="presentation"]');
+        const voiceBtns = Array.from(form.querySelectorAll('[data-briefing-ai-voice]'));
+        const rewriteBtns = Array.from(form.querySelectorAll('[data-ai-rewrite]'));
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+
+        const notify = (msg, type = 'info') => {
+            if (window.Toast && typeof window.Toast.show === 'function') return window.Toast.show(msg, type);
+            if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') return window.NotificationSystem[type](msg);
+            alert(msg);
+        };
+
+        const setResultsHtml = (html) => {
+            if (!resultsEl) return;
+            resultsEl.innerHTML = html || '';
+            resultsEl.classList.toggle('hidden', !(html && String(html).trim()));
+        };
+
+        const setBusy = (busy) => {
+            try { wrap.setAttribute('aria-busy', busy ? 'true' : 'false'); } catch {}
+            try { [btnSuggest, btnPresentation].filter(Boolean).forEach((b) => { b.disabled = !!busy; }); } catch {}
+        };
+
+        const collectFormData = () => {
+            const fd = new FormData(form);
+            const out = {};
+            for (const [k, v] of fd.entries()) {
+                const key = String(k || '');
+                const val = (typeof v === 'string') ? v.trim() : v;
+                if (val == null || val === '') continue;
+                if (out[key] === undefined) out[key] = val;
+                else if (Array.isArray(out[key])) out[key].push(val);
+                else out[key] = [out[key], val];
+            }
+            return out;
+        };
+
+        const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+        const setFieldValue = (name, value) => {
+            if (!name) return;
+            const el = form.querySelector(`[name="${esc(name)}"]`);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+            if (el.type === 'radio') {
+                const radio = form.querySelector(`[name="${esc(name)}"][value="${esc(value)}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            el.value = value == null ? '' : String(value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const apiPost = async (url, body) => {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body || {})
+            });
+            const payload = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                const msg = payload && payload.error ? payload.error : `Falha (${resp.status})`;
+                throw new Error(msg);
+            }
+            return payload;
+        };
+
+        const applyAutofill = (autofill) => {
+            const patch = (autofill && typeof autofill === 'object') ? autofill : {};
+            Object.keys(patch).forEach((k) => {
+                const v = patch[k];
+                if (v == null) return;
+                if (Array.isArray(v)) return;
+                setFieldValue(k, v);
+            });
+        };
+
+        const applyContentSuggestions = (items) => {
+            const list = Array.isArray(items) ? items : [];
+            for (const it of list) {
+                if (!it) continue;
+                const field = it.field != null ? String(it.field) : '';
+                const suggestion = it.suggestion != null ? String(it.suggestion) : '';
+                if (!field || !suggestion) continue;
+                setFieldValue(field, suggestion);
+            }
+        };
+
+        const renderAssist = (data) => {
+            const summary = data && data.summary ? String(data.summary) : '';
+            const validations = Array.isArray(data && data.validations) ? data.validations : [];
+            const contentSuggestions = Array.isArray(data && data.contentSuggestions) ? data.contentSuggestions : [];
+
+            const badge = (severity) => {
+                const s = String(severity || 'info');
+                if (s === 'error') return 'bg-red-50 text-red-800 border-red-200';
+                if (s === 'warning') return 'bg-amber-50 text-amber-800 border-amber-200';
+                return 'bg-blue-50 text-blue-800 border-blue-200';
+            };
+
+            const html = `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-800">Resultado IA</div>
+                            ${summary ? `<div class="text-xs text-gray-600 mt-1">${escapeHtml(summary)}</div>` : ''}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <button type="button" data-briefing-ai-apply="autofill"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar preenchimento
+                            </button>
+                            <button type="button" data-briefing-ai-apply="content"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar textos
+                            </button>
+                        </div>
+                    </div>
+                    ${validations.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Validações</div>
+                            <div class="space-y-2">
+                                ${validations.map(v => `
+                                    <div class="flex items-start gap-2">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${badge(v.severity)}">${escapeHtml(v.severity || 'info')}</span>
+                                        <div class="text-xs text-gray-700">
+                                            <span class="font-semibold">${escapeHtml(v.field || '')}:</span>
+                                            ${escapeHtml(v.message || '')}
+                                            ${v.suggestion ? `<div class="text-gray-500 mt-0.5">${escapeHtml(v.suggestion)}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${contentSuggestions.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Sugestões de conteúdo</div>
+                            <div class="space-y-2">
+                                ${contentSuggestions.map(s => `
+                                    <div class="text-xs text-gray-700">
+                                        <span class="font-semibold">${escapeHtml(s.field || '')}:</span>
+                                        <span class="text-gray-600">${escapeHtml((s.suggestion || '').slice(0, 280))}${(s.suggestion || '').length > 280 ? '…' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            setResultsHtml(html);
+            try {
+                const applyAutofillBtn = wrap.querySelector('[data-briefing-ai-apply="autofill"]');
+                const applyContentBtn = wrap.querySelector('[data-briefing-ai-apply="content"]');
+                if (applyAutofillBtn && !applyAutofillBtn.getAttribute('data-bound')) {
+                    applyAutofillBtn.setAttribute('data-bound', '1');
+                    applyAutofillBtn.addEventListener('click', () => {
+                        applyAutofill(data.autofill);
+                        notify('Preenchimento aplicado.', 'success');
+                    });
+                }
+                if (applyContentBtn && !applyContentBtn.getAttribute('data-bound')) {
+                    applyContentBtn.setAttribute('data-bound', '1');
+                    applyContentBtn.addEventListener('click', () => {
+                        applyContentSuggestions(data.contentSuggestions);
+                        notify('Textos aplicados.', 'success');
+                    });
+                }
+            } catch {}
+        };
+
+        const suggest = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando sugestões...</div>`);
+            try {
+                const data = collectFormData();
+                const resp = await apiPost('/api/crm/ai/form-assist', { formType: 'briefing', data });
+                renderAssist(resp);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar sugestões', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const generatePresentation = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando apresentação...</div>`);
+            try {
+                const data = collectFormData();
+                const context = JSON.stringify(data);
+                const resp = await apiPost('/api/crm/ai/presentation', { audience: 'Cliente', context });
+                const html = resp && resp.html ? String(resp.html) : '';
+                if (!html) throw new Error('Apresentação gerada sem HTML');
+                const w = window.open('', '_blank', 'noopener');
+                if (w && w.document) {
+                    w.document.open();
+                    w.document.write(html);
+                    w.document.close();
+                } else {
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank', 'noopener');
+                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                }
+                setResultsHtml(`<div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">Apresentação gerada em uma nova aba.</div>`);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar apresentação', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const voiceRecorders = new Map();
+        const canServerTranscribe = () => {
+            try {
+                const cfg = window.CrmUiConfig;
+                if (cfg && cfg.aiEnabled === false) return false;
+                if (cfg && cfg.features && cfg.features.aiVoiceTranscription === false) return false;
+                return true;
+            } catch {
+                return true;
+            }
+        };
+        const pickMimeType = () => {
+            try {
+                const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+                if (!window.MediaRecorder || typeof window.MediaRecorder.isTypeSupported !== 'function') return '';
+                for (const t of types) {
+                    if (window.MediaRecorder.isTypeSupported(t)) return t;
+                }
+            } catch {}
+            return '';
+        };
+        const blobToDataUrl = async (blob) => {
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Falha ao ler áudio'));
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.readAsDataURL(blob);
+            });
+        };
+        const transcribeBlob = async (blob, fieldName) => {
+            const cfg = window.CrmUiConfig;
+            const maxBytes = cfg && cfg.limits && typeof cfg.limits.maxAudioBytes === 'number' ? cfg.limits.maxAudioBytes : 2_000_000;
+            if (blob.size > maxBytes) throw new Error(`Áudio muito grande (máx. ${Math.floor(maxBytes / 1024)}KB)`);
+            const audioDataUrl = await blobToDataUrl(blob);
+            const resp = await apiPost('/api/crm/ai/transcribe', { audioDataUrl, language: 'pt', prompt: `Transcreva a fala do usuário para texto em pt-BR. Campo: ${fieldName}` });
+            return resp && resp.text ? String(resp.text) : '';
+        };
+        const startServerRecorder = async (fieldName, btn) => {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                notify('Microfone indisponível neste navegador.', 'warning');
+                return;
+            }
+            if (!window.MediaRecorder) {
+                notify('Gravação de áudio não suportada neste navegador.', 'warning');
+                return;
+            }
+            const existing = voiceRecorders.get(fieldName);
+            if (existing && existing.recorder) {
+                try { existing.recorder.stop(); } catch {}
+                return;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = pickMimeType();
+            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+            const chunks = [];
+            voiceRecorders.set(fieldName, { recorder, stream, chunks });
+            if (btn) {
+                if (!btn.getAttribute('data-orig-html')) btn.setAttribute('data-orig-html', btn.innerHTML);
+                btn.innerHTML = `<i class="fas fa-stop mr-2"></i>Parar`;
+                btn.setAttribute('data-recording', '1');
+            }
+            this.trackUiEvent('voice_start', 'briefings', { field: fieldName, mode: 'server' });
+            recorder.ondataavailable = (e) => { if (e && e.data && e.data.size) chunks.push(e.data); };
+            recorder.onerror = () => { notify('Falha ao gravar áudio.', 'error'); };
+            recorder.onstop = async () => {
+                try {
+                    voiceRecorders.delete(fieldName);
+                    try { stream.getTracks().forEach(t => t.stop()); } catch {}
+                    if (btn) {
+                        const orig = btn.getAttribute('data-orig-html');
+                        if (orig != null) btn.innerHTML = orig;
+                        btn.removeAttribute('data-recording');
+                    }
+                    const blob = new Blob(chunks, { type: (recorder && recorder.mimeType) ? recorder.mimeType : 'audio/webm' });
+                    if (!blob.size) return;
+                    notify('Transcrevendo...', 'info');
+                    const text = await transcribeBlob(blob, fieldName);
+                    const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+                    if (target) {
+                        const prev = target.value != null ? String(target.value) : '';
+                        const next = prev && prev.trim() ? `${prev.trim()} ${text}`.trim() : String(text || '').trim();
+                        target.value = next;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    this.trackUiEvent('voice_done', 'briefings', { field: fieldName, mode: 'server', chars: String(text || '').length });
+                    notify('Voz finalizada.', 'success');
+                } catch (e) {
+                    this.trackUiEvent('voice_error', 'briefings', { field: fieldName, mode: 'server' });
+                    notify(e && e.message ? e.message : 'Falha ao transcrever', 'error');
+                }
+            };
+            recorder.start();
+            notify('Gravando... toque novamente para parar.', 'info');
+        };
+        const startVoice = (fieldName, btn) => {
+            const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+            if (!target) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                try {
+                    const rec = new SpeechRecognition();
+                    rec.lang = 'pt-BR';
+                    rec.interimResults = true;
+                    rec.maxAlternatives = 1;
+                    let finalText = '';
+                    this.trackUiEvent('voice_start', 'briefings', { field: fieldName, mode: 'browser' });
+                    rec.onresult = (ev) => {
+                        let interim = '';
+                        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                            const r = ev.results[i];
+                            const t = r && r[0] && r[0].transcript ? String(r[0].transcript) : '';
+                            if (r.isFinal) finalText += t + ' ';
+                            else interim += t;
+                        }
+                        const combined = (finalText + interim).trim();
+                        target.value = combined;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    };
+                    rec.onerror = () => { this.trackUiEvent('voice_error', 'briefings', { field: fieldName, mode: 'browser' }); notify('Falha no reconhecimento de voz.', 'error'); };
+                    rec.onend = () => { this.trackUiEvent('voice_done', 'briefings', { field: fieldName, mode: 'browser' }); notify('Voz finalizada.', 'success'); };
+                    rec.start();
+                    notify('Ouvindo...', 'info');
+                    return;
+                } catch {
+                    this.trackUiEvent('voice_error', 'briefings', { field: fieldName, mode: 'browser' });
+                }
+            }
+            if (!canServerTranscribe()) {
+                notify('Reconhecimento de voz indisponível no momento.', 'warning');
+                return;
+            }
+            startServerRecorder(fieldName, btn).catch((e) => notify(e && e.message ? e.message : 'Falha ao iniciar voz', 'error'));
+        };
+
+        const rewriteField = async (field) => {
+            if (!field) return;
+            const el = form.querySelector(`[name="${esc(field)}"]`);
+            if (!el) return;
+            const text = String(el.value || '').trim();
+            if (!text) {
+                notify('Preencha o texto antes de melhorar.', 'warning');
+                return;
+            }
+            setBusy(true);
+            try {
+                const resp = await apiPost('/api/crm/ai/rewrite', { text, instruction: 'Reescreva para briefing: mais claro, estruturado e objetivo, mantendo o sentido.', tone: 'profissional' });
+                if (resp && resp.text) {
+                    el.value = String(resp.text);
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    notify(resp.summary || 'Texto melhorado.', 'success');
+                }
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao melhorar texto', 'error');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const analyzeSentimentDebounced = (() => {
+            let t = null;
+            let lastRunAt = 0;
+            return (text) => {
+                const now = Date.now();
+                if (now - lastRunAt < 4500) return;
+                clearTimeout(t);
+                t = setTimeout(async () => {
+                    lastRunAt = Date.now();
+                    try {
+                        const resp = await apiPost('/api/crm/ai/sentiment', { text });
+                        const sentiment = resp && resp.sentiment ? String(resp.sentiment) : '';
+                        const confidence = resp && typeof resp.confidence === 'number' ? resp.confidence : null;
+                        if (!sentiment) return;
+                        const line = `Sentimento (observações): <span class="font-semibold">${escapeHtml(sentiment)}</span>${confidence != null ? ` (${Math.round(confidence * 100)}%)` : ''}`;
+                        const html = `<div data-briefing-ai-sentiment="1" class="mt-2 text-xs text-gray-600">${line}</div>`;
+                        if (resultsEl) {
+                            const existing = resultsEl.querySelector('[data-briefing-ai-sentiment="1"]');
+                            if (existing) existing.outerHTML = html;
+                            else resultsEl.insertAdjacentHTML('beforeend', html);
+                            resultsEl.classList.remove('hidden');
+                        }
+                    } catch {}
+                }, 900);
+            };
+        })();
+
+        if (btnSuggest) btnSuggest.addEventListener('click', () => { suggest().catch(() => {}); });
+        if (btnPresentation) btnPresentation.addEventListener('click', () => { generatePresentation().catch(() => {}); });
+
+        voiceBtns.forEach((b) => {
+            if (!b || b.getAttribute('data-bound')) return;
+            b.setAttribute('data-bound', '1');
+            b.addEventListener('click', () => {
+                const field = b.getAttribute('data-briefing-ai-voice') || '';
+                if (!field) return;
+                startVoice(field, b);
+            });
+        });
+
+        rewriteBtns.forEach((b) => {
+            if (!b || b.getAttribute('data-bound')) return;
+            b.setAttribute('data-bound', '1');
+            b.addEventListener('click', () => {
+                const field = b.getAttribute('data-ai-rewrite') || '';
+                if (!field) return;
+                rewriteField(field).catch(() => {});
+            });
+        });
+
+        const obs = form.querySelector('textarea[name="observacoes"]');
+        if (obs && !obs.getAttribute('data-ai-bound')) {
+            obs.setAttribute('data-ai-bound', '1');
+            obs.addEventListener('input', () => {
+                const text = String(obs.value || '').trim();
+                if (text.length < 40) return;
+                analyzeSentimentDebounced(text);
+            });
+        }
     },
 
     buildChecklistTemplate(contextText) {
@@ -1761,10 +2454,14 @@ Apresente a proposta de forma clara, criativa e técnica, adequada para ser apre
                 }
             } catch {}
 
+            try { this.storeSmartDefaults(form); } catch {}
+            this.trackUiEvent('form_save', 'briefings', { action: existingId ? 'update' : 'create', ok: true });
+
             if (window.Utils && Utils.notifications && typeof Utils.notifications.success === 'function') {
                 Utils.notifications.success('Briefing salvo com sucesso!');
             }
         } catch (error) {
+            this.trackUiEvent('form_save', 'briefings', { action: 'unknown', ok: false });
             if (window.Utils && Utils.notifications && typeof Utils.notifications.error === 'function') {
                 Utils.notifications.error('Erro ao salvar briefing: ' + (error && error.message ? error.message : String(error)));
             }

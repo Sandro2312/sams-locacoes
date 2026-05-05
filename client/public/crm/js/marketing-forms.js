@@ -369,6 +369,31 @@ class MarketingForms {
                 </div>
                 ` : ''}
 
+                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6" data-lead-ai="1">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-800">Assistente IA</div>
+                            <div class="text-xs text-gray-500">Sugere preenchimento, validações, análise de texto e gera uma apresentação a partir dos dados.</div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" data-lead-ai-action="suggest"
+                                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
+                                <i class="fas fa-wand-magic-sparkles mr-2"></i>Sugerir
+                            </button>
+                            <button type="button" data-lead-ai-action="presentation"
+                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-file-powerpoint mr-2"></i>Apresentação
+                            </button>
+                            <button type="button" data-lead-ai-action="extract-image"
+                                    class="px-3 py-2 bg-white text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                <i class="fas fa-id-card mr-2"></i>Imagem
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 hidden" data-lead-ai-results></div>
+                    <input type="file" accept="image/*" class="hidden" data-lead-ai-image-input>
+                </div>
+
                 <!-- Informações Básicas do Lead -->
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">
@@ -568,17 +593,29 @@ class MarketingForms {
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Observações do Lead
-                            </label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Observações do Lead
+                                </label>
+                                <button type="button" data-lead-ai-voice="observacoes"
+                                        class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <i class="fas fa-microphone mr-2"></i>Voz
+                                </button>
+                            </div>
                             <textarea name="observacoes" rows="4"
                                       placeholder="Informações importantes sobre o lead, necessidades específicas, contexto da conversa..."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">${lead.observacoes || ''}</textarea>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Próximos Passos
-                            </label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Próximos Passos
+                                </label>
+                                <button type="button" data-lead-ai-voice="proximos_passos"
+                                        class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <i class="fas fa-microphone mr-2"></i>Voz
+                                </button>
+                            </div>
                             <textarea name="proximos_passos" rows="2"
                                       placeholder="Ações planejadas, follow-up, reuniões agendadas..."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 mb-3">${lead.proximos_passos || ''}</textarea>
@@ -675,6 +712,31 @@ class MarketingForms {
                     </div>
                 </div>
                 ` : ''}
+
+                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6" data-contact-ai="1">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-800">Assistente IA</div>
+                            <div class="text-xs text-gray-500">Sugere preenchimento, validações, reescrita de texto, e gera uma apresentação.</div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" data-contact-ai-action="suggest"
+                                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
+                                <i class="fas fa-wand-magic-sparkles mr-2"></i>Sugerir
+                            </button>
+                            <button type="button" data-contact-ai-action="presentation"
+                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-file-powerpoint mr-2"></i>Apresentação
+                            </button>
+                            <button type="button" data-contact-ai-action="extract-image"
+                                    class="px-3 py-2 bg-white text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                <i class="fas fa-id-card mr-2"></i>Imagem
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 hidden" data-contact-ai-results></div>
+                    <input type="file" accept="image/*" class="hidden" data-contact-ai-image-input>
+                </div>
                 <!-- Informações Pessoais -->
                 <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-lg mb-6 border border-blue-200">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">
@@ -730,7 +792,19 @@ class MarketingForms {
                             <div class="mt-1 text-xs text-gray-500">Ao salvar, o sistema cria/atualiza um lembrete na agenda.</div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Outras datas/observações</label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label class="block text-sm font-medium text-gray-700">Outras datas/observações</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" data-contact-ai-voice="datas_importantes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-microphone mr-2"></i>Voz
+                                    </button>
+                                    <button type="button" data-ai-rewrite="datas_importantes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-pen mr-2"></i>Melhorar
+                                    </button>
+                                </div>
+                            </div>
                             <textarea name="datas_importantes" rows="3"
                                       placeholder="Ex: data de renovação, datas de eventos, preferências..."
                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">${contact.datas_importantes || contact.datasImportantes || ''}</textarea>
@@ -892,9 +966,19 @@ class MarketingForms {
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Observações Gerais
-                            </label>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <label class="block text-sm font-medium text-gray-700">Observações Gerais</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" data-contact-ai-voice="observacoes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-microphone mr-2"></i>Voz
+                                    </button>
+                                    <button type="button" data-ai-rewrite="observacoes"
+                                            class="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                        <i class="fas fa-pen mr-2"></i>Melhorar
+                                    </button>
+                                </div>
+                            </div>
                             <textarea name="observacoes" rows="6"
                                       placeholder="Informações importantes sobre o contato, preferências de comunicação, histórico de interações..."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">${contact.observacoes || ''}</textarea>

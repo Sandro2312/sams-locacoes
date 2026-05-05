@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { parse as parseCookieHeader } from "cookie";
 import { ENV } from "./_core/env";
+import { invokeLLM } from "./_core/llm";
+import { transcribeAudio } from "./_core/voiceTranscription";
 
 // Helper para parsear cookies do header
 function getCookie(req: Request, name: string): string | undefined {
@@ -87,6 +89,20 @@ function requireCrmAdmin(req: Request, res: Response, next: NextFunction) {
   });
 }
 
+const _rateBuckets = new Map<string, { count: number; resetAt: number }>();
+function consumeRateLimit(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const cur = _rateBuckets.get(key);
+  if (!cur || now >= cur.resetAt) {
+    _rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { ok: true, remaining: limit - 1, resetAt: now + windowMs };
+  }
+  if (cur.count >= limit) return { ok: false, remaining: 0, resetAt: cur.resetAt };
+  cur.count += 1;
+  _rateBuckets.set(key, cur);
+  return { ok: true, remaining: Math.max(0, limit - cur.count), resetAt: cur.resetAt };
+}
+
 // ─── Auditoria ────────────────────────────────────────────────────────────────
 async function audit(userId: number | null, action: string, table: string, recordId: number | null, details?: any, ip?: string) {
   try {
@@ -100,6 +116,51 @@ async function audit(userId: number | null, action: string, table: string, recor
 // ─── Router ───────────────────────────────────────────────────────────────────
 export function registerCrmRoutes(app: any) {
   const r = Router();
+
+  const aiEnabled = () => {
+    try {
+      return !!(ENV.forgeApiKey && String(ENV.forgeApiKey).trim());
+    } catch {
+      return false;
+    }
+  };
+  const clampText = (v: any, maxLen: number) => {
+    if (v == null) return "";
+    const s = typeof v === "string" ? v : JSON.stringify(v);
+    const t = s.length > maxLen ? s.slice(0, maxLen) : s;
+    return t.trim();
+  };
+  const jsonTryParse = (s: any) => {
+    try {
+      if (typeof s !== "string") return null;
+      const t = s.trim();
+      if (!t) return null;
+      return JSON.parse(t);
+    } catch {
+      return null;
+    }
+  };
+  const deepMerge = (base: any, overlay: any) => {
+    if (!overlay || typeof overlay !== "object") return base;
+    const out = Array.isArray(base) ? [...base] : { ...(base || {}) };
+    for (const k of Object.keys(overlay)) {
+      const bv = base ? (base as any)[k] : undefined;
+      const ov = (overlay as any)[k];
+      if (ov && typeof ov === "object" && !Array.isArray(ov) && bv && typeof bv === "object" && !Array.isArray(bv)) {
+        (out as any)[k] = deepMerge(bv, ov);
+      } else {
+        (out as any)[k] = ov;
+      }
+    }
+    return out;
+  };
+  const experimentVariant = (userId: number, key: string, variants: string[]) => {
+    const input = `${userId}:${key}`;
+    const hex = crypto.createHash("sha256").update(input).digest("hex").slice(0, 8);
+    const n = parseInt(hex, 16);
+    const idx = Number.isFinite(n) ? (n % variants.length) : 0;
+    return variants[idx] || variants[0];
+  };
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   r.post("/login", async (req, res) => {
@@ -215,12 +276,47 @@ export function registerCrmRoutes(app: any) {
 
   r.put("/leads/:id", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
-    const { nome, email, telefone, whatsapp, status, origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura, proximo_contato, observacoes, score } = req.body;
+    const idNum = parseInt(req.params.id);
+    if (!Number.isFinite(idNum)) return res.status(400).json({ error: "ID inválido" });
+
+    const current = await dbOne<any>("SELECT * FROM crm_leads WHERE id = ?", [idNum]);
+    if (!current) return res.status(404).json({ error: "Lead não encontrado" });
+
+    const body: any = req.body ?? {};
+    const pick = (key: string, fallback: any) => (body[key] !== undefined ? body[key] : fallback);
+    const norm = (v: any) => {
+      if (v === undefined) return undefined;
+      if (v === null) return null;
+      if (typeof v === "string") {
+        const t = v.trim();
+        return t === "" ? null : t;
+      }
+      return v;
+    };
+
+    const nome = norm(pick("nome", current.nome));
+    if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
+
+    const email = norm(pick("email", current.email));
+    const telefone = norm(pick("telefone", current.telefone));
+    const whatsapp = norm(pick("whatsapp", current.whatsapp));
+    const status = norm(pick("status", current.status));
+    const origem = norm(pick("origem", current.origem));
+    const segmento = norm(pick("segmento", current.segmento));
+    const evento_interesse = norm(pick("evento_interesse", current.evento_interesse));
+    const metragem_estimada = norm(pick("metragem_estimada", current.metragem_estimada));
+    const responsavel_id = norm(pick("responsavel_id", current.responsavel_id));
+    const temperatura = norm(pick("temperatura", current.temperatura));
+    const proximo_contato = norm(pick("proximo_contato", current.proximo_contato));
+    const observacoes = norm(pick("observacoes", current.observacoes));
+    const scoreRaw = pick("score", current.score ?? 0);
+    const score = scoreRaw == null ? 0 : (Number.isFinite(Number(scoreRaw)) ? Number(scoreRaw) : 0);
+
     await db(
       "UPDATE crm_leads SET nome=?, email=?, telefone=?, whatsapp=?, status=?, origem=?, segmento=?, evento_interesse=?, metragem_estimada=?, responsavel_id=?, temperatura=?, proximo_contato=?, observacoes=?, score=?, last_activity_at=NOW() WHERE id=?",
-      [nome, email, telefone, whatsapp, status, origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura, proximo_contato, observacoes, score ?? 0, req.params.id]
+      [nome, email, telefone, whatsapp, status, origem, segmento, evento_interesse, metragem_estimada, responsavel_id, temperatura, proximo_contato, observacoes, score, idNum]
     );
-    await audit(u.userId, "update", "crm_leads", parseInt(req.params.id), req.body, req.ip);
+    await audit(u.userId, "update", "crm_leads", idNum, body, req.ip);
     res.json({ ok: true });
   });
 
@@ -704,6 +800,574 @@ export function registerCrmRoutes(app: any) {
   r.get("/relatorios/funil", requireCrmAuth, async (_req, res) => {
     const rows = await db("SELECT etapa, COUNT(*) as total, SUM(valor_estimado) as valor FROM crm_oportunidades GROUP BY etapa ORDER BY FIELD(etapa,'novo_lead','em_contato','briefing_recebido','projeto_em_andamento','proposta_enviada','negociacao','contrato_assinado','em_producao','em_montagem','concluido','perdido')");
     res.json(rows);
+  });
+
+  r.get("/ui/config", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const role = u && u.role ? String(u.role) : "comercial";
+    const ai = aiEnabled();
+
+    const base: any = {
+      aiEnabled: ai,
+      limits: { maxImageBytes: 2_000_000, maxAudioBytes: 2_000_000 },
+      features: {
+        aiForms: true,
+        aiRewrite: true,
+        aiSentiment: true,
+        aiImage: true,
+        aiPresentation: true,
+        aiVoiceTranscription: true,
+        personalizationSmartDefaults: true,
+        telemetry: true,
+      },
+      experiments: {
+        aiPanels: { key: "aiPanels", variant: "on" },
+      },
+      role,
+    };
+
+    base.experiments.aiPanels.variant = experimentVariant(Number(u.userId || 0), "aiPanels", ["on", "on", "on", "off"]);
+
+    let fromDb: any = null;
+    try {
+      const row = await dbOne<{ valor: string | null }>("SELECT valor FROM crm_settings WHERE chave = ?", ["ui_config"]);
+      if (row && row.valor) fromDb = jsonTryParse(row.valor);
+    } catch {}
+
+    const merged = deepMerge(base, fromDb || {});
+
+    if (!merged.aiEnabled) {
+      merged.features = merged.features || {};
+      merged.features.aiForms = false;
+      merged.features.aiRewrite = false;
+      merged.features.aiSentiment = false;
+      merged.features.aiImage = false;
+      merged.features.aiPresentation = false;
+      merged.features.aiVoiceTranscription = false;
+    }
+
+    if (merged.features && merged.features.telemetry === true) {
+      try {
+        await audit(Number(u.userId || 0), "ui_config", "crm_ui", null, { role, aiEnabled: merged.aiEnabled }, req.ip);
+      } catch {}
+    }
+
+    res.json(merged);
+  });
+
+  r.post("/ui/event", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const name = clampText(req.body?.name, 80);
+    const module = clampText(req.body?.module, 80);
+    const metaRaw = req.body?.meta ?? null;
+    const meta = metaRaw && typeof metaRaw === "object" ? metaRaw : null;
+    if (!name) return res.status(400).json({ error: "Nome do evento obrigatório" });
+
+    const rl = consumeRateLimit(`ui_event:${u.userId}`, 120, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+
+    try {
+      await audit(Number(u.userId || 0), "ui_event", "crm_ui", null, { name, module, meta }, req.ip);
+    } catch {}
+    res.json({ ok: true });
+  });
+
+  r.get("/metrics/overview", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    const daysRaw = req.query?.days != null ? String(req.query.days) : "7";
+    const daysNum = Math.max(1, Math.min(90, parseInt(daysRaw, 10) || 7));
+    const start = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000);
+    const startSql = start.toISOString().slice(0, 19).replace("T", " ");
+
+    const maxRows = 20000;
+    const rows = await db<{ action: string; created_at: string; details: string | null }>(
+      "SELECT action, created_at, details FROM crm_auditoria WHERE created_at >= ? AND action IN ('ui_event','ai_form_assist','ai_sentiment','ai_rewrite','ai_presentation','ai_extract_image','ai_transcribe') ORDER BY created_at DESC LIMIT ?",
+      [startSql, maxRows]
+    );
+
+    const uiByVariant: Record<string, Record<string, number>> = {};
+    const uiByEvent: Record<string, number> = {};
+    const uiByModule: Record<string, number> = {};
+    const uiDaily: Record<string, number> = {};
+
+    const aiByAction: Record<string, number> = {};
+    const aiDaily: Record<string, number> = {};
+
+    const inc = (obj: any, key: string, n = 1) => {
+      obj[key] = (obj[key] || 0) + n;
+    };
+    const getDay = (createdAt: any) => {
+      const s = String(createdAt || "");
+      return s.includes("T") ? s.split("T")[0] : s.split(" ")[0];
+    };
+
+    for (const r0 of rows) {
+      const action = String(r0.action || "");
+      const day = getDay(r0.created_at);
+      const details = r0.details ? jsonTryParse(r0.details) : null;
+
+      if (action === "ui_event") {
+        const name = details && details.name != null ? String(details.name) : "unknown";
+        const module = details && details.module != null ? String(details.module) : "unknown";
+        const meta = details && details.meta && typeof details.meta === "object" ? details.meta : null;
+        const variant = meta && meta.exp_aiPanels != null ? String(meta.exp_aiPanels) : "unknown";
+
+        inc(uiDaily, day);
+        inc(uiByEvent, name);
+        inc(uiByModule, module);
+        uiByVariant[variant] = uiByVariant[variant] || {};
+        inc(uiByVariant[variant], name);
+        continue;
+      }
+
+      if (action.startsWith("ai_")) {
+        inc(aiDaily, day);
+        inc(aiByAction, action);
+        continue;
+      }
+    }
+
+    await audit(Number(u.userId || 0), "metrics_overview", "crm_metrics", null, { days: daysNum }, req.ip);
+
+    res.json({
+      range: { days: daysNum, start: start.toISOString() },
+      ui: { byVariant: uiByVariant, byEvent: uiByEvent, byModule: uiByModule, daily: uiDaily },
+      ai: { byAction: aiByAction, daily: aiDaily },
+      limits: { maxRows },
+    });
+  });
+
+  // ── IA (Forms & Conteúdo) ───────────────────────────────────────────────────
+  r.post("/ai/form-assist", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_form_assist:${u.userId}`, 20, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+    const formType = clampText(req.body?.formType, 40) || "generic";
+    const dataRaw = req.body?.data ?? {};
+    const data = typeof dataRaw === "object" && dataRaw ? dataRaw : {};
+    const payloadForModel = clampText(data, 12000);
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um assistente de CRM focado em preenchimento de formulários. Gere sugestões de preenchimento e validações sem inventar dados pessoais. Se não houver informação suficiente, deixe o campo em branco. Seja conciso. Retorne apenas JSON no schema pedido.",
+          },
+          {
+            role: "user",
+            content: `Tipo de formulário: ${formType}\n\nDados atuais (JSON):\n${payloadForModel}`,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "FormAssistResult",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                summary: { type: "string" },
+                autofill: {
+                  type: "object",
+                  additionalProperties: { type: ["string", "null"] },
+                },
+                validations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      field: { type: "string" },
+                      severity: { type: "string", enum: ["info", "warning", "error"] },
+                      message: { type: "string" },
+                      suggestion: { type: ["string", "null"] },
+                    },
+                    required: ["field", "severity", "message"],
+                  },
+                },
+                contentSuggestions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      field: { type: "string" },
+                      suggestion: { type: "string" },
+                    },
+                    required: ["field", "suggestion"],
+                  },
+                },
+                inferred: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    temperatura: { type: ["string", "null"], enum: ["frio", "morno", "quente", null] },
+                    status: { type: ["string", "null"] },
+                  },
+                },
+              },
+              required: ["summary", "autofill", "validations", "contentSuggestions"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      await audit(u.userId, "ai_form_assist", "crm_ai", null, { formType, keys: Object.keys(data || {}).slice(0, 40) }, req.ip);
+      res.json(parsed);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao gerar sugestões" });
+    }
+  });
+
+  r.post("/ai/sentiment", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_sentiment:${u.userId}`, 30, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+    const text = clampText(req.body?.text, 6000);
+    if (!text) return res.status(400).json({ error: "Texto obrigatório" });
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Classifique sentimento e riscos em texto de CRM (pt-BR). Não repita o texto original. Retorne apenas JSON no schema pedido.",
+          },
+          { role: "user", content: text },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "SentimentResult",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                sentiment: { type: "string", enum: ["positivo", "neutro", "negativo"] },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
+                flags: { type: "array", items: { type: "string" } },
+                suggestions: { type: "array", items: { type: "string" } },
+              },
+              required: ["sentiment", "confidence", "flags", "suggestions"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      await audit(u.userId, "ai_sentiment", "crm_ai", null, { len: text.length }, req.ip);
+      res.json(parsed);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao analisar sentimento" });
+    }
+  });
+
+  r.post("/ai/rewrite", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_rewrite:${u.userId}`, 20, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+    const text = clampText(req.body?.text, 8000);
+    const instruction = clampText(req.body?.instruction, 240) || "Melhorar clareza e objetividade mantendo o sentido.";
+    const tone = clampText(req.body?.tone, 40) || "profissional";
+    if (!text) return res.status(400).json({ error: "Texto obrigatório" });
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você reescreve textos de CRM (pt-BR). Preserve significado, não adicione dados pessoais novos e evite promessas. Retorne apenas JSON no schema pedido.",
+          },
+          {
+            role: "user",
+            content: `Tom: ${tone}\nInstrução: ${instruction}\n\nTexto:\n${text}`,
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "RewriteResult",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                text: { type: "string" },
+                summary: { type: "string" },
+              },
+              required: ["text", "summary"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      await audit(u.userId, "ai_rewrite", "crm_ai", null, { tone }, req.ip);
+      res.json(parsed);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao reescrever" });
+    }
+  });
+
+  r.post("/ai/transcribe", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_transcribe:${u.userId}`, 6, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+
+    const audioDataUrl = clampText(req.body?.audioDataUrl, 3_200_000);
+    const language = clampText(req.body?.language, 10) || "pt";
+    const prompt = clampText(req.body?.prompt, 240) || "Transcreva a fala do usuário para texto em pt-BR.";
+
+    if (!audioDataUrl) return res.status(400).json({ error: "Áudio obrigatório" });
+    if (!/^data:audio\/[a-z0-9.+-]+;base64,/i.test(audioDataUrl)) {
+      return res.status(400).json({ error: "Formato de áudio inválido" });
+    }
+
+    const base64 = audioDataUrl.split("base64,").pop() || "";
+    const base64Trim = base64.trim();
+    if (!base64Trim) return res.status(400).json({ error: "Áudio inválido" });
+    const padding = base64Trim.endsWith("==") ? 2 : base64Trim.endsWith("=") ? 1 : 0;
+    const approxBytes = Math.max(0, Math.floor((base64Trim.length * 3) / 4) - padding);
+    if (approxBytes > 2_000_000) return res.status(413).json({ error: "Áudio muito grande (máx. 2MB)" });
+
+    try {
+      const result = await transcribeAudio({ audioUrl: audioDataUrl, language, prompt });
+      if ((result as any)?.error) {
+        const err = result as any;
+        const code = err.code || "SERVICE_ERROR";
+        if (code === "FILE_TOO_LARGE") return res.status(413).json({ error: err.error || "Áudio muito grande" });
+        if (code === "INVALID_FORMAT") return res.status(400).json({ error: err.error || "Formato inválido" });
+        if (code === "TRANSCRIPTION_FAILED") return res.status(502).json({ error: err.error || "Falha na transcrição" });
+        return res.status(503).json({ error: err.error || "Serviço indisponível" });
+      }
+      const payload = result as any;
+      await audit(u.userId, "ai_transcribe", "crm_ai", null, { bytes: approxBytes, lang: payload.language || language }, req.ip);
+      res.json({ text: payload.text || "", language: payload.language || language, duration: payload.duration ?? null });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao transcrever" });
+    }
+  });
+
+  r.post("/ai/presentation", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_presentation:${u.userId}`, 10, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+    const context = clampText(req.body?.context, 12000);
+    const audience = clampText(req.body?.audience, 80) || "Cliente";
+    if (!context) return res.status(400).json({ error: "Contexto obrigatório" });
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Gere uma apresentação curta e objetiva (pt-BR), com 6 a 10 slides. Retorne apenas JSON no schema pedido. Não inclua dados sensíveis além do que já foi fornecido.",
+          },
+          { role: "user", content: `Público: ${audience}\n\nContexto:\n${context}` },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "Presentation",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                title: { type: "string" },
+                slides: {
+                  type: "array",
+                  minItems: 3,
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      title: { type: "string" },
+                      bullets: { type: "array", items: { type: "string" } },
+                    },
+                    required: ["title", "bullets"],
+                  },
+                },
+              },
+              required: ["title", "slides"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      const slides = Array.isArray((parsed as any)?.slides) ? (parsed as any).slides : [];
+      const title = (parsed as any)?.title ? String((parsed as any).title) : "Apresentação";
+      const html = `<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;line-height:1.35}h1{margin:0 0 18px 0}section{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0}h2{margin:0 0 8px 0;font-size:18px}ul{margin:0;padding-left:18px}li{margin:4px 0}</style></head><body><h1>${title}</h1>${slides
+        .map((s: any, idx: number) => {
+          const st = s?.title ? String(s.title) : `Slide ${idx + 1}`;
+          const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+          return `<section><h2>${st}</h2><ul>${bullets.map((b: any) => `<li>${String(b)}</li>`).join("")}</ul></section>`;
+        })
+        .join("")}</body></html>`;
+      await audit(u.userId, "ai_presentation", "crm_ai", null, { audience, slides: slides.length }, req.ip);
+      res.json({ ...parsed, html });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao gerar apresentação" });
+    }
+  });
+
+  r.post("/ai/extract-image", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_extract_image:${u.userId}`, 8, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+    const imageDataUrl = clampText(req.body?.imageDataUrl, 2_500_000);
+    const purpose = clampText(req.body?.purpose, 40) || "business_card";
+    if (!imageDataUrl) return res.status(400).json({ error: "Imagem obrigatória" });
+    if (!/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(imageDataUrl)) {
+      return res.status(400).json({ error: "Formato de imagem inválido" });
+    }
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extraia campos estruturados a partir de uma imagem. Não invente valores; use null quando não encontrar. Retorne apenas JSON no schema pedido.",
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Propósito: ${purpose}. Extraia nome, empresa, cargo, email, telefone, whatsapp, site.` },
+              { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } },
+            ],
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "ExtractedFields",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                fields: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    nome: { type: ["string", "null"] },
+                    empresa: { type: ["string", "null"] },
+                    cargo: { type: ["string", "null"] },
+                    email: { type: ["string", "null"] },
+                    telefone: { type: ["string", "null"] },
+                    whatsapp: { type: ["string", "null"] },
+                    site: { type: ["string", "null"] },
+                  },
+                  required: ["nome", "empresa", "cargo", "email", "telefone", "whatsapp", "site"],
+                },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
+                notes: { type: "string" },
+              },
+              required: ["fields", "confidence", "notes"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      await audit(u.userId, "ai_extract_image", "crm_ai", null, { purpose }, req.ip);
+      res.json(parsed);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao extrair dados da imagem" });
+    }
+  });
+
+  r.post("/ai/extract-document", requireCrmAuth, async (req, res) => {
+    if (!aiEnabled()) return res.status(503).json({ error: "IA não configurada no servidor" });
+    const u = (req as any).crmUser;
+    const rl = consumeRateLimit(`ai_extract_document:${u.userId}`, 8, 60_000);
+    if (!rl.ok) return res.status(429).json({ error: "Muitas requisições" });
+
+    const imageDataUrl = clampText(req.body?.imageDataUrl, 2_500_000);
+    const docType = clampText(req.body?.docType, 40) || "cadastro";
+    if (!imageDataUrl) return res.status(400).json({ error: "Imagem obrigatória" });
+    if (!/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(imageDataUrl)) {
+      return res.status(400).json({ error: "Formato de imagem inválido" });
+    }
+
+    try {
+      const result = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extraia dados de cadastro de empresa/endereço a partir de uma imagem (pt-BR). Não invente valores; use null quando não encontrar. Retorne apenas JSON no schema pedido.",
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Tipo de documento: ${docType}. Extraia documento (CNPJ/CPF), nome/razão social, email, telefone, CEP, endereço, bairro, cidade e estado (UF).` },
+              { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } },
+            ],
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "ExtractDocumentFields",
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                fields: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    documento: { type: ["string", "null"] },
+                    nome: { type: ["string", "null"] },
+                    email: { type: ["string", "null"] },
+                    telefone: { type: ["string", "null"] },
+                    cep: { type: ["string", "null"] },
+                    endereco: { type: ["string", "null"] },
+                    bairro: { type: ["string", "null"] },
+                    cidade: { type: ["string", "null"] },
+                    estado: { type: ["string", "null"] },
+                  },
+                  required: ["documento", "nome", "email", "telefone", "cep", "endereco", "bairro", "cidade", "estado"],
+                },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
+                notes: { type: "string" },
+              },
+              required: ["fields", "confidence", "notes"],
+            },
+            strict: true,
+          },
+        },
+      });
+
+      const content = result?.choices?.[0]?.message?.content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      await audit(u.userId, "ai_extract_document", "crm_ai", null, { docType }, req.ip);
+      res.json(parsed);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao extrair dados do documento" });
+    }
   });
 
   // Registrar todas as rotas CRM sob /api/crm

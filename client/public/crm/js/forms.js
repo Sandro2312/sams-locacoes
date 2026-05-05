@@ -624,6 +624,167 @@ const FormSystem = {
         } catch {}
     },
 
+    getCurrentUserId() {
+        try {
+            const u = window.AuthSystem && AuthSystem.currentUser ? AuthSystem.currentUser : null;
+            if (u && u.id != null) return String(u.id);
+        } catch {}
+        try {
+            const v = localStorage.getItem('sams_last_user_id') || '';
+            return v ? String(v) : '';
+        } catch {
+            return '';
+        }
+    },
+
+    trackUiEvent(name, module, meta) {
+        try {
+            if (window.CrmTelemetry && typeof window.CrmTelemetry.track === 'function') {
+                window.CrmTelemetry.track(name, module, meta && typeof meta === 'object' ? meta : undefined);
+            }
+        } catch {}
+    },
+
+    getSmartDefaultsKey() {
+        const uid = this.getCurrentUserId();
+        if (!uid) return '';
+        return `sams_smart_defaults_${uid}`;
+    },
+
+    readSmartDefaults() {
+        try {
+            const key = this.getSmartDefaultsKey();
+            if (!key) return {};
+            const raw = localStorage.getItem(key);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return {};
+            return parsed;
+        } catch {
+            return {};
+        }
+    },
+
+    writeSmartDefaults(payload) {
+        try {
+            const key = this.getSmartDefaultsKey();
+            if (!key) return;
+            const data = payload && typeof payload === 'object' ? payload : {};
+            localStorage.setItem(key, JSON.stringify({ ...data, _at: Date.now() }));
+        } catch {}
+    },
+
+    collectSmartDefaultsFromForm(form) {
+        const out = {};
+        if (!form || !form.elements) return out;
+        const blocked = /(^|_)(nome|email|telefone|whatsapp|cpf|cnpj|endereco|rua|numero|cep|bairro|cidade|estado)(_|$)/i;
+        const allowedModuleField = (el) => {
+            const tag = (el.tagName || '').toLowerCase();
+            const type = (el.type || '').toLowerCase();
+            if (type === 'hidden' || type === 'password' || type === 'file') return false;
+            if (tag === 'select') return true;
+            if (type === 'checkbox' || type === 'radio') return true;
+            if (el && el.dataset && el.dataset.smartDefault === '1') return true;
+            return false;
+        };
+
+        for (const el of Array.from(form.elements)) {
+            if (!el) continue;
+            const name = el.name != null ? String(el.name) : '';
+            if (!name) continue;
+            if (name.endsWith('[]')) continue;
+            if (blocked.test(name)) continue;
+            if (!allowedModuleField(el)) continue;
+
+            const tag = (el.tagName || '').toLowerCase();
+            const type = (el.type || '').toLowerCase();
+
+            if (type === 'checkbox') {
+                if (el.checked) out[name] = true;
+                continue;
+            }
+            if (type === 'radio') {
+                if (el.checked && el.value != null && String(el.value).trim() !== '') out[name] = String(el.value);
+                continue;
+            }
+            if (tag === 'select') {
+                const v = el.value != null ? String(el.value).trim() : '';
+                if (v) out[name] = v;
+                continue;
+            }
+        }
+        return out;
+    },
+
+    storeSmartDefaults(module, form) {
+        try {
+            const cfg = window.CrmUiConfig;
+            if (cfg && cfg.features && cfg.features.personalizationSmartDefaults === false) return;
+        } catch {}
+        const m = module != null ? String(module) : '';
+        if (!m) return;
+        const collected = this.collectSmartDefaultsFromForm(form);
+        if (!collected || typeof collected !== 'object' || !Object.keys(collected).length) return;
+        const all = this.readSmartDefaults();
+        all[m] = { ...(all[m] || {}), ...collected };
+        this.writeSmartDefaults(all);
+    },
+
+    applySmartDefaults(module, rootElement) {
+        try {
+            const cfg = window.CrmUiConfig;
+            if (cfg && cfg.features && cfg.features.personalizationSmartDefaults === false) return;
+        } catch {}
+        const m = module != null ? String(module) : '';
+        if (!m) return;
+        const root = rootElement || document.getElementById('modal-content') || document;
+        const form = root.querySelector('form#crud-form');
+        if (!form) return;
+        if (form.getAttribute('data-smart-defaults-applied') === '1') return;
+        form.setAttribute('data-smart-defaults-applied', '1');
+
+        const all = this.readSmartDefaults();
+        const defs = all && all[m] && typeof all[m] === 'object' ? all[m] : null;
+        if (!defs) return;
+
+        const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+        const setIfEmpty = (name, value) => {
+            if (value == null) return;
+            const el = form.querySelector(`[name="${esc(name)}"]`);
+            if (!el) return;
+            const tag = (el.tagName || '').toLowerCase();
+            const type = (el.type || '').toLowerCase();
+            if (type === 'checkbox') {
+                if (!el.checked && value === true) {
+                    el.checked = true;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            if (type === 'radio') {
+                const already = form.querySelector(`[name="${esc(name)}"]:checked`);
+                if (already) return;
+                const target = form.querySelector(`[name="${esc(name)}"][value="${esc(value)}"]`);
+                if (target) {
+                    target.checked = true;
+                    target.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            if (tag === 'select') {
+                const cur = el.value != null ? String(el.value).trim() : '';
+                if (cur) return;
+                el.value = String(value);
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+        };
+
+        for (const k of Object.keys(defs)) {
+            setIfEmpty(k, defs[k]);
+        }
+    },
+
     // Processar salvamento
     async handleSave(event) {
         console.log('[FormSystem] Processando salvamento...');
@@ -794,9 +955,13 @@ const FormSystem = {
 
             // Processar baseado na ação
             if (action === 'create') {
-                await this.createItem(module, data);
+                const createdId = await this.createItem(module, data);
+                try { this.storeSmartDefaults(module, form); } catch {}
+                this.trackUiEvent('form_save', module, { action: 'create', ok: createdId != null });
             } else if (action === 'update') {
                 await this.updateItem(module, id, data);
+                try { this.storeSmartDefaults(module, form); } catch {}
+                this.trackUiEvent('form_save', module, { action: 'update', ok: true });
             }
         } finally {
             this._isSaving = false;
@@ -2188,6 +2353,7 @@ const FormSystem = {
         }
         
         this.openModal(title, formHtml);
+        try { this.applySmartDefaults(module, document.getElementById('modal-content') || document); } catch {}
         try {
             const saveBtn = document.getElementById('modal-save');
             if (saveBtn) {
@@ -4422,8 +4588,13 @@ ENTREGA
                             <button type="button" data-form-action="busca-cnpj" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg">
                                 <i class="fas fa-search mr-2"></i>Buscar CNPJ
                             </button>
+                            <button type="button" data-form-action="extract-document"
+                                    class="px-4 py-2 bg-white text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-id-card mr-2"></i>Imagem
+                            </button>
                         </div>
                         <p class="text-xs text-gray-500 mt-1">Usa BrasilAPI para preencher dados da empresa.</p>
+                        <input type="file" accept="image/*" class="hidden" data-form-action="extract-document-input">
                     </div>
 
                     <div>
@@ -5807,6 +5978,994 @@ ENTREGA
             </form>
         `;
     },
+
+    bindLeadAI(form) {
+        if (!form) return;
+        const wrap = form.querySelector('[data-lead-ai="1"]');
+        if (!wrap) return;
+        try {
+            const cfg = window.CrmUiConfig;
+            const disabledByFlag = cfg && cfg.features && cfg.features.aiForms === false;
+            const disabledByExp = cfg && cfg.experiments && cfg.experiments.aiPanels && cfg.experiments.aiPanels.variant === 'off';
+            const disabledByServer = cfg && cfg.aiEnabled === false;
+            if (disabledByFlag || disabledByExp || disabledByServer) {
+                wrap.classList.add('hidden');
+                return;
+            }
+        } catch {}
+        if (wrap.getAttribute('data-bound') === '1') return;
+        wrap.setAttribute('data-bound', '1');
+
+        const resultsEl = wrap.querySelector('[data-lead-ai-results]');
+        const imageInput = wrap.querySelector('[data-lead-ai-image-input]');
+        const btnSuggest = wrap.querySelector('[data-lead-ai-action="suggest"]');
+        const btnPresentation = wrap.querySelector('[data-lead-ai-action="presentation"]');
+        const btnExtract = wrap.querySelector('[data-lead-ai-action="extract-image"]');
+        const voiceBtns = Array.from(form.querySelectorAll('[data-lead-ai-voice]'));
+
+        const notify = (msg, type = 'info') => {
+            if (window.Toast && typeof window.Toast.show === 'function') return window.Toast.show(msg, type);
+            if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') return window.NotificationSystem[type](msg);
+            alert(msg);
+        };
+
+        const setResultsHtml = (html) => {
+            if (!resultsEl) return;
+            resultsEl.innerHTML = html || '';
+            resultsEl.classList.toggle('hidden', !(html && String(html).trim()));
+        };
+
+        const setBusy = (busy) => {
+            try { wrap.setAttribute('aria-busy', busy ? 'true' : 'false'); } catch {}
+            try {
+                [btnSuggest, btnPresentation, btnExtract].filter(Boolean).forEach((b) => { b.disabled = !!busy; });
+            } catch {}
+        };
+
+        const collectFormData = () => {
+            const fd = new FormData(form);
+            const out = {};
+            for (const [k, v] of fd.entries()) {
+                const key = String(k || '');
+                const baseKey = key.endsWith('[]') ? key.slice(0, -2) : key;
+                const val = (typeof v === 'string') ? v.trim() : v;
+                if (val == null || val === '') continue;
+                if (out[baseKey] === undefined) out[baseKey] = val;
+                else if (Array.isArray(out[baseKey])) out[baseKey].push(val);
+                else out[baseKey] = [out[baseKey], val];
+            }
+            return out;
+        };
+
+        const setFieldValue = (name, value) => {
+            if (!name) return;
+            const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+            const el = form.querySelector(`[name="${esc(name)}"]`);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+            if (el.type === 'radio') {
+                const radio = form.querySelector(`[name="${esc(name)}"][value="${esc(value)}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            el.value = value == null ? '' : String(value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const applyAutofill = (autofill) => {
+            const patch = (autofill && typeof autofill === 'object') ? autofill : {};
+            Object.keys(patch).forEach((k) => {
+                const v = patch[k];
+                if (v == null) return;
+                if (Array.isArray(v)) return;
+                setFieldValue(k, v);
+            });
+        };
+
+        const applyContentSuggestions = (items) => {
+            const list = Array.isArray(items) ? items : [];
+            for (const it of list) {
+                if (!it) continue;
+                const field = it.field != null ? String(it.field) : '';
+                const suggestion = it.suggestion != null ? String(it.suggestion) : '';
+                if (!field || !suggestion) continue;
+                setFieldValue(field, suggestion);
+            }
+        };
+
+        const apiPost = async (url, body) => {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body || {})
+            });
+            const payload = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                const msg = payload && payload.error ? payload.error : `Falha (${resp.status})`;
+                throw new Error(msg);
+            }
+            return payload;
+        };
+
+        const renderAssist = (data) => {
+            const summary = data && data.summary ? String(data.summary) : '';
+            const validations = Array.isArray(data && data.validations) ? data.validations : [];
+            const contentSuggestions = Array.isArray(data && data.contentSuggestions) ? data.contentSuggestions : [];
+            const inferred = data && data.inferred ? data.inferred : null;
+            const inferredTemp = inferred && inferred.temperatura ? String(inferred.temperatura) : '';
+
+            const badge = (severity) => {
+                const s = String(severity || 'info');
+                if (s === 'error') return 'bg-red-50 text-red-800 border-red-200';
+                if (s === 'warning') return 'bg-amber-50 text-amber-800 border-amber-200';
+                return 'bg-blue-50 text-blue-800 border-blue-200';
+            };
+
+            const html = `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-800">Resultado IA</div>
+                            ${summary ? `<div class="text-xs text-gray-600 mt-1">${this.escapeHtml(summary)}</div>` : ''}
+                            ${inferredTemp ? `<div class="text-xs text-gray-600 mt-1">Sugestão de temperatura: <span class="font-semibold">${this.escapeHtml(inferredTemp)}</span></div>` : ''}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <button type="button" data-lead-ai-apply="autofill"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar preenchimento
+                            </button>
+                            <button type="button" data-lead-ai-apply="content"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar textos
+                            </button>
+                        </div>
+                    </div>
+                    ${validations.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Validações</div>
+                            <div class="space-y-2">
+                                ${validations.map(v => `
+                                    <div class="flex items-start gap-2">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${badge(v.severity)}">${this.escapeHtml(v.severity || 'info')}</span>
+                                        <div class="text-xs text-gray-700">
+                                            <span class="font-semibold">${this.escapeHtml(v.field || '')}:</span>
+                                            ${this.escapeHtml(v.message || '')}
+                                            ${v.suggestion ? `<div class="text-gray-500 mt-0.5">${this.escapeHtml(v.suggestion)}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${contentSuggestions.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Sugestões de conteúdo</div>
+                            <div class="space-y-2">
+                                ${contentSuggestions.map(s => `
+                                    <div class="text-xs text-gray-700">
+                                        <span class="font-semibold">${this.escapeHtml(s.field || '')}:</span>
+                                        <span class="text-gray-600">${this.escapeHtml((s.suggestion || '').slice(0, 280))}${(s.suggestion || '').length > 280 ? '…' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            setResultsHtml(html);
+            try {
+                const applyAutofillBtn = wrap.querySelector('[data-lead-ai-apply="autofill"]');
+                const applyContentBtn = wrap.querySelector('[data-lead-ai-apply="content"]');
+                if (applyAutofillBtn && !applyAutofillBtn.getAttribute('data-bound')) {
+                    applyAutofillBtn.setAttribute('data-bound', '1');
+                    applyAutofillBtn.addEventListener('click', () => {
+                        applyAutofill(data.autofill);
+                        notify('Preenchimento aplicado.', 'success');
+                    });
+                }
+                if (applyContentBtn && !applyContentBtn.getAttribute('data-bound')) {
+                    applyContentBtn.setAttribute('data-bound', '1');
+                    applyContentBtn.addEventListener('click', () => {
+                        applyContentSuggestions(data.contentSuggestions);
+                        notify('Textos aplicados.', 'success');
+                    });
+                }
+            } catch {}
+        };
+
+        const suggest = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando sugestões...</div>`);
+            try {
+                const data = collectFormData();
+                const resp = await apiPost('/api/crm/ai/form-assist', { formType: 'lead', data });
+                renderAssist(resp);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar sugestões', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const generatePresentation = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando apresentação...</div>`);
+            try {
+                const data = collectFormData();
+                const context = JSON.stringify(data);
+                const resp = await apiPost('/api/crm/ai/presentation', { audience: 'Cliente', context });
+                const html = resp && resp.html ? String(resp.html) : '';
+                if (!html) throw new Error('Apresentação gerada sem HTML');
+                const w = window.open('', '_blank', 'noopener');
+                if (w && w.document) {
+                    w.document.open();
+                    w.document.write(html);
+                    w.document.close();
+                } else {
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank', 'noopener');
+                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                }
+                setResultsHtml(`<div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">Apresentação gerada em uma nova aba.</div>`);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar apresentação', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const extractFromImage = async (file) => {
+            if (!file) return;
+            if (file.size > 2_000_000) {
+                notify('Imagem muito grande. Use uma imagem menor (até 2MB).', 'warning');
+                return;
+            }
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Lendo imagem...</div>`);
+            try {
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.readAsDataURL(file);
+                });
+                const resp = await apiPost('/api/crm/ai/extract-image', { imageDataUrl: dataUrl, purpose: 'business_card' });
+                const fields = resp && resp.fields ? resp.fields : {};
+                if (fields && typeof fields === 'object') {
+                    if (fields.nome) setFieldValue('nome', fields.nome);
+                    if (fields.empresa) setFieldValue('empresa', fields.empresa);
+                    if (fields.cargo) setFieldValue('cargo', fields.cargo);
+                    if (fields.email) setFieldValue('email', fields.email);
+                    if (fields.telefone) setFieldValue('telefone', fields.telefone);
+                    if (fields.whatsapp) setFieldValue('whatsapp', fields.whatsapp);
+                }
+                setResultsHtml(`<div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">Dados extraídos e aplicados no formulário.</div>`);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao extrair dados da imagem', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const analyzeSentimentDebounced = (() => {
+            let t = null;
+            let lastRunAt = 0;
+            return (text) => {
+                const now = Date.now();
+                if (now - lastRunAt < 4500) return;
+                clearTimeout(t);
+                t = setTimeout(async () => {
+                    lastRunAt = Date.now();
+                    try {
+                        const resp = await apiPost('/api/crm/ai/sentiment', { text });
+                        const sentiment = resp && resp.sentiment ? String(resp.sentiment) : '';
+                        const confidence = resp && typeof resp.confidence === 'number' ? resp.confidence : null;
+                        if (!sentiment) return;
+                        const line = `Sentimento (observações): <span class="font-semibold">${this.escapeHtml(sentiment)}</span>${confidence != null ? ` (${Math.round(confidence * 100)}%)` : ''}`;
+                        const html = `<div data-lead-ai-sentiment="1" class="mt-2 text-xs text-gray-600">${line}</div>`;
+                        if (resultsEl) {
+                            const existing = resultsEl.querySelector('[data-lead-ai-sentiment="1"]');
+                            if (existing) existing.outerHTML = html;
+                            else resultsEl.insertAdjacentHTML('beforeend', html);
+                            resultsEl.classList.remove('hidden');
+                        }
+                    } catch {}
+                }, 900);
+            };
+        })();
+
+        if (btnSuggest) btnSuggest.addEventListener('click', () => { suggest().catch(() => {}); });
+        if (btnPresentation) btnPresentation.addEventListener('click', () => { generatePresentation().catch(() => {}); });
+        if (btnExtract && imageInput) {
+            btnExtract.addEventListener('click', () => { try { imageInput.click(); } catch {} });
+            if (!imageInput.getAttribute('data-bound')) {
+                imageInput.setAttribute('data-bound', '1');
+                imageInput.addEventListener('change', () => {
+                    const f = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+                    if (f) extractFromImage(f).catch(() => {});
+                    try { imageInput.value = ''; } catch {}
+                });
+            }
+        }
+
+        const voiceRecorders = new Map();
+        const canServerTranscribe = () => {
+            try {
+                const cfg = window.CrmUiConfig;
+                if (cfg && cfg.aiEnabled === false) return false;
+                if (cfg && cfg.features && cfg.features.aiVoiceTranscription === false) return false;
+                return true;
+            } catch {
+                return true;
+            }
+        };
+        const pickMimeType = () => {
+            try {
+                const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+                if (!window.MediaRecorder || typeof window.MediaRecorder.isTypeSupported !== 'function') return '';
+                for (const t of types) {
+                    if (window.MediaRecorder.isTypeSupported(t)) return t;
+                }
+            } catch {}
+            return '';
+        };
+        const blobToDataUrl = async (blob) => {
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Falha ao ler áudio'));
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.readAsDataURL(blob);
+            });
+        };
+        const transcribeBlob = async (blob, fieldName) => {
+            const cfg = window.CrmUiConfig;
+            const maxBytes = cfg && cfg.limits && typeof cfg.limits.maxAudioBytes === 'number' ? cfg.limits.maxAudioBytes : 2_000_000;
+            if (blob.size > maxBytes) throw new Error(`Áudio muito grande (máx. ${Math.floor(maxBytes / 1024)}KB)`);
+            const audioDataUrl = await blobToDataUrl(blob);
+            const resp = await apiPost('/api/crm/ai/transcribe', { audioDataUrl, language: 'pt', prompt: `Transcreva a fala do usuário para texto em pt-BR. Campo: ${fieldName}` });
+            return resp && resp.text ? String(resp.text) : '';
+        };
+        const startServerRecorder = async (fieldName, btn) => {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                notify('Microfone indisponível neste navegador.', 'warning');
+                return;
+            }
+            if (!window.MediaRecorder) {
+                notify('Gravação de áudio não suportada neste navegador.', 'warning');
+                return;
+            }
+            const existing = voiceRecorders.get(fieldName);
+            if (existing && existing.recorder) {
+                try { existing.recorder.stop(); } catch {}
+                return;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = pickMimeType();
+            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+            const chunks = [];
+            voiceRecorders.set(fieldName, { recorder, stream, chunks });
+            if (btn) {
+                if (!btn.getAttribute('data-orig-html')) btn.setAttribute('data-orig-html', btn.innerHTML);
+                btn.innerHTML = `<i class="fas fa-stop mr-2"></i>Parar`;
+                btn.setAttribute('data-recording', '1');
+            }
+            this.trackUiEvent('voice_start', 'leads', { field: fieldName, mode: 'server' });
+            recorder.ondataavailable = (e) => { if (e && e.data && e.data.size) chunks.push(e.data); };
+            recorder.onerror = () => { notify('Falha ao gravar áudio.', 'error'); };
+            recorder.onstop = async () => {
+                try {
+                    voiceRecorders.delete(fieldName);
+                    try { stream.getTracks().forEach(t => t.stop()); } catch {}
+                    if (btn) {
+                        const orig = btn.getAttribute('data-orig-html');
+                        if (orig != null) btn.innerHTML = orig;
+                        btn.removeAttribute('data-recording');
+                    }
+                    const blob = new Blob(chunks, { type: (recorder && recorder.mimeType) ? recorder.mimeType : 'audio/webm' });
+                    if (!blob.size) return;
+                    notify('Transcrevendo...', 'info');
+                    const text = await transcribeBlob(blob, fieldName);
+                    const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+                    const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+                    if (target) {
+                        const prev = target.value != null ? String(target.value) : '';
+                        const next = prev && prev.trim() ? `${prev.trim()} ${text}`.trim() : String(text || '').trim();
+                        target.value = next;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    this.trackUiEvent('voice_done', 'leads', { field: fieldName, mode: 'server', chars: String(text || '').length });
+                    notify('Voz finalizada.', 'success');
+                } catch (e) {
+                    this.trackUiEvent('voice_error', 'leads', { field: fieldName, mode: 'server' });
+                    notify(e && e.message ? e.message : 'Falha ao transcrever', 'error');
+                }
+            };
+            recorder.start();
+            notify('Gravando... toque novamente para parar.', 'info');
+        };
+        const startVoice = (fieldName, btn) => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+            const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+            if (!target) return;
+            if (SpeechRecognition) {
+                try {
+                    const rec = new SpeechRecognition();
+                    rec.lang = 'pt-BR';
+                    rec.interimResults = true;
+                    rec.maxAlternatives = 1;
+                    let finalText = '';
+                    this.trackUiEvent('voice_start', 'leads', { field: fieldName, mode: 'browser' });
+                    rec.onresult = (ev) => {
+                        let interim = '';
+                        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                            const r = ev.results[i];
+                            const t = r && r[0] && r[0].transcript ? String(r[0].transcript) : '';
+                            if (r.isFinal) finalText += t + ' ';
+                            else interim += t;
+                        }
+                        const combined = (finalText + interim).trim();
+                        target.value = combined;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    };
+                    rec.onerror = () => { this.trackUiEvent('voice_error', 'leads', { field: fieldName, mode: 'browser' }); notify('Falha no reconhecimento de voz.', 'error'); };
+                    rec.onend = () => { this.trackUiEvent('voice_done', 'leads', { field: fieldName, mode: 'browser' }); notify('Voz finalizada.', 'success'); };
+                    rec.start();
+                    notify('Ouvindo...', 'info');
+                    return;
+                } catch {
+                    this.trackUiEvent('voice_error', 'leads', { field: fieldName, mode: 'browser' });
+                }
+            }
+            if (!canServerTranscribe()) {
+                notify('Reconhecimento de voz indisponível no momento.', 'warning');
+                return;
+            }
+            startServerRecorder(fieldName, btn).catch((e) => notify(e && e.message ? e.message : 'Falha ao iniciar voz', 'error'));
+        };
+
+        voiceBtns.forEach((b) => {
+            if (!b || b.getAttribute('data-bound')) return;
+            b.setAttribute('data-bound', '1');
+            b.addEventListener('click', () => {
+                const field = b.getAttribute('data-lead-ai-voice') || '';
+                if (!field) return;
+                startVoice(field, b);
+            });
+        });
+
+        const obs = form.querySelector('textarea[name="observacoes"]');
+        if (obs && !obs.getAttribute('data-ai-bound')) {
+            obs.setAttribute('data-ai-bound', '1');
+            obs.addEventListener('input', () => {
+                const text = String(obs.value || '').trim();
+                if (text.length < 40) return;
+                analyzeSentimentDebounced(text);
+            });
+        }
+    },
+
+    bindContactAI(form) {
+        if (!form) return;
+        const wrap = form.querySelector('[data-contact-ai="1"]');
+        if (!wrap) return;
+        try {
+            const cfg = window.CrmUiConfig;
+            const disabledByFlag = cfg && cfg.features && cfg.features.aiForms === false;
+            const disabledByExp = cfg && cfg.experiments && cfg.experiments.aiPanels && cfg.experiments.aiPanels.variant === 'off';
+            const disabledByServer = cfg && cfg.aiEnabled === false;
+            if (disabledByFlag || disabledByExp || disabledByServer) {
+                wrap.classList.add('hidden');
+                return;
+            }
+        } catch {}
+        if (wrap.getAttribute('data-bound') === '1') return;
+        wrap.setAttribute('data-bound', '1');
+
+        const resultsEl = wrap.querySelector('[data-contact-ai-results]');
+        const imageInput = wrap.querySelector('[data-contact-ai-image-input]');
+        const btnSuggest = wrap.querySelector('[data-contact-ai-action="suggest"]');
+        const btnPresentation = wrap.querySelector('[data-contact-ai-action="presentation"]');
+        const btnExtract = wrap.querySelector('[data-contact-ai-action="extract-image"]');
+        const voiceBtns = Array.from(form.querySelectorAll('[data-contact-ai-voice]'));
+        const rewriteBtns = Array.from(form.querySelectorAll('[data-ai-rewrite]'));
+
+        const notify = (msg, type = 'info') => {
+            if (window.Toast && typeof window.Toast.show === 'function') return window.Toast.show(msg, type);
+            if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') return window.NotificationSystem[type](msg);
+            alert(msg);
+        };
+
+        const setResultsHtml = (html) => {
+            if (!resultsEl) return;
+            resultsEl.innerHTML = html || '';
+            resultsEl.classList.toggle('hidden', !(html && String(html).trim()));
+        };
+
+        const setBusy = (busy) => {
+            try { wrap.setAttribute('aria-busy', busy ? 'true' : 'false'); } catch {}
+            try { [btnSuggest, btnPresentation, btnExtract].filter(Boolean).forEach((b) => { b.disabled = !!busy; }); } catch {}
+        };
+
+        const collectFormData = () => {
+            const fd = new FormData(form);
+            const out = {};
+            for (const [k, v] of fd.entries()) {
+                const key = String(k || '');
+                const baseKey = key.endsWith('[]') ? key.slice(0, -2) : key;
+                const val = (typeof v === 'string') ? v.trim() : v;
+                if (val == null || val === '') continue;
+                if (out[baseKey] === undefined) out[baseKey] = val;
+                else if (Array.isArray(out[baseKey])) out[baseKey].push(val);
+                else out[baseKey] = [out[baseKey], val];
+            }
+            return out;
+        };
+
+        const esc = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(String(v)) : String(v);
+        const setFieldValue = (name, value) => {
+            if (!name) return;
+            const el = form.querySelector(`[name="${esc(name)}"]`);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+            if (el.type === 'radio') {
+                const radio = form.querySelector(`[name="${esc(name)}"][value="${esc(value)}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+            el.value = value == null ? '' : String(value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const apiPost = async (url, body) => {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body || {})
+            });
+            const payload = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                const msg = payload && payload.error ? payload.error : `Falha (${resp.status})`;
+                throw new Error(msg);
+            }
+            return payload;
+        };
+
+        const applyAutofill = (autofill) => {
+            const patch = (autofill && typeof autofill === 'object') ? autofill : {};
+            Object.keys(patch).forEach((k) => {
+                const v = patch[k];
+                if (v == null) return;
+                if (Array.isArray(v)) return;
+                setFieldValue(k, v);
+            });
+        };
+
+        const applyContentSuggestions = (items) => {
+            const list = Array.isArray(items) ? items : [];
+            for (const it of list) {
+                if (!it) continue;
+                const field = it.field != null ? String(it.field) : '';
+                const suggestion = it.suggestion != null ? String(it.suggestion) : '';
+                if (!field || !suggestion) continue;
+                setFieldValue(field, suggestion);
+            }
+        };
+
+        const renderAssist = (data) => {
+            const summary = data && data.summary ? String(data.summary) : '';
+            const validations = Array.isArray(data && data.validations) ? data.validations : [];
+            const contentSuggestions = Array.isArray(data && data.contentSuggestions) ? data.contentSuggestions : [];
+
+            const badge = (severity) => {
+                const s = String(severity || 'info');
+                if (s === 'error') return 'bg-red-50 text-red-800 border-red-200';
+                if (s === 'warning') return 'bg-amber-50 text-amber-800 border-amber-200';
+                return 'bg-blue-50 text-blue-800 border-blue-200';
+            };
+
+            const html = `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-800">Resultado IA</div>
+                            ${summary ? `<div class="text-xs text-gray-600 mt-1">${this.escapeHtml(summary)}</div>` : ''}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <button type="button" data-contact-ai-apply="autofill"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar preenchimento
+                            </button>
+                            <button type="button" data-contact-ai-apply="content"
+                                    class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm">
+                                Aplicar textos
+                            </button>
+                        </div>
+                    </div>
+                    ${validations.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Validações</div>
+                            <div class="space-y-2">
+                                ${validations.map(v => `
+                                    <div class="flex items-start gap-2">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${badge(v.severity)}">${this.escapeHtml(v.severity || 'info')}</span>
+                                        <div class="text-xs text-gray-700">
+                                            <span class="font-semibold">${this.escapeHtml(v.field || '')}:</span>
+                                            ${this.escapeHtml(v.message || '')}
+                                            ${v.suggestion ? `<div class="text-gray-500 mt-0.5">${this.escapeHtml(v.suggestion)}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${contentSuggestions.length ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-gray-700 mb-2">Sugestões de conteúdo</div>
+                            <div class="space-y-2">
+                                ${contentSuggestions.map(s => `
+                                    <div class="text-xs text-gray-700">
+                                        <span class="font-semibold">${this.escapeHtml(s.field || '')}:</span>
+                                        <span class="text-gray-600">${this.escapeHtml((s.suggestion || '').slice(0, 280))}${(s.suggestion || '').length > 280 ? '…' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            setResultsHtml(html);
+            try {
+                const applyAutofillBtn = wrap.querySelector('[data-contact-ai-apply="autofill"]');
+                const applyContentBtn = wrap.querySelector('[data-contact-ai-apply="content"]');
+                if (applyAutofillBtn && !applyAutofillBtn.getAttribute('data-bound')) {
+                    applyAutofillBtn.setAttribute('data-bound', '1');
+                    applyAutofillBtn.addEventListener('click', () => {
+                        applyAutofill(data.autofill);
+                        notify('Preenchimento aplicado.', 'success');
+                    });
+                }
+                if (applyContentBtn && !applyContentBtn.getAttribute('data-bound')) {
+                    applyContentBtn.setAttribute('data-bound', '1');
+                    applyContentBtn.addEventListener('click', () => {
+                        applyContentSuggestions(data.contentSuggestions);
+                        notify('Textos aplicados.', 'success');
+                    });
+                }
+            } catch {}
+        };
+
+        const suggest = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando sugestões...</div>`);
+            try {
+                const data = collectFormData();
+                const resp = await apiPost('/api/crm/ai/form-assist', { formType: 'contato', data });
+                renderAssist(resp);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar sugestões', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const generatePresentation = async () => {
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Gerando apresentação...</div>`);
+            try {
+                const data = collectFormData();
+                const context = JSON.stringify(data);
+                const resp = await apiPost('/api/crm/ai/presentation', { audience: 'Cliente', context });
+                const html = resp && resp.html ? String(resp.html) : '';
+                if (!html) throw new Error('Apresentação gerada sem HTML');
+                const w = window.open('', '_blank', 'noopener');
+                if (w && w.document) {
+                    w.document.open();
+                    w.document.write(html);
+                    w.document.close();
+                } else {
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank', 'noopener');
+                    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                }
+                setResultsHtml(`<div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">Apresentação gerada em uma nova aba.</div>`);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao gerar apresentação', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const extractFromImage = async (file) => {
+            if (!file) return;
+            if (file.size > 2_000_000) {
+                notify('Imagem muito grande. Use uma imagem menor (até 2MB).', 'warning');
+                return;
+            }
+            setBusy(true);
+            setResultsHtml(`<div class="text-sm text-gray-600">Lendo imagem...</div>`);
+            try {
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.readAsDataURL(file);
+                });
+                const resp = await apiPost('/api/crm/ai/extract-image', { imageDataUrl: dataUrl, purpose: 'business_card' });
+                const fields = resp && resp.fields ? resp.fields : {};
+                if (fields && typeof fields === 'object') {
+                    if (fields.nome) setFieldValue('nome', fields.nome);
+                    if (fields.empresa) setFieldValue('empresa', fields.empresa);
+                    if (fields.cargo) setFieldValue('cargo', fields.cargo);
+                    if (fields.email) setFieldValue('email', fields.email);
+                    if (fields.telefone) setFieldValue('telefone', fields.telefone);
+                    if (fields.whatsapp) setFieldValue('whatsapp', fields.whatsapp);
+                }
+                setResultsHtml(`<div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">Dados extraídos e aplicados no formulário.</div>`);
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao extrair dados da imagem', 'error');
+                setResultsHtml('');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        const analyzeSentimentDebounced = (() => {
+            let t = null;
+            let lastRunAt = 0;
+            return (text) => {
+                const now = Date.now();
+                if (now - lastRunAt < 4500) return;
+                clearTimeout(t);
+                t = setTimeout(async () => {
+                    lastRunAt = Date.now();
+                    try {
+                        const resp = await apiPost('/api/crm/ai/sentiment', { text });
+                        const sentiment = resp && resp.sentiment ? String(resp.sentiment) : '';
+                        const confidence = resp && typeof resp.confidence === 'number' ? resp.confidence : null;
+                        if (!sentiment) return;
+                        const line = `Sentimento: <span class="font-semibold">${this.escapeHtml(sentiment)}</span>${confidence != null ? ` (${Math.round(confidence * 100)}%)` : ''}`;
+                        const html = `<div data-contact-ai-sentiment="1" class="mt-2 text-xs text-gray-600">${line}</div>`;
+                        if (resultsEl) {
+                            const existing = resultsEl.querySelector('[data-contact-ai-sentiment="1"]');
+                            if (existing) existing.outerHTML = html;
+                            else resultsEl.insertAdjacentHTML('beforeend', html);
+                            resultsEl.classList.remove('hidden');
+                        }
+                    } catch {}
+                }, 900);
+            };
+        })();
+
+        const voiceRecorders = new Map();
+        const canServerTranscribe = () => {
+            try {
+                const cfg = window.CrmUiConfig;
+                if (cfg && cfg.aiEnabled === false) return false;
+                if (cfg && cfg.features && cfg.features.aiVoiceTranscription === false) return false;
+                return true;
+            } catch {
+                return true;
+            }
+        };
+        const pickMimeType = () => {
+            try {
+                const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+                if (!window.MediaRecorder || typeof window.MediaRecorder.isTypeSupported !== 'function') return '';
+                for (const t of types) {
+                    if (window.MediaRecorder.isTypeSupported(t)) return t;
+                }
+            } catch {}
+            return '';
+        };
+        const blobToDataUrl = async (blob) => {
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Falha ao ler áudio'));
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.readAsDataURL(blob);
+            });
+        };
+        const transcribeBlob = async (blob, fieldName) => {
+            const cfg = window.CrmUiConfig;
+            const maxBytes = cfg && cfg.limits && typeof cfg.limits.maxAudioBytes === 'number' ? cfg.limits.maxAudioBytes : 2_000_000;
+            if (blob.size > maxBytes) throw new Error(`Áudio muito grande (máx. ${Math.floor(maxBytes / 1024)}KB)`);
+            const audioDataUrl = await blobToDataUrl(blob);
+            const resp = await apiPost('/api/crm/ai/transcribe', { audioDataUrl, language: 'pt', prompt: `Transcreva a fala do usuário para texto em pt-BR. Campo: ${fieldName}` });
+            return resp && resp.text ? String(resp.text) : '';
+        };
+        const startServerRecorder = async (fieldName, btn) => {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                notify('Microfone indisponível neste navegador.', 'warning');
+                return;
+            }
+            if (!window.MediaRecorder) {
+                notify('Gravação de áudio não suportada neste navegador.', 'warning');
+                return;
+            }
+            const existing = voiceRecorders.get(fieldName);
+            if (existing && existing.recorder) {
+                try { existing.recorder.stop(); } catch {}
+                return;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = pickMimeType();
+            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+            const chunks = [];
+            voiceRecorders.set(fieldName, { recorder, stream, chunks });
+            if (btn) {
+                if (!btn.getAttribute('data-orig-html')) btn.setAttribute('data-orig-html', btn.innerHTML);
+                btn.innerHTML = `<i class="fas fa-stop mr-2"></i>Parar`;
+                btn.setAttribute('data-recording', '1');
+            }
+            this.trackUiEvent('voice_start', 'contatos', { field: fieldName, mode: 'server' });
+            recorder.ondataavailable = (e) => { if (e && e.data && e.data.size) chunks.push(e.data); };
+            recorder.onerror = () => { notify('Falha ao gravar áudio.', 'error'); };
+            recorder.onstop = async () => {
+                try {
+                    voiceRecorders.delete(fieldName);
+                    try { stream.getTracks().forEach(t => t.stop()); } catch {}
+                    if (btn) {
+                        const orig = btn.getAttribute('data-orig-html');
+                        if (orig != null) btn.innerHTML = orig;
+                        btn.removeAttribute('data-recording');
+                    }
+                    const blob = new Blob(chunks, { type: (recorder && recorder.mimeType) ? recorder.mimeType : 'audio/webm' });
+                    if (!blob.size) return;
+                    notify('Transcrevendo...', 'info');
+                    const text = await transcribeBlob(blob, fieldName);
+                    const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+                    if (target) {
+                        const prev = target.value != null ? String(target.value) : '';
+                        const next = prev && prev.trim() ? `${prev.trim()} ${text}`.trim() : String(text || '').trim();
+                        target.value = next;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    this.trackUiEvent('voice_done', 'contatos', { field: fieldName, mode: 'server', chars: String(text || '').length });
+                    notify('Voz finalizada.', 'success');
+                } catch (e) {
+                    this.trackUiEvent('voice_error', 'contatos', { field: fieldName, mode: 'server' });
+                    notify(e && e.message ? e.message : 'Falha ao transcrever', 'error');
+                }
+            };
+            recorder.start();
+            notify('Gravando... toque novamente para parar.', 'info');
+        };
+        const startVoice = (fieldName, btn) => {
+            const target = form.querySelector(`[name="${esc(fieldName)}"]`);
+            if (!target) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                try {
+                    const rec = new SpeechRecognition();
+                    rec.lang = 'pt-BR';
+                    rec.interimResults = true;
+                    rec.maxAlternatives = 1;
+                    let finalText = '';
+                    this.trackUiEvent('voice_start', 'contatos', { field: fieldName, mode: 'browser' });
+                    rec.onresult = (ev) => {
+                        let interim = '';
+                        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                            const r = ev.results[i];
+                            const t = r && r[0] && r[0].transcript ? String(r[0].transcript) : '';
+                            if (r.isFinal) finalText += t + ' ';
+                            else interim += t;
+                        }
+                        const combined = (finalText + interim).trim();
+                        target.value = combined;
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    };
+                    rec.onerror = () => { this.trackUiEvent('voice_error', 'contatos', { field: fieldName, mode: 'browser' }); notify('Falha no reconhecimento de voz.', 'error'); };
+                    rec.onend = () => { this.trackUiEvent('voice_done', 'contatos', { field: fieldName, mode: 'browser' }); notify('Voz finalizada.', 'success'); };
+                    rec.start();
+                    notify('Ouvindo...', 'info');
+                    return;
+                } catch {
+                    this.trackUiEvent('voice_error', 'contatos', { field: fieldName, mode: 'browser' });
+                }
+            }
+            if (!canServerTranscribe()) {
+                notify('Reconhecimento de voz indisponível no momento.', 'warning');
+                return;
+            }
+            startServerRecorder(fieldName, btn).catch((e) => notify(e && e.message ? e.message : 'Falha ao iniciar voz', 'error'));
+        };
+
+        const rewriteField = async (field) => {
+            if (!field) return;
+            const el = form.querySelector(`[name="${esc(field)}"]`);
+            if (!el) return;
+            const text = String(el.value || '').trim();
+            if (!text) {
+                notify('Preencha o texto antes de melhorar.', 'warning');
+                return;
+            }
+            setBusy(true);
+            try {
+                const resp = await apiPost('/api/crm/ai/rewrite', { text, instruction: 'Melhore clareza e organização para CRM mantendo o sentido.', tone: 'profissional' });
+                if (resp && resp.text) {
+                    el.value = String(resp.text);
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    notify(resp.summary || 'Texto melhorado.', 'success');
+                }
+            } catch (e) {
+                notify(e && e.message ? e.message : 'Falha ao melhorar texto', 'error');
+            } finally {
+                setBusy(false);
+            }
+        };
+
+        if (btnSuggest) btnSuggest.addEventListener('click', () => { suggest().catch(() => {}); });
+        if (btnPresentation) btnPresentation.addEventListener('click', () => { generatePresentation().catch(() => {}); });
+        if (btnExtract && imageInput) {
+            btnExtract.addEventListener('click', () => { try { imageInput.click(); } catch {} });
+            if (!imageInput.getAttribute('data-bound')) {
+                imageInput.setAttribute('data-bound', '1');
+                imageInput.addEventListener('change', () => {
+                    const f = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+                    if (f) extractFromImage(f).catch(() => {});
+                    try { imageInput.value = ''; } catch {}
+                });
+            }
+        }
+
+        voiceBtns.forEach((b) => {
+            if (!b || b.getAttribute('data-bound')) return;
+            b.setAttribute('data-bound', '1');
+            b.addEventListener('click', () => {
+                const field = b.getAttribute('data-contact-ai-voice') || '';
+                if (!field) return;
+                startVoice(field, b);
+            });
+        });
+
+        rewriteBtns.forEach((b) => {
+            if (!b || b.getAttribute('data-bound')) return;
+            b.setAttribute('data-bound', '1');
+            b.addEventListener('click', () => {
+                const field = b.getAttribute('data-ai-rewrite') || '';
+                if (!field) return;
+                rewriteField(field).catch(() => {});
+            });
+        });
+
+        const obs = form.querySelector('textarea[name="observacoes"]');
+        if (obs && !obs.getAttribute('data-ai-bound')) {
+            obs.setAttribute('data-ai-bound', '1');
+            obs.addEventListener('input', () => {
+                const text = String(obs.value || '').trim();
+                if (text.length < 40) return;
+                analyzeSentimentDebounced(text);
+            });
+        }
+    },
     // Eventos específicos por módulo (CEP/CNPJ para clientes)
     attachModuleSpecificEvents(module, form) {
         if (!form) return;
@@ -5830,6 +6989,8 @@ ENTREGA
                 if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') return window.NotificationSystem[type](msg);
                 alert(msg);
             };
+
+            try { this.bindLeadAI(form); } catch {}
 
             const btn = form.querySelector('[data-form-action="convert-to-contato"]');
             if (!btn) return;
@@ -6071,6 +7232,8 @@ ENTREGA
                 if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') return window.NotificationSystem[type](msg);
                 alert(msg);
             };
+
+            try { this.bindContactAI(form); } catch {}
 
             const btn = form.querySelector('[data-form-action="create-task"]');
             if (!btn) return;
@@ -6507,6 +7670,100 @@ ENTREGA
                     console.warn('[FormSystem] Falha na busca de CNPJ:', err);
                 }
             });
+        }
+
+        const btnExtractDoc = form.querySelector('[data-form-action="extract-document"]');
+        const inputExtractDoc = form.querySelector('input[type="file"][data-form-action="extract-document-input"]');
+        if (btnExtractDoc && inputExtractDoc) {
+            const canUse = () => {
+                try {
+                    const cfg = window.CrmUiConfig;
+                    if (cfg && cfg.aiEnabled === false) return false;
+                    if (cfg && cfg.features && cfg.features.aiForms === false) return false;
+                    return true;
+                } catch {
+                    return true;
+                }
+            };
+            if (!canUse()) {
+                try { btnExtractDoc.classList.add('hidden'); } catch {}
+            } else {
+                btnExtractDoc.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { inputExtractDoc.click(); } catch {}
+                });
+                inputExtractDoc.addEventListener('change', async () => {
+                    const file = inputExtractDoc.files && inputExtractDoc.files[0] ? inputExtractDoc.files[0] : null;
+                    try { inputExtractDoc.value = ''; } catch {}
+                    if (!file) return;
+                    try {
+                        const cfg = window.CrmUiConfig;
+                        const maxBytes = cfg && cfg.limits && typeof cfg.limits.maxImageBytes === 'number' ? cfg.limits.maxImageBytes : 2_000_000;
+                        if (file.size > maxBytes) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.warning === 'function') {
+                                window.NotificationSystem.warning('Imagem muito grande. Use uma imagem menor.');
+                            } else {
+                                alert('Imagem muito grande. Use uma imagem menor.');
+                            }
+                            return;
+                        }
+                        const dataUrl = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onerror = () => reject(new Error('Falha ao ler imagem'));
+                            reader.onload = () => resolve(String(reader.result || ''));
+                            reader.readAsDataURL(file);
+                        });
+                        if (window.NotificationSystem && typeof window.NotificationSystem.info === 'function') {
+                            window.NotificationSystem.info('Extraindo dados...');
+                        }
+                        const resp = await fetch('/api/crm/ai/extract-document', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ imageDataUrl: dataUrl, docType: 'cadastro' })
+                        });
+                        const json = await resp.json().catch(() => ({}));
+                        if (!resp.ok) throw new Error(json && json.error ? json.error : `Falha (${resp.status})`);
+                        const fields = json && json.fields ? json.fields : {};
+                        const mapping = {
+                            documento: fields.documento || '',
+                            nome: fields.nome || '',
+                            email: fields.email || '',
+                            telefone: fields.telefone || '',
+                            cep: fields.cep || '',
+                            endereco: fields.endereco || '',
+                            bairro: fields.bairro || '',
+                            cidade: fields.cidade || '',
+                            estado: fields.estado || ''
+                        };
+                        if (window.UnifiedValidator) {
+                            if (mapping.cep) mapping.cep = window.UnifiedValidator.formatValue(mapping.cep, 'cep');
+                            if (mapping.documento) mapping.documento = window.UnifiedValidator.formatValue(String(mapping.documento).replace(/\D/g, ''), 'document');
+                            window.UnifiedValidator.autoFillFields(form, mapping);
+                        } else {
+                            Object.entries(mapping).forEach(([k, v]) => {
+                                const field = form.querySelector(`[name="${k}"]`);
+                                if (field && v && !field.value) { field.value = v; safeDispatch(field); }
+                            });
+                        }
+                        try { this.trackUiEvent('image_extract', 'clientes', { type: 'document' }); } catch {}
+                        if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
+                            window.NotificationSystem.success('Dados aplicados no formulário.');
+                        } else {
+                            alert('Dados aplicados no formulário.');
+                        }
+                    } catch (e) {
+                        try { this.trackUiEvent('image_extract_error', 'clientes', { type: 'document' }); } catch {}
+                        const msg = e && e.message ? e.message : 'Falha ao extrair dados';
+                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                            window.NotificationSystem.error(msg);
+                        } else {
+                            alert(msg);
+                        }
+                    }
+                });
+            }
         }
 
         const getInputValue = (name) => {

@@ -103,7 +103,8 @@ const NavigationSystem = {
                 permissoes: { name: 'Permissões', icon: 'fas fa-key' },
                 configuracoes: { name: 'Configurações', icon: 'fas fa-sliders-h' },
                 comissoes: { name: 'Comissões', icon: 'fas fa-percentage' },
-                logs: { name: 'Logs', icon: 'fas fa-history' }
+                logs: { name: 'Logs', icon: 'fas fa-history' },
+                ia: { name: 'Métricas IA', icon: 'fas fa-robot' }
             }
         },
         acervo: {
@@ -774,6 +775,48 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.administracao?.listComissoes?.() || '';
         } else if (module === 'administracao' && page === 'logs') {
             pageContent = ModuleSystem?.administracao?.listLogs?.() || '';
+        } else if (module === 'administracao' && page === 'ia') {
+            pageContent = `
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">Métricas IA</h3>
+                                <p class="text-sm text-gray-600">Adoção, estabilidade e A/B (sem dados pessoais).</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="ai-metrics-days" class="border rounded-lg px-3 py-2 text-sm">
+                                    <option value="7">Últimos 7 dias</option>
+                                    <option value="14">Últimos 14 dias</option>
+                                    <option value="30">Últimos 30 dias</option>
+                                </select>
+                                <button type="button" id="ai-metrics-refresh"
+                                        class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm">
+                                    <i class="fas fa-sync-alt mr-2"></i>Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="ai-metrics-status" class="text-sm text-gray-600">Carregando...</div>
+                        <div id="ai-metrics-cards" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="text-sm font-semibold text-gray-800 mb-3">Eventos de UI (Top)</div>
+                                <div id="ai-metrics-ui-events" class="text-sm text-gray-600">—</div>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="text-sm font-semibold text-gray-800 mb-3">Chamadas de IA (Top)</div>
+                                <div id="ai-metrics-ai-actions" class="text-sm text-gray-600">—</div>
+                            </div>
+                        </div>
+                        <div class="mt-6 border border-gray-200 rounded-lg p-4">
+                            <div class="text-sm font-semibold text-gray-800 mb-3">A/B: aiPanels (eventos por variante)</div>
+                            <div id="ai-metrics-ab" class="text-sm text-gray-600">—</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         } else if (module === 'acervo' && page === 'documentos') {
             pageContent = '<div id="acervo-container" class="acervo-wrapper"></div>';
         } else if (module === 'kanban' && page === 'board') {
@@ -1052,6 +1095,116 @@ const NavigationSystem = {
             setTimeout(() => {
                 try { ModuleSystem?.administracao?.initLogs?.(); } catch {}
             }, 50);
+        }
+        if (module === 'administracao' && page === 'ia') {
+            setTimeout(() => {
+                const daysEl = document.getElementById('ai-metrics-days');
+                const btn = document.getElementById('ai-metrics-refresh');
+                const statusEl = document.getElementById('ai-metrics-status');
+                const cardsEl = document.getElementById('ai-metrics-cards');
+                const uiEl = document.getElementById('ai-metrics-ui-events');
+                const aiEl = document.getElementById('ai-metrics-ai-actions');
+                const abEl = document.getElementById('ai-metrics-ab');
+
+                const escapeHtml = (value) => String(value ?? '')
+                    .replaceAll('&', '&amp;')
+                    .replaceAll('<', '&lt;')
+                    .replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;')
+                    .replaceAll("'", '&#39;');
+
+                const sortEntries = (obj) => Object.entries(obj || {}).sort((a, b) => (b[1] || 0) - (a[1] || 0));
+                const topList = (obj, limit = 10) => {
+                    const rows = sortEntries(obj).slice(0, limit);
+                    if (!rows.length) return '<div class="text-gray-500">Sem dados.</div>';
+                    return `
+                        <div class="space-y-2">
+                            ${rows.map(([k, v]) => `
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="min-w-0 truncate">${escapeHtml(k)}</div>
+                                    <div class="shrink-0 font-semibold text-gray-800">${escapeHtml(v)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                };
+
+                const renderAb = (byVariant) => {
+                    const variants = Object.keys(byVariant || {});
+                    if (!variants.length) return '<div class="text-gray-500">Sem dados.</div>';
+                    return `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${variants.map(v => {
+                                const events = byVariant[v] || {};
+                                const total = Object.values(events).reduce((a, n) => a + (Number(n) || 0), 0);
+                                return `
+                                    <div class="border border-gray-200 rounded-lg p-3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm font-semibold text-gray-800">Variante: ${escapeHtml(v)}</div>
+                                            <div class="text-sm text-gray-700">Total: <span class="font-semibold">${escapeHtml(total)}</span></div>
+                                        </div>
+                                        <div class="mt-3">${topList(events, 6)}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                };
+
+                const renderCards = (payload) => {
+                    const uiTotal = Object.values(payload?.ui?.daily || {}).reduce((a, n) => a + (Number(n) || 0), 0);
+                    const aiTotal = Object.values(payload?.ai?.daily || {}).reduce((a, n) => a + (Number(n) || 0), 0);
+                    const aiForms = Number(payload?.ai?.byAction?.ai_form_assist || 0);
+                    const aiTranscribe = Number(payload?.ai?.byAction?.ai_transcribe || 0);
+                    cardsEl.innerHTML = `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="text-xs text-gray-500">Eventos UI</div>
+                            <div class="text-2xl font-bold text-gray-900 mt-1">${escapeHtml(uiTotal)}</div>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="text-xs text-gray-500">Chamadas IA</div>
+                            <div class="text-2xl font-bold text-gray-900 mt-1">${escapeHtml(aiTotal)}</div>
+                            <div class="text-xs text-gray-500 mt-2">Form Assist: ${escapeHtml(aiForms)} • Voz: ${escapeHtml(aiTranscribe)}</div>
+                        </div>
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="text-xs text-gray-500">Janela</div>
+                            <div class="text-2xl font-bold text-gray-900 mt-1">${escapeHtml(payload?.range?.days || '')} dias</div>
+                            <div class="text-xs text-gray-500 mt-2">Limite de amostra: ${escapeHtml(payload?.limits?.maxRows || '')}</div>
+                        </div>
+                    `;
+                };
+
+                const load = async () => {
+                    const days = daysEl && daysEl.value ? String(daysEl.value) : '7';
+                    if (statusEl) statusEl.textContent = 'Carregando...';
+                    try {
+                        const resp = await fetch(`/api/crm/metrics/overview?days=${encodeURIComponent(days)}`, { credentials: 'include' });
+                        const payload = await resp.json().catch(() => null);
+                        if (!resp.ok) throw new Error((payload && payload.error) ? payload.error : `Falha (${resp.status})`);
+                        renderCards(payload);
+                        if (uiEl) uiEl.innerHTML = topList(payload?.ui?.byEvent || {});
+                        if (aiEl) aiEl.innerHTML = topList(payload?.ai?.byAction || {});
+                        if (abEl) abEl.innerHTML = renderAb(payload?.ui?.byVariant || {});
+                        if (statusEl) statusEl.textContent = 'Atualizado.';
+                    } catch (e) {
+                        if (statusEl) statusEl.textContent = e && e.message ? e.message : 'Falha ao carregar métricas.';
+                        if (cardsEl) cardsEl.innerHTML = '';
+                        if (uiEl) uiEl.textContent = '—';
+                        if (aiEl) aiEl.textContent = '—';
+                        if (abEl) abEl.textContent = '—';
+                    }
+                };
+
+                if (btn && !btn.getAttribute('data-bound')) {
+                    btn.setAttribute('data-bound', '1');
+                    btn.addEventListener('click', () => load().catch(() => {}));
+                }
+                if (daysEl && !daysEl.getAttribute('data-bound')) {
+                    daysEl.setAttribute('data-bound', '1');
+                    daysEl.addEventListener('change', () => load().catch(() => {}));
+                }
+                load().catch(() => {});
+            }, 80);
         }
         // Módulo Acervo Documental
         if (module === 'acervo' && page === 'documentos') {

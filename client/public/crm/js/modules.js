@@ -7789,7 +7789,7 @@ const ModuleSystem = {
         if (shouldCallBackend) {
             try {
                 const endpoint = isLead
-                    ? `/api/leads/${encodeURIComponent(idStr)}`
+                    ? `/api/crm/leads/${encodeURIComponent(idStr)}`
                     : (isContato ? `/api/contatos/${encodeURIComponent(idStr)}`
                     : (isEvento
                         ? `/api/eventos/${encodeURIComponent(idStr)}`

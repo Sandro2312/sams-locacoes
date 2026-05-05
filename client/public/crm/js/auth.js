@@ -284,6 +284,9 @@ const AuthSystem = {
 
     // Criar sessão
     createSession(user) {
+        const prevUserId = (() => {
+            try { return localStorage.getItem('sams_last_user_id') || ''; } catch { return ''; }
+        })();
         const role = user && user.role ? String(user.role) : 'comercial';
         const access = this.accessLevels[role] || { permissions: [], modules: [] };
         let modules = Array.isArray(user && user.modules) ? user.modules : null;
@@ -309,6 +312,103 @@ const AuthSystem = {
             permissions: permissions || access.permissions || [],
             modules: modules || access.modules || []
         };
+
+        const nextUserId = this.currentUser && this.currentUser.id != null ? String(this.currentUser.id) : '';
+        if (prevUserId && nextUserId && prevUserId !== nextUserId) {
+            try {
+                const defaults = { q: '', temperatura: '', segmento: '', evento: '' };
+                if (window.ModuleSystem && ModuleSystem.data) {
+                    ModuleSystem.data.ui = ModuleSystem.data.ui || {};
+                    ModuleSystem.data.ui.marketingLeadsFilters = { ...defaults };
+                    if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
+                } else {
+                    const raw = localStorage.getItem('sams_module_data');
+                    if (raw) {
+                        const data = JSON.parse(raw);
+                        data.ui = data.ui || {};
+                        data.ui.marketingLeadsFilters = { ...defaults };
+                        localStorage.setItem('sams_module_data', JSON.stringify(data));
+                    }
+                }
+            } catch {}
+        }
+        try { localStorage.setItem('sams_last_user_id', nextUserId); } catch {}
+        try { this.loadUiConfig(); } catch {}
+    },
+
+    async loadUiConfig() {
+        try {
+            const resp = await fetch('/api/crm/ui/config', { credentials: 'include' });
+            const payload = await resp.json().catch(() => null);
+            if (!resp.ok || !payload) return;
+            window.CrmUiConfig = payload;
+            try { localStorage.setItem('crm_ui_config', JSON.stringify({ at: Date.now(), payload })); } catch {}
+            this.ensureTelemetry();
+        } catch {}
+    },
+
+    ensureTelemetry() {
+        if (window.CrmTelemetry && typeof window.CrmTelemetry.track === 'function') return;
+        const queue = [];
+        let flushing = false;
+        const shouldSend = () => {
+            const cfg = window.CrmUiConfig;
+            return !(cfg && cfg.features && cfg.features.telemetry === false);
+        };
+        const send = async (evt) => {
+            if (!evt || !evt.name) return;
+            if (!shouldSend()) return;
+            const body = JSON.stringify(evt);
+            if (navigator && typeof navigator.sendBeacon === 'function') {
+                try {
+                    const blob = new Blob([body], { type: 'application/json' });
+                    navigator.sendBeacon('/api/crm/ui/event', blob);
+                    return;
+                } catch {}
+            }
+            try {
+                fetch('/api/crm/ui/event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body
+                }).catch(() => {});
+            } catch {}
+        };
+        const flush = async () => {
+            if (flushing) return;
+            flushing = true;
+            try {
+                while (queue.length) {
+                    const evt = queue.shift();
+                    await send(evt);
+                }
+            } finally {
+                flushing = false;
+            }
+        };
+        window.CrmTelemetry = {
+            track: (name, module, meta) => {
+                try {
+                    const baseMeta = meta && typeof meta === 'object' ? { ...meta } : {};
+                    try {
+                        const cfg = window.CrmUiConfig;
+                        const v = cfg && cfg.experiments && cfg.experiments.aiPanels && cfg.experiments.aiPanels.variant ? String(cfg.experiments.aiPanels.variant) : '';
+                        if (v && !baseMeta.exp_aiPanels) baseMeta.exp_aiPanels = v;
+                        const isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+                        if (baseMeta.isMobile == null) baseMeta.isMobile = !!isMobile;
+                    } catch {}
+                    queue.push({ name: String(name || ''), module: module != null ? String(module) : undefined, meta: baseMeta });
+                    if (queue.length >= 5) flush().catch(() => {});
+                    else setTimeout(() => flush().catch(() => {}), 300);
+                } catch {}
+            }
+        };
+        try {
+            window.addEventListener('beforeunload', () => {
+                try { flush(); } catch {}
+            });
+        } catch {}
     },
 
     // Logout
@@ -317,6 +417,24 @@ const AuthSystem = {
             fetch('/api/crm/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
         } catch (e) {}
         this.currentUser = null;
+        try { delete window.CrmUiConfig; } catch {}
+        try { delete window.CrmTelemetry; } catch {}
+        try {
+            const defaults = { q: '', temperatura: '', segmento: '', evento: '' };
+            if (window.ModuleSystem && ModuleSystem.data) {
+                ModuleSystem.data.ui = ModuleSystem.data.ui || {};
+                ModuleSystem.data.ui.marketingLeadsFilters = { ...defaults };
+                if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
+            } else {
+                const raw = localStorage.getItem('sams_module_data');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    data.ui = data.ui || {};
+                    data.ui.marketingLeadsFilters = { ...defaults };
+                    localStorage.setItem('sams_module_data', JSON.stringify(data));
+                }
+            }
+        } catch {}
         this.forceDashboardHome();
         this.showLogin();
         this.showMessage('Logout realizado com sucesso!', 'success');
