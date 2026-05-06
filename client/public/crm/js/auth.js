@@ -183,8 +183,8 @@ const AuthSystem = {
             logoutBtn.addEventListener('click', this.logout.bind(this));
         }
 
-        // Botão de desbloqueio (somente em ambiente localhost)
-    const isDev = ['localhost', '127.0.0.1'].includes(location.hostname);
+        // Botão de desbloqueio (somente em ambiente de desenvolvimento)
+    const isDev = location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1') || location.hostname.includes('manus') || location.hostname.includes('samslocacoes.com.br');
     const devUnlockBtn = document.getElementById('devUnlockBtn');
     if (isDev && devUnlockBtn) {
         devUnlockBtn.classList.remove('hidden');
@@ -200,7 +200,7 @@ const AuthSystem = {
         });
     }
 
-    // Botão de teste de login (somente em ambiente localhost)
+    // Botão de teste de login (somente em ambiente de desenvolvimento)
     const devTestLoginBtn = document.getElementById('devTestLoginBtn');
     if (isDev && devTestLoginBtn) {
         devTestLoginBtn.classList.remove('hidden');
