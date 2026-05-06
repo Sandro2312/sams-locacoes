@@ -115,6 +115,33 @@ const AuthSystem = {
         }
     },
 
+    // Criar sessão de teste (somente em desenvolvimento)
+    async createTestSession() {
+        try {
+            const resp = await fetch('/api/crm/test/create-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({})
+            });
+            const payload = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+                this.showMessage('Falha ao criar sessão de teste.', 'error');
+                return;
+            }
+            const user = payload.user;
+            this.clearFailedAttempts(user.email);
+            this.createSession(user);
+            this.showMessage('Sessão de teste criada com sucesso!', 'success');
+            setTimeout(() => {
+                this.showMainApp();
+            }, 1000);
+        } catch (err) {
+            console.error('Erro ao criar sessão de teste:', err);
+            this.showMessage('Erro ao criar sessão de teste.', 'error');
+        }
+    },
+
     // Vincular eventos
     bindEvents() {
         const ensureCsrf = () => {
@@ -170,6 +197,15 @@ const AuthSystem = {
             }
             this.clearFailedAttempts(email);
             this.showMessage('Conta desbloqueada para testes (dev).', 'success');
+        });
+    }
+
+    // Botão de teste de login (somente em ambiente localhost)
+    const devTestLoginBtn = document.getElementById('devTestLoginBtn');
+    if (isDev && devTestLoginBtn) {
+        devTestLoginBtn.classList.remove('hidden');
+        devTestLoginBtn.addEventListener('click', () => {
+            this.createTestSession();
         });
     }
 },

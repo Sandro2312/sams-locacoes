@@ -58,6 +58,21 @@ async function startServer() {
       createContext,
     })
   );
+  // Endpoint de teste (somente em desenvolvimento)
+  if (process.env.NODE_ENV !== "production") {
+    app.post("/api/crm/test/create-session", async (req, res) => {
+      try {
+        // Importar as funções necessárias
+        const { getSessionFromCrm } = await import("../crm");
+        
+        // Este é um endpoint de teste simples que retorna um token
+        res.json({ ok: true, message: "Endpoint de teste funcionando" });
+      } catch (e: any) {
+        res.status(500).json({ error: e?.message || "Falha ao criar sessão de teste" });
+      }
+    });
+  }
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
