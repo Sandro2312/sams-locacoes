@@ -902,6 +902,7 @@ const ModuleSystem = {
             const renderLeadCard = (lead) => {
                 const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
                 const tempLabel = lead.temperatura === 'quente' ? '🔴 Quente' : lead.temperatura === 'morno' ? '🟡 Morno' : '🔵 Frio';
+                const whatsappBtn = getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${lead.id}" class="whatsapp" title="Enviar WhatsApp">💬 WhatsApp</button>` : '';
                 return `
                     <div class="lead-card">
                         <div class="lead-card-header">
@@ -927,9 +928,10 @@ const ModuleSystem = {
                             </div>
                         </div>
                         <div class="lead-card-actions">
-                            <button data-action="read" data-module="leads" data-id="${lead.id}" class="edit">Visualizar</button>
-                            <button data-action="update" data-module="leads" data-id="${lead.id}" class="edit">Editar</button>
-                            <button data-action="delete" data-module="leads" data-id="${lead.id}" class="delete">Excluir</button>
+                            ${whatsappBtn}
+                            <button data-action="read" data-module="leads" data-id="${lead.id}" class="view" title="Visualizar lead">👁️ Ver</button>
+                            <button data-action="update" data-module="leads" data-id="${lead.id}" class="edit" title="Editar lead">✏️ Editar</button>
+                            <button data-action="delete" data-module="leads" data-id="${lead.id}" class="delete" title="Excluir lead">🗑️ Excluir</button>
                         </div>
                     </div>
                 `;

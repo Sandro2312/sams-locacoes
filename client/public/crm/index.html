@@ -1892,7 +1892,7 @@
           try {
             const isEdit = !!formEl.dataset.editId;
             const id = formEl.dataset.editId;
-            const endpoint = isEdit ? `/api/leads/${id}` : '/api/leads';
+            const endpoint = isEdit ? `/api/crm/leads/${id}` : '/api/crm/leads';
             const method = isEdit ? 'PUT' : 'POST';
 
             // Verificação de e-mail único no modo criação
@@ -1973,7 +1973,7 @@
             if (listEl) {
               listEl.setAttribute('aria-busy','true');
             }
-            const r = await fetch('/api/leads', { credentials:'include' });
+            const r = await fetch('/api/crm/leads', { credentials:'include' });
             const data = await r.json().catch(()=>[]);
             if (!r.ok) throw new Error('Falha ao listar leads');
             if (document.getElementById('leads-list-body')){
@@ -2034,9 +2034,7 @@
             ? (window.AuthSystem.getCurrentUser() || {})
             : (window.AuthSystem && window.AuthSystem.currentUser) || {};
           const headers = {};
-          if (current && current.id) headers['X-User-Id'] = String(current.id);
-
-          const r = await fetch(`/api/leads/${id}`, { 
+          if (current && current.id) headers['X-User-Id'] = String(current.id              const r = await fetch(`/api/crm/leads/${id}`, { 
             method:'DELETE', 
             credentials:'include',
             headers
@@ -2063,7 +2061,7 @@
           try{
             if (action === 'delete') await deleteLead(id);
             if (action === 'edit') {
-              const leadResp = await fetch(`/api/leads/${id}`);
+              const leadResp = await fetch(`/api/crm/leads/${id}`);
               const lead = await leadResp.json();
               if (!leadResp.ok) throw new Error('Falha ao carregar lead');
               formEl.nome.value = lead.nome || '';
@@ -2078,7 +2076,7 @@
               }
             }
             if (action === 'vendas') {
-              const vendasResp = await fetch(`/api/leads/${id}/vendas`);
+              const vendasResp = await fetch(`/api/crm/leads/${id}/vendas`);
               const vendas = await vendasResp.json().catch(()=>[]);
               if (!vendasResp.ok) throw new Error('Falha ao listar vendas');
               alert(`Vendas do lead ${id}:\n` + vendas.map(v => `#${v.id} total=${v.total} status=${v.status}`).join('\n'));
