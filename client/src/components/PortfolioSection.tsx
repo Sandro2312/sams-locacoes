@@ -107,11 +107,15 @@ type Projeto = typeof projetos[0] & { videoExtra?: string };
 
 export default function PortfolioSection() {
   const [filtro, setFiltro] = useState("Todos");
+  const [filtroVIP, setFiltroVIP] = useState<string | null>(null);
   const [selecionado, setSelecionado] = useState<Projeto | null>(null);
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [videoAtivo, setVideoAtivo] = useState<string | null>(null);
 
-  const filtrados = filtro === "Todos" ? projetos : projetos.filter((p) => p.categoria === filtro);
+  let filtrados = filtro === "Todos" ? projetos : projetos.filter((p) => p.categoria === filtro);
+  if (filtroVIP) {
+    filtrados = filtrados.filter((p) => p.cliente.includes(filtroVIP));
+  }
 
   const abrirProjeto = (projeto: Projeto) => {
     setSelecionado(projeto);
@@ -158,11 +162,29 @@ export default function PortfolioSection() {
             <Star size={20} className="text-[oklch(0.75_0.14_75)]" fill="currentColor" />
             <span className="font-heading font-semibold text-white text-sm tracking-wide">Clientes VIP</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={() => setFiltroVIP(null)}
+              className={`px-4 py-2 rounded-sm font-heading text-xs font-semibold tracking-wide transition-all ${
+                filtroVIP === null
+                  ? "bg-[oklch(0.75_0.14_75)] text-[oklch(0.12_0.02_240)]"
+                  : "text-[oklch(0.85_0.10_78)] hover:text-white"
+              }`}
+            >
+              Todos
+            </button>
             {["BiQ Adesivos", "COIM Brasil", "Grupo Stickfran"].map((c) => (
-              <span key={c} className="font-heading font-bold text-[oklch(0.85_0.10_78)] text-sm tracking-wide border-r border-white/20 last:border-0 pr-6 last:pr-0">
+              <button
+                key={c}
+                onClick={() => setFiltroVIP(c)}
+                className={`px-4 py-2 rounded-sm font-heading text-xs font-semibold tracking-wide transition-all ${
+                  filtroVIP === c
+                    ? "bg-[oklch(0.75_0.14_75)] text-[oklch(0.12_0.02_240)]"
+                    : "text-[oklch(0.85_0.10_78)] hover:text-white"
+                }`}
+              >
                 {c}
-              </span>
+              </button>
             ))}
           </div>
         </motion.div>
