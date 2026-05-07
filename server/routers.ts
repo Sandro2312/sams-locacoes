@@ -2,7 +2,7 @@ import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { contatos, orcamentos } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
@@ -49,7 +49,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    listar: publicProcedure.query(async () => {
+    listar: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       return db.select().from(contatos).orderBy(contatos.criadoEm);
@@ -124,7 +124,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    listar: publicProcedure.query(async () => {
+    listar: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       return db.select().from(orcamentos).orderBy(orcamentos.criadoEm);
