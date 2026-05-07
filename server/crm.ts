@@ -1407,6 +1407,42 @@ export function registerCrmRoutes(app: any) {
         res.status(500).json({ error: e?.message || "Falha ao criar sessão de teste" });
       }
     });
+    
+    // Endpoint GET para redirecionar após login de teste
+    r.get("/test/login-redirect", async (req, res) => {
+      try {
+        // Criar um usuário de teste se não existir
+        const testUser = await dbOne<any>(
+          "SELECT id FROM crm_users WHERE email = ?",
+          ["test@sams.local"]
+        );
+        
+        let userId = testUser?.id;
+        if (!userId) {
+          // Criar usuário de teste
+          const hashedPassword = await bcrypt.hash("test123", 10);
+          const result = await db(
+            "INSERT INTO crm_users (name, email, password, role, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
+            ["Usuário de Teste", "test@sams.local", hashedPassword, "vendedor", 1]
+          );
+          userId = (result as any).insertId || 1;
+        }
+        
+        // Criar sessão
+        const token = await createSession(userId, "vendedor", "Usuário de Teste");
+        res.cookie("crm_session", token, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+          maxAge: SESSION_TTL,
+          path: "/",
+        });
+        // Redirecionar para o dashboard
+        res.redirect("/crm/index.html#dashboard");
+      } catch (e: any) {
+        res.status(500).json({ error: e?.message || "Falha ao criar sessão de teste" });
+      }
+    });
   }
 
   // Registrar todas as rotas CRM sob /api/crm
