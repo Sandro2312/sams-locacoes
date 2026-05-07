@@ -693,7 +693,7 @@ const NavigationSystem = {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     ${pages.map(([pageKey, pageInfo]) => `
                         <div class="page-card bg-white rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all duration-300" 
-                             data-module="${module}" data-page="${pageKey}">
+                             data-nav-module="${module}" data-nav-page="${pageKey}" data-module="${module}" data-page="${pageKey}">
                             <div class="flex items-center mb-4">
                                 <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                                     <i class="${pageInfo.icon} text-gray-600"></i>
