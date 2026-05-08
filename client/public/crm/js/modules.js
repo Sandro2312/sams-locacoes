@@ -365,6 +365,29 @@ const ModuleSystem = {
                 return;
             }
 
+            // ✅ DELEGAÇÃO 2.5: Detectar clique em elementos de navegação com data-nav-page
+            const navPageEl = rawTarget.closest('[data-nav-page]');
+            if (navPageEl) {
+                const page = navPageEl.getAttribute('data-nav-page');
+                const module = navPageEl.getAttribute('data-nav-module') || (window.NavigationSystem ? window.NavigationSystem.currentModule : null);
+                if (page && module && window.NavigationSystem && typeof window.NavigationSystem.navigateToPage === 'function') {
+                    console.log('🎯 Clique detectado em página de navegação:', { module, page });
+                    window.NavigationSystem.navigateToPage(module, page);
+                    return;
+                }
+            }
+
+            // ✅ DELEGAÇÃO 2.6: Detectar clique em elementos de navegação com data-nav-module
+            const navModuleEl = rawTarget.closest('[data-nav-module]');
+            if (navModuleEl && !navPageEl) {
+                const module = navModuleEl.getAttribute('data-nav-module');
+                if (module && window.NavigationSystem && typeof window.NavigationSystem.navigateToModule === 'function') {
+                    console.log('🎯 Clique detectado em módulo de navegação:', { module });
+                    window.NavigationSystem.navigateToModule(module);
+                    return;
+                }
+            }
+
             // ✅ DELEGAÇÃO 3: Detectar clique em botão CRUD com [data-action]
             const actionEl = rawTarget.closest('[data-action]');
             if (!actionEl) return;

@@ -62,12 +62,74 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     app.post("/api/crm/test/create-session", async (req, res) => {
       try {
-        // Importar as funções necessárias
-        const { getSessionFromCrm } = await import("../crm");
+        const mysql = await import("mysql2/promise");
+        const { ENV } = await import("./env");
+        const crypto = await import("crypto");
+        const bcrypt = await import("bcryptjs");
         
-        // Este é um endpoint de teste simples que retorna um token
-        res.json({ ok: true, message: "Endpoint de teste funcionando" });
+        // Criar pool de conexão
+        const pool = mysql.default.createPool(ENV.databaseUrl);
+        
+        try {
+          // Buscar ou criar usuário de teste
+          const [rows] = await pool.execute(
+            "SELECT id, name, email, role FROM crm_users WHERE email = ? LIMIT 1",
+            ["teste@sams.local"]
+          );
+          
+          let userId: number;
+          let userName: string;
+          let userRole: string;
+          
+          if (Array.isArray(rows) && rows.length > 0) {
+            const user = rows[0] as any;
+            userId = user.id;
+            userName = user.name;
+            userRole = user.role;
+          } else {
+            // Criar usuário de teste se não existir
+            const hashedPassword = await bcrypt.default.hash("teste123", 10);
+            const [result] = await pool.execute(
+              "INSERT INTO crm_users (name, email, password, role, active) VALUES (?, ?, ?, ?, ?)",
+              ["Usuário Teste", "teste@sams.local", hashedPassword, "admin", true]
+            );
+            userId = (result as any).insertId || 1;
+            userName = "Usuário Teste";
+            userRole = "admin";
+          }
+          
+          // Criar sessão
+          const token = crypto.default.randomBytes(32).toString("hex");
+          const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 dias
+          
+          await pool.execute(
+            "INSERT INTO crm_sessions (token, user_id, role, name, expires_at) VALUES (?, ?, ?, ?, ?)",
+            [token, userId, userRole, userName, expiresAt]
+          );
+          
+          // Retornar cookie e dados do usuário
+          res.cookie("crm_session", token, {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: "/",
+          });
+          
+          res.json({
+            ok: true,
+            user: {
+              id: userId,
+              name: userName,
+              email: "teste@sams.local",
+              role: userRole
+            }
+          });
+        } finally {
+          await pool.end();
+        }
       } catch (e: any) {
+        console.error("Erro ao criar sessão de teste:", e);
         res.status(500).json({ error: e?.message || "Falha ao criar sessão de teste" });
       }
     });
