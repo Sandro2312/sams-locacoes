@@ -887,6 +887,28 @@ const ModuleSystem = {
     marketing: {
         // Listar leads
         listLeads() {
+            // Se não houver leads carregados, retornar um container vazio com mensagem de carregamento
+            if (!ModuleSystem.data.leads || ModuleSystem.data.leads.length === 0) {
+                return `
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center">
+                            <div class="flex space-x-3">
+                                <button type="button" data-nav-module="dashboard"
+                                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                                    <i class="fas fa-home mr-2"></i>Dashboard
+                                </button>
+                                <button type="button" data-nav-module="marketing"
+                                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                                    <i class="fas fa-arrow-left mr-2"></i>Voltar ao Marketing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <p class="text-gray-600 text-center">Carregando leads...</p>
+                    </div>
+                `;
+            }
             const leads = ModuleSystem.data.leads;
             const ui = (ModuleSystem.data && ModuleSystem.data.ui) ? ModuleSystem.data.ui : {};
             const currentView = (ui && ui.marketingLeadsView) ? ui.marketingLeadsView : 'list';
