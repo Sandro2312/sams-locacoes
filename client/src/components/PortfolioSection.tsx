@@ -23,9 +23,9 @@ const projetos = [
     cliente: "Aromasil",
     evento: "ExpoApras 2026 — Pinhais/PR",
     categoria: "Personalizado",
-    imagem: `${CDN}/stand-5_ea936cfd.jpg`,
+    imagem: null,
     video: "/manus-storage/STANDAROMASILEXPOAPRAS_dd6460cf.mp4",
-    galeria: [`${CDN}/stand-5_ea936cfd.jpg`],
+    galeria: [],
     vip: false,
     descricao: "Stand personalizado para a Aromasil na ExpoApras 2026. Projeto com design moderno, exposição de produtos aromáticos e área de atendimento ao cliente no Expotrade Convention Center, Pinhais/PR.",
   },
@@ -35,9 +35,9 @@ const projetos = [
     cliente: "Popper",
     evento: "ExpoApras 2026 — Pinhais/PR",
     categoria: "Modular",
-    imagem: `${CDN}/stand-luxury_e10317d8.jpg`,
+    imagem: null,
     video: "/manus-storage/STANDPOPPEREXPOAPRAS_7071d0ab.mp4",
-    galeria: [`${CDN}/stand-luxury_e10317d8.jpg`],
+    galeria: [],
     vip: false,
     descricao: "Stand modular para a Popper na ExpoApras 2026. Estrutura funcional e atraente para exposição de produtos no Expotrade Convention Center, Pinhais/PR.",
   },
@@ -47,9 +47,9 @@ const projetos = [
     cliente: "AlcaFoods",
     evento: "ExpoApras 2026 — Pinhais/PR",
     categoria: "Personalizado",
-    imagem: `${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`,
+    imagem: null,
     video: "/manus-storage/STANDALCAFOODSEXPOAPRAS_28c81a76.mp4",
-    galeria: [`${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`],
+    galeria: [],
     vip: false,
     descricao: "Stand personalizado para a AlcaFoods na ExpoApras 2026. Projeto com foco em exposição de alimentos e área de degustação no Expotrade Convention Center, Pinhais/PR.",
   },
@@ -120,7 +120,8 @@ export default function PortfolioSection() {
   const abrirProjeto = (projeto: Projeto) => {
     setSelecionado(projeto);
     setFotoAtiva(0);
-    setVideoAtivo(null);
+    // Se não há galeria de imagens mas há vídeo, abre direto no vídeo
+    setVideoAtivo(projeto.galeria.length === 0 && projeto.video ? projeto.video : null);
   };
 
   return (
@@ -224,11 +225,27 @@ export default function PortfolioSection() {
                 onClick={() => abrirProjeto(projeto)}
               >
                 <div className="aspect-[4/3] overflow-hidden relative">
-                  <img
-                    src={projeto.imagem}
-                    alt={`Stand personalizado ${projeto.cliente} - Montagem de stands para feiras - SAMS Locações`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {projeto.imagem ? (
+                    <img
+                      src={projeto.imagem}
+                      alt={`Stand personalizado ${projeto.cliente} - Montagem de stands para feiras - SAMS Locações`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : projeto.video ? (
+                    <video
+                      src={projeto.video}
+                      className="w-full h-full object-cover"
+                      muted
+                      playsInline
+                      preload="metadata"
+                      onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play()}
+                      onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[oklch(0.22_0.07_240)] flex items-center justify-center">
+                      <Play size={32} className="text-[oklch(0.75_0.14_75)]" />
+                    </div>
+                  )}
                   {/* Video indicator */}
                   {projeto.video && (
                     <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
@@ -332,13 +349,21 @@ export default function PortfolioSection() {
                     autoPlay
                     className="w-full h-full object-contain"
                   />
-                ) : (
+                ) : selecionado.galeria.length > 0 ? (
                   <img
                     src={selecionado.galeria[fotoAtiva]}
                     alt={selecionado.titulo}
                     className="w-full h-full object-contain"
                   />
-                )}
+                ) : selecionado.video ? (
+                  <video
+                    key={selecionado.video}
+                    src={selecionado.video}
+                    controls
+                    autoPlay
+                    className="w-full h-full object-contain"
+                  />
+                ) : null}
               </div>
 
               {/* Thumbnails + video toggle */}

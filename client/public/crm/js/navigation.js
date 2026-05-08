@@ -978,21 +978,19 @@ const NavigationSystem = {
         
         // Auto carregar leads via API ao entrar na página de Marketing > Leads
         if (module === 'marketing' && page === 'leads') {
-            console.log('[NavigationSystem] Detectado módulo marketing/leads - agendando loadLeads');
+            // Zerar contador de retry para garantir que nova navegação sempre tente novamente
+            if (window.MarketingModule) {
+                window.MarketingModule['_leadsLoadDomRetries'] = 0;
+            }
             setTimeout(() => {
                 try {
-                    console.log('[NavigationSystem] Verificando window.MarketingModule:', typeof window.MarketingModule);
                     if (window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function') {
-                        console.log('[NavigationSystem] Chamando window.MarketingModule.loadLeads()');
                         window.MarketingModule.loadLeads();
-                        console.log('✅ [NavigationSystem] Leads auto-carregados via MarketingModule.loadLeads');
-                    } else {
-                        console.warn('[NavigationSystem] ⚠️ window.MarketingModule ou loadLeads não disponível');
                     }
                 } catch (error) {
-                    console.warn('[NavigationSystem] ⚠️ Falha ao auto-carregar leads:', error);
+                    console.warn('[NavigationSystem] Falha ao auto-carregar leads:', error);
                 }
-            }, 50);
+            }, 150);
         }
         
         // Integração específica para o módulo Kanban
@@ -1622,35 +1620,24 @@ const NavigationSystem = {
      * Recarregar lista de leads
      */
     reloadLeadsList() {
-        console.log('🔄 [NavigationSystem] Recarregando lista de leads...');
-        // Retry seguro caso MarketingModule ainda não tenha sido carregado
-        if (!(window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function')) {
-            this._leadsReloadRetries = (this._leadsReloadRetries || 0) + 1;
-            if (this._leadsReloadRetries <= 5) {
-                const delay = 150 * this._leadsReloadRetries; // backoff simples
-                console.log(`⏳ [NavigationSystem] MarketingModule.loadLeads indisponível. Tentando novamente em ${delay}ms (tentativa ${this._leadsReloadRetries}/5)`);
-                setTimeout(() => this.reloadLeadsList(), delay);
-                return;
-            }
-            console.warn('⚠️ [NavigationSystem] MarketingModule.loadLeads não disponível após múltiplas tentativas. Aplicando fallbacks.');
-        } else {
-            // Resetar contador de retries se disponível
-            this._leadsReloadRetries = 0;
+        // Zerar contador de retry e chamar loadLeads com delay seguro
+        if (window.MarketingModule) {
+            window.MarketingModule['_leadsLoadDomRetries'] = 0;
+        }
+        if (window.MarketingModule && typeof window.MarketingModule.loadLeads === 'function') {
             window.MarketingModule.loadLeads();
             return;
         }
-        // Fallback: utilizar fetchLeads se disponível (implementado em index.html/dashboard.html)
-        if (typeof window.fetchLeads === 'function') {
-            try {
-                window.fetchLeads();
-                return;
-            } catch (e) {
-                console.warn('⚠️ [NavigationSystem] Falha ao executar fetchLeads como fallback:', e);
-            }
+        // Fallback: aguardar MarketingModule estar disponível
+        this._leadsReloadRetries = (this._leadsReloadRetries || 0) + 1;
+        if (this._leadsReloadRetries <= 8) {
+            const delay = 150 * this._leadsReloadRetries;
+            setTimeout(() => this.reloadLeadsList(), delay);
+            return;
         }
-        // Último recurso: recarregar a página atual
-        this.reloadCurrentPage();
-    },
+        this._leadsReloadRetries = 0;
+        console.warn('[NavigationSystem] MarketingModule.loadLeads não disponível após múltiplas tentativas.');
+    }
 
     /**
      * Recarregar lista de contatos
