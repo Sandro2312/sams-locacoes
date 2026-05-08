@@ -508,184 +508,153 @@
 }
 
 
+/* ── Lead Cards — estilos base (aplicados sempre) ── */
+.lead-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  break-inside: avoid;
+}
+
+.lead-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lead-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.lead-card-temperature {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.lead-card-temperature.hot  { background: #fee2e2; color: #991b1b; }
+.lead-card-temperature.warm { background: #fef3c7; color: #92400e; }
+.lead-card-temperature.cold { background: #dbeafe; color: #1e40af; }
+
+.lead-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.875rem;
+}
+
+.lead-card-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.lead-card-label {
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 72px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+
+.lead-card-value {
+  color: #1f2937;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.lead-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+
+.lead-card-actions button {
+  flex: 1;
+  min-width: 60px;
+  padding: 8px 6px;
+  font-size: 0.78rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: filter 0.15s;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lead-card-actions button:active { filter: brightness(0.9); }
+
+.lead-card-actions button.whatsapp { background: #25d366; color: #fff; }
+.lead-card-actions button.view     { background: #6366f1; color: #fff; }
+.lead-card-actions button.edit     { background: #3b82f6; color: #fff; }
+.lead-card-actions button.delete   { background: #ef4444; color: #fff; }
+
 /* ── Leads Cards View para Mobile (< 640px) ── */
 @media (max-width: 640px) {
-  /* Ocultar tabela de leads e mostrar cards view */
+  /* Ocultar tabela e mostrar cards */
   #leads-view-list {
     display: none !important;
   }
 
-  /* Container de cards de leads */
   #leads-cards-view {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 12px !important;
-    padding: 0 !important;
+    padding: 0 4px !important;
   }
 
-  /* Card individual de lead */
-  .lead-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 14px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .lead-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .lead-card-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #1f2937;
-    flex: 1;
-    word-break: break-word;
-  }
-
-  .lead-card-temperature {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .lead-card-temperature.hot {
-    background-color: #fee2e2;
-    color: #991b1b;
-  }
-
-  .lead-card-temperature.warm {
-    background-color: #fef3c7;
-    color: #92400e;
-  }
-
-  .lead-card-temperature.cold {
-    background-color: #dbeafe;
-    color: #1e40af;
-  }
-
-  .lead-card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 0.85rem;
-  }
-
-  .lead-card-field {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .lead-card-label {
-    font-weight: 500;
-    color: #6b7280;
-    min-width: 70px;
-  }
-
-  .lead-card-value {
-    color: #1f2937;
-    text-align: right;
-    flex: 1;
-    word-break: break-word;
-  }
-
-  .lead-card-actions {
-    display: flex;
-    gap: 6px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  .lead-card-actions button {
-    flex: 1;
-    padding: 6px 6px;
-    font-size: 0.7rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .lead-card-actions button.whatsapp {
-    background-color: #25d366;
-    color: white;
-    font-weight: 600;
-  }
-
-  .lead-card-actions button.whatsapp:active {
-    background-color: #1da851;
-  }
-
-  .lead-card-actions button.view {
-    background-color: #6366f1;
-    color: white;
-  }
-
-  .lead-card-actions button.view:active {
-    background-color: #4f46e5;
-  }
-
-  .lead-card-actions button.edit {
-    background-color: #3b82f6;
-    color: white;
-  }
-
-  .lead-card-actions button.edit:active {
-    background-color: #1d4ed8;
-  }
-
-  .lead-card-actions button.delete {
-    background-color: #ef4444;
-    color: white;
-  }
-
-  .lead-card-actions button.delete:active {
-    background-color: #b91c1c;
-  }
+  .lead-card { padding: 13px; }
+  .lead-card-name { font-size: 0.95rem; }
+  .lead-card-body { font-size: 0.84rem; gap: 6px; }
+  .lead-card-actions button { padding: 8px 4px; font-size: 0.75rem; }
 }
 
-/* ── Leads Cards View para telas muito pequenas (< 480px) ── */
-@media (max-width: 480px) {
-  #leads-cards-view {
-    gap: 10px !important;
-  }
+/* ── Leads Cards View telas muito pequenas (< 400px) ── */
+@media (max-width: 400px) {
+  .lead-card { padding: 11px; border-radius: 8px; }
+  .lead-card-name { font-size: 0.9rem; }
+  .lead-card-body { font-size: 0.8rem; gap: 5px; }
+  .lead-card-label { min-width: 60px; }
 
-  .lead-card {
-    padding: 12px;
-  }
-
-  .lead-card-name {
-    font-size: 0.9rem;
-  }
-
-  .lead-card-body {
+  /* Botões em 2 colunas quando há WhatsApp (4 botões) */
+  .lead-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
-    font-size: 0.8rem;
   }
-
-  .lead-card-label {
-    min-width: 60px;
-  }
-
-  .lead-card-actions button {
-    padding: 6px 6px;
-    font-size: 0.7rem;
+  .lead-card-actions button.whatsapp {
+    grid-column: 1 / -1; /* WhatsApp ocupa linha inteira */
   }
 }

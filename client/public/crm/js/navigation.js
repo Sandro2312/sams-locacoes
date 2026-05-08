@@ -1037,14 +1037,16 @@ const NavigationSystem = {
             }, 50);
         }
         // Sincronização: ao abrir qualquer página do módulo financeiro, buscar transações da API
-        if (module === 'financeiro') {
+        // Flag anti-loop: evitar que o re-render dispare nova sincronização
+        if (module === 'financeiro' && !this._financeirSyncInProgress) {
             setTimeout(async () => {
+                if (this._financeirSyncInProgress) return;
+                this._financeirSyncInProgress = true;
                 try {
                     const resp = await fetch('/api/crm/transacoes', { credentials: 'include' });
                     if (resp.ok) {
                         const rawRows = await resp.json().catch(() => []);
                         if (Array.isArray(rawRows) && window.ModuleSystem && ModuleSystem.data) {
-                            // Mapear snake_case da API para camelCase usado pelo frontend
                             const rows = rawRows.map(r => ({
                                 ...r,
                                 centroCusto: r.centro_custo || r.centroCusto || null,
@@ -1057,8 +1059,7 @@ const NavigationSystem = {
                             }));
                             ModuleSystem.data.transacoes = rows;
                             if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData();
-                            console.log(`✅ [NavigationSystem] Transações sincronizadas da API: ${rows.length} registros`);
-                            // Re-renderizar a página atual para mostrar dados atualizados
+                            // Re-renderizar somente se ainda estiver na mesma página financeira
                             if (this.currentModule === 'financeiro' && this.currentPage === page) {
                                 this.navigateToPage(this.currentModule, this.currentPage);
                             }
@@ -1066,6 +1067,9 @@ const NavigationSystem = {
                     }
                 } catch (e) {
                     console.warn('[NavigationSystem] Falha ao sincronizar transações da API:', e);
+                } finally {
+                    // Liberar flag após render (pequeno delay para o render terminar)
+                    setTimeout(() => { this._financeirSyncInProgress = false; }, 500);
                 }
             }, 100);
         }
@@ -1580,6 +1584,17 @@ const NavigationSystem = {
     reloadCurrentPage() {
         if (this.currentModule && this.currentPage) {
             this.navigateToPage(this.currentModule, this.currentPage);
+            // Reinicializar módulos que dependem de bindPageEvents após reload
+            const m = this.currentModule, p = this.currentPage;
+            if (m === 'administracao' && p === 'usuarios') {
+                setTimeout(() => { try { ModuleSystem?.administracao?.initUsuarios?.(); } catch {} }, 200);
+            }
+            if (m === 'financeiro') {
+                setTimeout(() => {
+                    try { ModuleSystem?.financeiro?.initComissoes?.(); } catch {}
+                    try { ModuleSystem?.financeiro?.initDashboardHome?.(); } catch {}
+                }, 200);
+            }
         }
     },
 

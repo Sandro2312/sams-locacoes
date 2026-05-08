@@ -903,6 +903,8 @@ const ModuleSystem = {
                 const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
                 const tempLabel = lead.temperatura === 'quente' ? '🔴 Quente' : lead.temperatura === 'morno' ? '🟡 Morno' : '🔵 Frio';
                 const whatsappBtn = getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${lead.id}" class="whatsapp" title="Enviar WhatsApp">💬 WhatsApp</button>` : '';
+                const statusCls = window.UIHelpers ? UIHelpers.computeStatusClass(lead.status) : 'bg-blue-100 text-blue-800';
+                const dataFmt = lead.dataContato || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '');
                 return `
                     <div class="lead-card">
                         <div class="lead-card-header">
@@ -910,6 +912,7 @@ const ModuleSystem = {
                             <span class="lead-card-temperature ${tempClass}">${tempLabel}</span>
                         </div>
                         <div class="lead-card-body">
+                            ${lead.status ? `<div class="lead-card-field"><span class="lead-card-label">Status:</span><span class="lead-card-value"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusCls}">${lead.status}</span></span></div>` : ''}
                             <div class="lead-card-field">
                                 <span class="lead-card-label">Empresa:</span>
                                 <span class="lead-card-value">${lead.empresa || '—'}</span>
@@ -926,6 +929,7 @@ const ModuleSystem = {
                                 <span class="lead-card-label">Origem:</span>
                                 <span class="lead-card-value">${lead.origem || '—'}</span>
                             </div>
+                            ${dataFmt ? `<div class="lead-card-field"><span class="lead-card-label">Data:</span><span class="lead-card-value">${dataFmt}</span></div>` : ''}
                         </div>
                         <div class="lead-card-actions">
                             ${whatsappBtn}
@@ -7056,11 +7060,16 @@ const ModuleSystem = {
             };
 
             const refresh = async () => {
-                statusEl && (statusEl.textContent = 'Carregando...');
+                // Sempre buscar referência atual do DOM (evita referência órfã após reload)
+                const liveBody = document.getElementById('adminUsersBody') || body;
+                const liveStatusEl = document.getElementById('adminUsersStatus') || statusEl;
+                const liveRoleFilter = document.getElementById('adminUsersRoleFilter') || roleFilter;
+                const liveStatusFilter = document.getElementById('adminUsersStatusFilter') || statusFilter;
+                liveStatusEl && (liveStatusEl.textContent = 'Carregando...');
                 try {
                     const users = await api('/api/admin/users');
-                    const roleSel = String(roleFilter.value || '').toLowerCase();
-                    const statusSel = String(statusFilter.value || 'todos').toLowerCase();
+                    const roleSel = String(liveRoleFilter && liveRoleFilter.value || '').toLowerCase();
+                    const statusSel = String(liveStatusFilter && liveStatusFilter.value || 'todos').toLowerCase();
 
                     const filtered = (Array.isArray(users) ? users : []).filter(u => {
                         const r = String(u && u.role != null ? u.role : '').toLowerCase();
@@ -7071,7 +7080,7 @@ const ModuleSystem = {
                         return true;
                     });
 
-                    body.innerHTML = filtered.map(u => {
+                    liveBody.innerHTML = filtered.map(u => {
                         const active = Number(u.active) === 1;
                         const badge = active
                             ? `<span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Ativo</span>`
@@ -7096,11 +7105,11 @@ const ModuleSystem = {
                         `;
                     }).join('') || `<tr><td colspan="6" class="px-3 py-3 text-sm text-gray-500">Nenhum usuário encontrado.</td></tr>`;
 
-                    statusEl && (statusEl.textContent = `${filtered.length} usuário(s)`);
+                    liveStatusEl && (liveStatusEl.textContent = `${filtered.length} usuário(s)`);
                     usersCache = Array.isArray(users) ? users : [];
                 } catch (err) {
-                    body.innerHTML = `<tr><td colspan="6" class="px-3 py-3 text-sm text-red-600">${err && err.message ? err.message : 'Erro ao listar usuários'}</td></tr>`;
-                    statusEl && (statusEl.textContent = '');
+                    liveBody.innerHTML = `<tr><td colspan="6" class="px-3 py-3 text-sm text-red-600">${err && err.message ? err.message : 'Erro ao listar usuários'}</td></tr>`;
+                    liveStatusEl && (liveStatusEl.textContent = '');
                 }
             };
 
@@ -8384,6 +8393,8 @@ window.MarketingModule.loadLeads = async function(options) {
           const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
           const tempLabel = lead.temperatura === 'quente' ? '🔴 Quente' : lead.temperatura === 'morno' ? '🟡 Morno' : '🔵 Frio';
           const whatsappBtn = getWhatsappDigits(lead) ? `<button type="button" data-lead-whatsapp="1" data-id="${lead.id}" class="whatsapp" title="Enviar WhatsApp">💬 WhatsApp</button>` : '';
+          const statusClass = window.UIHelpers ? UIHelpers.computeStatusClass(lead.status) : 'bg-blue-100 text-blue-800';
+          const dataFormatada = lead.dataContato || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '');
           return `
             <div class="lead-card">
               <div class="lead-card-header">
@@ -8391,10 +8402,12 @@ window.MarketingModule.loadLeads = async function(options) {
                 <span class="lead-card-temperature ${tempClass}">${tempLabel}</span>
               </div>
               <div class="lead-card-body">
+                ${lead.status ? `<div class="lead-card-field"><span class="lead-card-label">Status:</span><span class="lead-card-value"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${lead.status}</span></span></div>` : ''}
                 <div class="lead-card-field"><span class="lead-card-label">Empresa:</span><span class="lead-card-value">${lead.empresa || '—'}</span></div>
                 <div class="lead-card-field"><span class="lead-card-label">Email:</span><span class="lead-card-value">${lead.email || '—'}</span></div>
                 <div class="lead-card-field"><span class="lead-card-label">Telefone:</span><span class="lead-card-value">${lead.telefone || '—'}</span></div>
                 <div class="lead-card-field"><span class="lead-card-label">Origem:</span><span class="lead-card-value">${lead.origem || '—'}</span></div>
+                ${dataFormatada ? `<div class="lead-card-field"><span class="lead-card-label">Data:</span><span class="lead-card-value">${dataFormatada}</span></div>` : ''}
               </div>
               <div class="lead-card-actions">
                 ${whatsappBtn}
