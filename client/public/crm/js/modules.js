@@ -347,7 +347,26 @@ const ModuleSystem = {
         // Criar handler persistente com contexto correto
         this.globalClickHandler = ((e) => {
             const rawTarget = e && e.target ? e.target : null;
-            const actionEl = rawTarget && rawTarget.closest ? rawTarget.closest('[data-action]') : null;
+            if (!rawTarget || !rawTarget.closest) return;
+
+            // ✅ DELEGAÇÃO 1: Detectar clique em módulo Marketing
+            const moduleCard = rawTarget.closest('[data-module="marketing"]');
+            if (moduleCard) {
+                console.log('🎯 Clique detectado no módulo Marketing');
+                this.showModule('marketing');
+                return;
+            }
+
+            // ✅ DELEGAÇÃO 2: Detectar clique em submodule Leads
+            const leadsContainer = rawTarget.closest('[data-submodule="leads"]');
+            if (leadsContainer) {
+                console.log('🎯 Clique detectado no submodule Leads');
+                this.showLeads();
+                return;
+            }
+
+            // ✅ DELEGAÇÃO 3: Detectar clique em botão CRUD com [data-action]
+            const actionEl = rawTarget.closest('[data-action]');
             if (!actionEl) return;
 
             const tag = (actionEl.tagName || '').toLowerCase();
@@ -7715,6 +7734,24 @@ const ModuleSystem = {
             FormSystem.showUpdateForm(module, id);
         } else {
             console.error('FormSystem não está disponível');
+        }
+    },
+
+    showModule(module) {
+        console.log('Navegando para módulo:', module);
+        if (window.NavigationSystem && typeof NavigationSystem.navigateToModule === 'function') {
+            NavigationSystem.navigateToModule(module);
+        } else {
+            console.error('NavigationSystem não está disponível');
+        }
+    },
+
+    showLeads() {
+        console.log('Navegando para página de leads');
+        if (window.NavigationSystem && typeof NavigationSystem.navigateToPage === 'function') {
+            NavigationSystem.navigateToPage('marketing', 'leads');
+        } else {
+            console.error('NavigationSystem não está disponível');
         }
     },
 
