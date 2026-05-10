@@ -1034,8 +1034,6 @@ class FormComponents {
                 window.NavigationSystem.navigateToModule('dashboard');
             } else if (typeof window.navigateToDashboard === 'function') {
                 window.navigateToDashboard();
-            } else if (typeof window.location !== 'undefined') {
-                window.location.href = '/?module=dashboard';
             } else {
                 console.warn('[FormComponents] NavigationSystem não disponível.');
             }

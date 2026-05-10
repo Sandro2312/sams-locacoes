@@ -504,11 +504,7 @@ class PhotoUploadSystem {
                 if (window.NavigationSystem && typeof NavigationSystem.navigateToModule === 'function') {
                     NavigationSystem.navigateToModule('dashboard');
                 } else {
-                    try {
-                        window.location.href = '/?module=dashboard';
-                    } catch (e) {
-                        console.warn('[PhotoUpload] Não foi possível navegar para o dashboard.', e);
-                    }
+                    console.warn('[PhotoUpload] Não foi possível navegar para o dashboard.');
                 }
             });
         }

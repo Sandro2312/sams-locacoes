@@ -123,8 +123,6 @@ const UXEnhancements = {
                 window.NavigationSystem.navigateToModule('dashboard');
             } else if (typeof window.navigateToDashboard === 'function') {
                 window.navigateToDashboard();
-            } else if (typeof window.location !== 'undefined') {
-                window.location.href = '/?module=dashboard';
             }
         } catch (e) {
             console.warn('[UXEnhancements] Erro ao navegar de volta ao dashboard:', e);
