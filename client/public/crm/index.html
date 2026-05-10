@@ -936,15 +936,18 @@
     <!-- Templates de Formulários (HTML Imports removido: usar templates via JS) -->
     <!-- <link rel="import" href="templates/form-templates.html"> -->
 
-    <!-- Core Scripts - defer para não bloquear parsing mantendo ordem -->
+    <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
     <script src="/crm/js/utils.js?v=4.9" defer></script>
     <script src="/crm/debug.js" defer></script>
-    <script src="/crm/bootstrap-force.js" defer></script>
     <script src="/crm/js/auth.js?v=5.7.0" defer></script>
     
-    <!-- Critical Scripts - defer garante ordem e execução antes do DOMContentLoaded -->
+    <!-- Critical Scripts - DEVE carregar ANTES de bootstrap-force.js -->
     <script src="/crm/js/modules.js?v=5.7.0" defer></script>
     <script src="/crm/js/navigation.js?v=5.7.0" defer></script>
+    
+    <!-- Bootstrap e Debug - DEPOIS que navigation.js está pronto -->
+    <script src="/crm/bootstrap-force-v2.js" defer></script>
+    <script src="/crm/aggressive-debug.js" defer></script>
     <script src="/crm/js/acervo.js?v=1.0.5" defer></script>
     <script src="/crm/js/validation-system.js?v=4.9" defer></script>
     <script src="/crm/js/forms.js?v=5.7.0" defer></script>
