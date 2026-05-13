@@ -964,6 +964,16 @@ const ModuleSystem = {
                 ? 'bg-indigo-600 text-white border-indigo-600'
                 : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50';
             
+            // Função auxiliar para extrair dígitos do WhatsApp
+            const getWhatsappDigits = (lead) => {
+                const raw = (lead && (lead.whatsapp || lead.telefone)) ? String(lead.whatsapp || lead.telefone) : '';
+                const digits = raw.replace(/\D/g, '');
+                if (!digits) return '';
+                if (digits.startsWith('55')) return digits;
+                if (digits.length >= 10) return '55' + digits;
+                return digits;
+            };
+
             // Função para renderizar card de lead (mobile)
             const renderLeadCard = (lead) => {
                 const tempClass = lead.temperatura === 'quente' ? 'hot' : lead.temperatura === 'morno' ? 'warm' : 'cold';
