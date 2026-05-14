@@ -349,10 +349,10 @@ const ModuleSystem = {
             const rawTarget = e && e.target ? e.target : null;
             if (!rawTarget || !rawTarget.closest) return;
 
-            // ✅ DELEGAÇÃO 1: Detectar clique em módulo do DASHBOARD (não em cards de páginas)
-            // Cards de módulos no dashboard têm data-module mas NÃO têm data-page
+            // ✅ DELEGAÇÃO 1: Detectar clique em módulo do DASHBOARD (não em cards de páginas nem botões CRUD)
+            // Cards de módulos no dashboard têm data-module mas NÃO têm data-page nem data-action
             const moduleCard = rawTarget.closest('[data-module]');
-            if (moduleCard && !moduleCard.hasAttribute('data-page')) {
+            if (moduleCard && !moduleCard.hasAttribute('data-page') && !moduleCard.hasAttribute('data-action')) {
                 const moduleName = moduleCard.getAttribute('data-module');
                 console.log('🎯 Clique detectado no módulo:', moduleName);
                 this.showModule(moduleName);
