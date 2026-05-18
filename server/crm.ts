@@ -68,7 +68,16 @@ export async function getSessionFromCrm(token: string) {
 
 // ─── Middleware de autenticação CRM ────────────────────────────────────────────
 function requireCrmAuth(req: Request, res: Response, next: NextFunction) {
-  const token = getCookie(req, "crm_session");
+  // Tentar cookie primeiro (padrão)
+  let token = getCookie(req, "crm_session");
+  // Fallback: header Authorization: Bearer <token> (para browsers que bloqueiam cookies)
+  if (!token) {
+    const authHeader = req.headers["authorization"] || req.headers["x-crm-token"];
+    if (authHeader) {
+      const parts = String(authHeader).split(" ");
+      token = parts.length === 2 && parts[0].toLowerCase() === "bearer" ? parts[1] : parts[0];
+    }
+  }
   if (!token) return res.status(401).json({ error: "Não autenticado" });
   getSession(token).then(session => {
     if (!session) return res.status(401).json({ error: "Sessão expirada" });
@@ -181,14 +190,21 @@ export function registerCrmRoutes(app: any) {
     await audit(user.id, "login", "crm_users", user.id, null, req.ip);
 
     const token = await createSession(user.id, user.role, user.name);
+    const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https";
+    // sameSite="lax" + secure=true em HTTPS garante compatibilidade com:
+    // - Chrome/Android, Safari/iOS, Firefox mobile
+    // - Brave, Samsung Internet, WebView
+    // sameSite="lax" permite cookies em navegação normal (links, redirects top-level)
+    // mas bloqueia em requests cross-site (proteção CSRF adequada)
     res.cookie("crm_session", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+      secure: isHttps,
       maxAge: SESSION_TTL,
       path: "/",
     });
-    res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    // Também enviar token no body para fallback em browsers que bloqueiam cookies 3rd-party
+    res.json({ ok: true, user: { id: user.id, name: user.name, email: user.email, role: user.role }, _sessionToken: token });
   });
 
   r.post("/logout", async (req, res) => {

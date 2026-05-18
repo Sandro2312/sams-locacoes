@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAMS Locações - Sistema CRM/ERP v5.6</title>
-    <meta name="csrf-token" content="dev-csrf-token-v5.6">
+    <meta name="csrf-token" content="">
     
     <!-- 
     🚀 SISTEMA MODERNIZADO v4.9.7 - ELIMINAÇÃO DEFINITIVA DE HANDLERS INLINE
@@ -936,6 +936,30 @@
     <!-- Templates de Formulários (HTML Imports removido: usar templates via JS) -->
     <!-- <link rel="import" href="templates/form-templates.html"> -->
 
+    <!-- Interceptor global de fetch: injeta token de sessão como fallback para browsers que bloqueiam cookies -->
+    <script>
+    (function() {
+        'use strict';
+        const _origFetch = window.fetch;
+        window.fetch = function(input, init) {
+            // Apenas injetar em chamadas para /api/crm (não em recursos externos)
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            const isCrmApi = url.startsWith('/api/crm') || url.includes('/api/crm/');
+            if (isCrmApi) {
+                const token = window._crmSessionToken
+                    || (() => { try { return sessionStorage.getItem('crm_fallback_token'); } catch { return null; } })()
+                    || (() => { try { return localStorage.getItem('crm_fallback_token'); } catch { return null; } })();
+                if (token) {
+                    init = init || {};
+                    init.headers = Object.assign({}, init.headers || {}, { 'Authorization': 'Bearer ' + token });
+                    // Garantir credentials: include para enviar cookies quando disponíveis
+                    if (!init.credentials) init.credentials = 'include';
+                }
+            }
+            return _origFetch.call(this, input, init);
+        };
+    })();
+    </script>
     <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
     <script src="/crm/js/utils.js?v=4.9" defer></script>
     <script src="/crm/js/auth.js?v=5.7.0" defer></script>

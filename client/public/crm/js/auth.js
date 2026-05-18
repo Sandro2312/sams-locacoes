@@ -91,11 +91,30 @@ const AuthSystem = {
     },
 
     // Verificar sessão existente
+    // Obter headers de autenticação (cookie + fallback token para browsers restritivos)
+    _getAuthHeaders() {
+        const headers = {};
+        // Recuperar token de fallback (para Safari ITP, Brave, Firefox Strict)
+        const token = window._crmSessionToken
+            || (() => { try { return sessionStorage.getItem('crm_fallback_token'); } catch { return null; } })()
+            || (() => { try { return localStorage.getItem('crm_fallback_token'); } catch { return null; } })();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+            window._crmSessionToken = token; // manter em memória
+        }
+        return headers;
+    },
+
     async checkSession() {
         try {
-            const resp = await fetch('/api/crm/me', { credentials: 'include' });
+            const headers = this._getAuthHeaders();
+            const resp = await fetch('/api/crm/me', { credentials: 'include', headers });
             const payload = await resp.json().catch(() => ({}));
             if (!resp.ok) {
+                // Limpar token inválido
+                try { sessionStorage.removeItem('crm_fallback_token'); } catch {}
+                try { localStorage.removeItem('crm_fallback_token'); } catch {}
+                window._crmSessionToken = null;
                 this.currentUser = null;
                 this.showLogin();
                 return;
@@ -217,14 +236,14 @@ const AuthSystem = {
         const passwordEl = document.getElementById('loginPassword');
         const spinnerEl = document.getElementById('loginSpinner');
         const messageDiv = document.getElementById('loginMessage');
-        const metaCsrf = document.querySelector('meta[name="csrf-token"]');
         const inputCsrf = document.getElementById('csrfToken');
 
         const email = emailEl ? emailEl.value.trim() : '';
         const password = passwordEl ? passwordEl.value : '';
 
+        // Garantir token CSRF sincronizado entre meta e input (corrige falha em mobile/Safari)
         const ensureCsrf = () => {
-            let meta = metaCsrf;
+            let meta = document.querySelector('meta[name="csrf-token"]');
             if (!meta) {
                 meta = document.createElement('meta');
                 meta.setAttribute('name', 'csrf-token');
@@ -236,13 +255,10 @@ const AuthSystem = {
             if (inputCsrf) inputCsrf.value = token;
             return token;
         };
-        const csrfToken = ensureCsrf();
-        const csrfMetaValue = (metaCsrf ? metaCsrf.getAttribute('content') : csrfToken) || '';
-        const csrfInputValue = inputCsrf ? inputCsrf.value : csrfToken;
-        if (!csrfMetaValue || !csrfInputValue || csrfMetaValue !== csrfInputValue) {
-            this.showMessage('Falha de validação de segurança. Atualize a página e tente novamente.', 'error');
-            return;
-        }
+        // Chamar ensureCsrf() ANTES de ler os valores para garantir sincronia
+        ensureCsrf();
+        // Não bloquear login por CSRF no client-side - o servidor não valida CSRF nesta rota
+        // A validação real é feita pelo cookie httpOnly + bcrypt no servidor
 
         // Validações básicas
         if (!email || !password) {
@@ -284,6 +300,13 @@ const AuthSystem = {
                 const user = payload.user;
                 // Login bem-sucedido
                 this.clearFailedAttempts(email);
+                // Armazenar token de fallback para browsers que bloqueiam cookies (Safari ITP, Brave)
+                if (payload._sessionToken) {
+                    try { sessionStorage.setItem('crm_fallback_token', payload._sessionToken); } catch {}
+                    try { localStorage.setItem('crm_fallback_token', payload._sessionToken); } catch {}
+                    // Configurar header global para todos os fetches futuros
+                    window._crmSessionToken = payload._sessionToken;
+                }
                 this.createSession(user);
                 this.showMessage('Login realizado com sucesso!', 'success');
 
@@ -453,6 +476,10 @@ const AuthSystem = {
             fetch('/api/crm/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
         } catch (e) {}
         this.currentUser = null;
+        // Limpar token de fallback
+        try { sessionStorage.removeItem('crm_fallback_token'); } catch {}
+        try { localStorage.removeItem('crm_fallback_token'); } catch {}
+        window._crmSessionToken = null;
         try { delete window.CrmUiConfig; } catch {}
         try { delete window.CrmTelemetry; } catch {}
         try {
