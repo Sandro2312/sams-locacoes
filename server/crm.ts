@@ -8,6 +8,7 @@ import { parse as parseCookieHeader } from "cookie";
 import { ENV } from "./_core/env";
 import { invokeLLM } from "./_core/llm";
 import { transcribeAudio } from "./_core/voiceTranscription";
+import { sendEmail, buildPasswordResetEmail } from "./crm-email";
 
 // Helper para parsear cookies do header
 function getCookie(req: Request, name: string): string | undefined {
@@ -212,6 +213,104 @@ export function registerCrmRoutes(app: any) {
     if (token) await deleteSession(token);
     res.clearCookie("crm_session", { path: "/" });
     res.json({ ok: true });
+  });
+
+  // ── Recuperação de Senha ────────────────────────────────────────────────────
+  // POST /api/crm/forgot-password — solicita reset, envia email
+  r.post("/forgot-password", async (req, res) => {
+    const { email } = req.body ?? {};
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email obrigatório" });
+    }
+    // Rate limit: 3 tentativas por email por hora
+    const rl = consumeRateLimit(`forgot:${email.trim().toLowerCase()}`, 3, 60 * 60 * 1000);
+    if (!rl.ok) {
+      return res.status(429).json({ error: "Muitas tentativas. Aguarde 1 hora e tente novamente." });
+    }
+    const user = await dbOne<any>(
+      "SELECT id, name, email, active FROM crm_users WHERE email = ? AND active = 1",
+      [email.trim().toLowerCase()]
+    );
+    // Sempre retornar sucesso para não revelar se email existe
+    if (!user) {
+      return res.json({ ok: true, message: "Se este email estiver cadastrado, você receberá as instruções em breve." });
+    }
+    // Gerar token seguro (expira em 1 hora)
+    const resetToken = crypto.randomBytes(48).toString("hex");
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hora
+    // Invalidar tokens anteriores deste usuário
+    await db("DELETE FROM crm_password_resets WHERE user_id = ? AND used_at IS NULL", [user.id]).catch(() => {});
+    await db(
+      "INSERT INTO crm_password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
+      [user.id, resetToken, expiresAt]
+    );
+    // Determinar URL base (produção ou dev)
+    const proto = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
+    const host = req.headers["x-forwarded-host"] || req.headers["host"] || "samslocacoes.com.br";
+    const baseUrl = `${proto}://${host}`;
+    const resetUrl = `${baseUrl}/crm/index.html?reset_token=${resetToken}`;
+    // Enviar email
+    const { html, text } = buildPasswordResetEmail(user.name, resetUrl);
+    const sent = await sendEmail({
+      to: user.email,
+      subject: "Recuperação de Senha — SAMS Locações CRM",
+      html,
+      text,
+    });
+    if (!sent) {
+      console.error(`[CRM] Falha ao enviar email de reset para ${user.email}`);
+    }
+    await audit(user.id, "forgot_password", "crm_users", user.id, null, req.ip);
+    return res.json({ ok: true, message: "Se este email estiver cadastrado, você receberá as instruções em breve." });
+  });
+
+  // POST /api/crm/reset-password — confirma token e define nova senha
+  r.post("/reset-password", async (req, res) => {
+    const { token, password } = req.body ?? {};
+    if (!token || !password) {
+      return res.status(400).json({ error: "Token e nova senha são obrigatórios" });
+    }
+    if (typeof password !== "string" || password.length < 8) {
+      return res.status(400).json({ error: "A senha deve ter pelo menos 8 caracteres" });
+    }
+    const now = Date.now();
+    const resetRow = await dbOne<any>(
+      "SELECT id, user_id, expires_at, used_at FROM crm_password_resets WHERE token = ?",
+      [token]
+    );
+    if (!resetRow) {
+      return res.status(400).json({ error: "Link inválido ou expirado. Solicite um novo." });
+    }
+    if (resetRow.used_at) {
+      return res.status(400).json({ error: "Este link já foi utilizado. Solicite um novo." });
+    }
+    if (Number(resetRow.expires_at) < now) {
+      return res.status(400).json({ error: "Link expirado. Solicite um novo." });
+    }
+    // Atualizar senha
+    const hash = await bcrypt.hash(password, 10);
+    await db("UPDATE crm_users SET password = ? WHERE id = ?", [hash, resetRow.user_id]);
+    // Marcar token como usado
+    await db("UPDATE crm_password_resets SET used_at = NOW() WHERE id = ?", [resetRow.id]);
+    // Invalidar todas as sessões ativas deste usuário
+    await db("DELETE FROM crm_sessions WHERE user_id = ?", [resetRow.user_id]).catch(() => {});
+    await audit(resetRow.user_id, "reset_password", "crm_users", resetRow.user_id, null, req.ip);
+    return res.json({ ok: true, message: "Senha redefinida com sucesso! Faça login com sua nova senha." });
+  });
+
+  // GET /api/crm/validate-reset-token — verifica se token é válido (sem consumir)
+  r.get("/validate-reset-token", async (req, res) => {
+    const { token } = req.query as any;
+    if (!token) return res.status(400).json({ valid: false, error: "Token não informado" });
+    const now = Date.now();
+    const row = await dbOne<any>(
+      "SELECT id, expires_at, used_at FROM crm_password_resets WHERE token = ?",
+      [token]
+    );
+    if (!row || row.used_at || Number(row.expires_at) < now) {
+      return res.json({ valid: false, error: "Link inválido ou expirado" });
+    }
+    return res.json({ valid: true });
   });
 
   r.get("/me", requireCrmAuth, async (req, res) => {
