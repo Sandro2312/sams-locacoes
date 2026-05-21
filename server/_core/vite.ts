@@ -24,8 +24,9 @@ export async function setupVite(app: Express, server: Server) {
   // Must be registered BEFORE vite.middlewares to avoid the SPA catch-all
   const crmPublicPath = path.resolve(import.meta.dirname, "../..", "client", "public", "crm");
   if (fs.existsSync(crmPublicPath)) {
-    app.use("/crm", express.static(crmPublicPath));
+    // redirect:false evita o "Redirecting to /crm/" que trava Edge e mobile
     app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
+    app.use("/crm", express.static(crmPublicPath, { redirect: false }));
     app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
   }
 
@@ -79,7 +80,15 @@ export function serveStatic(app: Express) {
     console.log(`[CRM] Serving CRM from: ${crmDistPath}`);
     // JS/CSS com ?v= no URL: cache de 1 ano (imutável)
     // HTML e arquivos sem versão: sem cache (sempre busca novo)
+    // redirect:false evita o "Redirecting to /crm/" que trava Edge e mobile
+    app.get("/crm", (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.sendFile(path.resolve(crmDistPath, "index.html"));
+    });
     app.use("/crm", express.static(crmDistPath, {
+      redirect: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -91,7 +100,6 @@ export function serveStatic(app: Express) {
         }
       }
     }));
-    app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
     app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmDistPath, "index.html")));
   } else {
     console.warn(`[CRM] CRM directory not found at: ${crmDistPath}`);
