@@ -1037,30 +1037,57 @@
     <script>
     (function() {
         'use strict';
-        const _origFetch = window.fetch;
+        // === INTERCEPTOR UNIFICADO DE FETCH (v5.8.2) ===
+        // 1. Inicializar token do storage ao carregar a página
+        try {
+            var savedToken = localStorage.getItem('crm_fallback_token') || sessionStorage.getItem('crm_fallback_token');
+            if (savedToken) window._crmSessionToken = savedToken;
+        } catch(e) {}
+
+        var _origFetch = window.fetch;
         window.fetch = function(input, init) {
-            // Apenas injetar em chamadas para /api/crm (não em recursos externos)
-            const url = typeof input === 'string' ? input : (input && input.url) || '';
-            const isCrmApi = url.startsWith('/api/crm') || url.includes('/api/crm/');
+            var url = typeof input === 'string' ? input : (input && input.url) || '';
+            var isCrmApi = url.startsWith('/api/crm') || url.indexOf('/api/crm/') !== -1;
+
+            // 2. Injetar token em TODOS os requests para /api/crm
             if (isCrmApi) {
-                const token = window._crmSessionToken
-                    || (() => { try { return sessionStorage.getItem('crm_fallback_token'); } catch { return null; } })()
-                    || (() => { try { return localStorage.getItem('crm_fallback_token'); } catch { return null; } })();
+                var token = window._crmSessionToken;
+                if (!token) { try { token = localStorage.getItem('crm_fallback_token'); } catch(e) {} }
+                if (!token) { try { token = sessionStorage.getItem('crm_fallback_token'); } catch(e) {} }
                 if (token) {
                     init = init || {};
-                    init.headers = Object.assign({}, init.headers || {}, { 'Authorization': 'Bearer ' + token });
-                    // Garantir credentials: include para enviar cookies quando disponíveis
-                    if (!init.credentials) init.credentials = 'include';
+                    var existingHeaders = init.headers || {};
+                    init.headers = Object.assign({}, existingHeaders, { 'Authorization': 'Bearer ' + token });
                 }
+                // Sempre incluir credentials para cookies quando disponíveis
+                init = init || {};
+                if (!init.credentials) init.credentials = 'include';
             }
-            return _origFetch.call(this, input, init);
+
+            var result = _origFetch.call(this, input, init);
+
+            // 3. Interceptar respostas de login e /me para persistir o token
+            if (isCrmApi && (url.indexOf('/login') !== -1 || url.indexOf('/me') !== -1)) {
+                result.then(function(resp) {
+                    if (!resp.ok) return;
+                    resp.clone().json().then(function(data) {
+                        if (data && data._sessionToken) {
+                            window._crmSessionToken = data._sessionToken;
+                            try { localStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
+                            try { sessionStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
+                        }
+                    }).catch(function() {});
+                }).catch(function() {});
+            }
+
+            return result;
         };
     })();
     </script>
     <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
     <script src="/crm/js/utils.js?v=4.9" defer></script>
     <script src="/crm/js/auth.js?v=5.8.1" defer></script>
-    <script src="/crm/js/modules.js?v=5.7.2" defer></script>
+    <script src="/crm/js/modules.js?v=5.8.2" defer></script>
     <script src="/crm/js/navigation.js?v=5.8.1" defer></script>
     <script src="/crm/js/acervo.js?v=1.0.5" defer></script>
     <script src="/crm/js/validation-system.js?v=4.9" defer></script>
@@ -2615,27 +2642,6 @@
       document.addEventListener('touchcancel', onEnd2, { once: true });
     }, { passive: true });
 
-    // === FALLBACK PERSISTÊNCIA DE TOKEN ===
-    // Garantir que o token seja persistido após login, mesmo se auth.js estiver cacheado
-    var _origFetch2 = window.fetch;
-    window.fetch = function(input, init) {
-      var result = _origFetch2.call(this, input, init);
-      var url = typeof input === 'string' ? input : (input && input.url) || '';
-      // Interceptar respostas de login e /me para salvar o token
-      if (url.includes('/api/crm/login') || url.includes('/api/crm/me')) {
-        result.then(function(resp) {
-          // Clonar para não consumir o body
-          return resp.clone().json().catch(function() { return null; });
-        }).then(function(data) {
-          if (data && data._sessionToken) {
-            window._crmSessionToken = data._sessionToken;
-            try { sessionStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
-            try { localStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
-          }
-        }).catch(function() {});
-      }
-      return result;
-    };
   })();
   </script>
   </body>
