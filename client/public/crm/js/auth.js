@@ -125,6 +125,12 @@ const AuthSystem = {
                 this.showLogin();
                 return;
             }
+            // Persistir token retornado pelo servidor (fallback para Edge/Safari que bloqueiam cookies)
+            if (payload._sessionToken) {
+                window._crmSessionToken = payload._sessionToken;
+                try { sessionStorage.setItem('crm_fallback_token', payload._sessionToken); } catch {}
+                try { localStorage.setItem('crm_fallback_token', payload._sessionToken); } catch {}
+            }
             this.createSession(user);
             this.showMainApp();
         } catch (error) {

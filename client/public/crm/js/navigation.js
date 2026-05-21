@@ -334,6 +334,8 @@ const NavigationSystem = {
         this.eventsInitialized = true;
 
         const self = this;
+        // Timestamp do último touchend processado — evita duplo disparo touch+click no mobile
+        let _lastTouchTs = 0;
 
         // Handler unificado para click e touchend (mobile)
         const handleCardActivation = (e) => {
@@ -352,12 +354,14 @@ const NavigationSystem = {
             const module = card.getAttribute('data-module');
             if (!module) return;
 
-            // Prevenir duplo disparo touch+click em mobile
+            const now = Date.now();
             if (e.type === 'touchend') {
-                e._samsHandled = true;
-                e.preventDefault();
-            } else if (e.type === 'click' && e._samsHandled) {
-                return;
+                // Registrar timestamp do toque para suprimir o click sintético subsequente
+                _lastTouchTs = now;
+                // NÃO chamar preventDefault() — isso pode bloquear o comportamento padrão no iOS/Android
+            } else if (e.type === 'click') {
+                // Se um touchend foi processado nos últimos 600ms, ignorar o click sintético
+                if (now - _lastTouchTs < 600) return;
             }
 
             console.log(`🖱️ NavigationSystem: Clique no módulo ${module} (via ${e.type})`);
@@ -365,8 +369,9 @@ const NavigationSystem = {
         };
 
         // Registrar no document com capture:false para máxima compatibilidade
+        // passive:true no touchend permite scroll suave sem bloquear o browser mobile
         document.addEventListener('click', handleCardActivation, false);
-        document.addEventListener('touchend', handleCardActivation, { passive: false });
+        document.addEventListener('touchend', handleCardActivation, { passive: true });
 
         // Navegação por teclado
         document.addEventListener('keydown', (e) => {
@@ -1422,9 +1427,10 @@ const NavigationSystem = {
         // Event delegation já registrado em bindEvents() via _navLinkDelegationBound
         // Este método é mantido por compatibilidade mas não registra listeners duplicados
         if (this._navLinkDelegationBound) return;
-        this._navLinkDelegationBound = true;
-
+            this._navLinkDelegationBound = true;
         const self = this;
+        // Timestamp do último touchend de navlink — evita duplo disparo no mobile
+        let _lastNavTouchTs = 0;
         const handleNavLink = (e) => {
             let target = e.target;
             let el = null;
@@ -1436,23 +1442,20 @@ const NavigationSystem = {
                 target = target.parentElement;
             }
             if (!el) return;
-
             // Não interceptar module-cards (já tratados em bindEvents)
             if (el.classList && el.classList.contains('module-card')) return;
-
             const page = el.getAttribute('data-nav-page');
             const module = el.getAttribute('data-nav-module') || self.currentModule;
-
             if (!module) return;
-
-            // Prevenir duplo disparo touch+click em mobile
+            const now = Date.now();
             if (e.type === 'touchend') {
-                e._samsNavHandled = true;
-                e.preventDefault();
-            } else if (e.type === 'click' && e._samsNavHandled) {
-                return;
+                // Registrar timestamp do toque para suprimir o click sintético subsequente
+                _lastNavTouchTs = now;
+                // NÃO chamar preventDefault() — pode bloquear comportamento padrão no iOS/Android
+            } else if (e.type === 'click') {
+                // Se um touchend foi processado nos últimos 600ms, ignorar o click sintético
+                if (now - _lastNavTouchTs < 600) return;
             }
-
             if (page && module) {
                 self.navigateToPage(module, page);
                 return;
@@ -1461,9 +1464,8 @@ const NavigationSystem = {
                 self.navigateToModule(module);
             }
         };
-
         document.addEventListener('click', handleNavLink, false);
-        document.addEventListener('touchend', handleNavLink, { passive: false });
+        document.addEventListener('touchend', handleNavLink, { passive: true });
     },
 
     // Mostrar acesso negado

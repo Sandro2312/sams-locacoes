@@ -315,12 +315,19 @@ export function registerCrmRoutes(app: any) {
 
   r.get("/me", requireCrmAuth, async (req, res) => {
     const session = (req as any).crmUser;
+    // Recuperar o token atual (cookie ou header Authorization) para retornar como fallback
+    const currentToken = getCookie(req, "crm_session")
+      || (() => {
+          const h = String(req.headers["authorization"] || req.headers["x-crm-token"] || "");
+          const parts = h.split(" ");
+          return parts.length === 2 && parts[0].toLowerCase() === "bearer" ? parts[1] : (parts[0] || null);
+        })() || null;
     // Buscar dados completos do usuário incluindo modules_json e permissions_json
     const userRow = await dbOne<any>(
       "SELECT id, name, email, role, active, modules_json, permissions_json FROM crm_users WHERE id = ?",
       [session.userId]
     );
-    if (!userRow) return res.json({ user: session });
+    if (!userRow) return res.json({ user: session, _sessionToken: currentToken });
     res.json({
       user: {
         ...session,
@@ -328,7 +335,9 @@ export function registerCrmRoutes(app: any) {
         email: userRow.email,
         modules_json: userRow.modules_json,
         permissions_json: userRow.permissions_json,
-      }
+      },
+      // Retornar token para que browsers que bloqueiam cookies possam persistir a sessão
+      _sessionToken: currentToken,
     });
   });
 
