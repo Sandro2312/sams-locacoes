@@ -93,3 +93,10 @@
 - [ ] Bug 1: Despesas cadastradas no desktop não aparecem no celular (possível cache de sessão ou dados em memória)
 - [ ] Bug 2: Cadastro de usuário salva mas não aparece na lista após fechar o formulário
 - [ ] Bug 3: Formulário de cadastro de usuário no mobile não mostra o botão Salvar (overflow/scroll)
+
+## Correções Cross-Browser Urgentes
+
+- [x] Fix #1: Navegação travada no Edge - globalClickHandler mudado de capture:true para capture:false, stopPropagation removido (v5.9.0)
+- [x] Fix #2: Botão olhinho de senha - togglePwdVisibility vinculado ao loginPassword, CSS ::-ms-reveal adicionado para Edge (v5.9.0)
+- [x] Fix #3: Sessão travada após deploy - _clearAllSessionData() limpa tokens/cookies/storage em 401/403, interceptor de fetch também limpa (v5.9.0)
+- [x] Fix #4: Menu hambúrguer lateral mobile - sidebar deslizante com todos os módulos, swipe-to-close, overlay, animações fluidas (v5.9.0)

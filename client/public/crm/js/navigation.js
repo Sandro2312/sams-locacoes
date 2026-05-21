@@ -1252,6 +1252,8 @@ const NavigationSystem = {
         this.globalClickGuard = (e) => {
             const target = e.target;
             
+            // NUNCA bloquear cliques em elementos de navegação (fix Edge)
+            if (target.closest('.module-card, [data-module], [data-nav-module], [data-nav-page]')) return;
             // Verificar se é campo com proteção
             if (target.matches('input[data-preserve="true"], input[data-preserve-value="true"], input[data-no-clear="true"], select[data-preserve="true"], select[data-preserve-value="true"], select[data-no-clear="true"], textarea[data-preserve="true"], textarea[data-preserve-value="true"], textarea[data-no-clear="true"]')) {
                 const currentValue = target.value || '';
@@ -1260,7 +1262,7 @@ const NavigationSystem = {
                     console.log(`🛡️ [NavigationSystem] Guard backup: Campo "${target.name || target.id}" = "${currentValue}"`);
                     
                     // Backup guard - prevenir propagação
-                    e.stopPropagation();
+                    // REMOVIDO: e.stopPropagation() - bloqueava navegação no Edge
                     
                     // Preservar valor explicitamente
                     setTimeout(() => {
@@ -1274,7 +1276,7 @@ const NavigationSystem = {
         };
 
         // Adicionar listeners globais
-        document.addEventListener('click', this.modalOpenGuard, true);
+        document.addEventListener('click', this.modalOpenGuard, false);
         // Ajuste: não capturar cliques dentro do overlay do FormSystem e não usar captura para globalClickGuard
         document.addEventListener('click', (e) => {
             // Se clique ocorreu dentro do overlay/modal, não interceptar
@@ -1350,7 +1352,7 @@ const NavigationSystem = {
                     e.target.value && e.target.value.trim()
                 ) {
                     console.log(`🛡️ [Global Guard] Protegendo: ${e.target.name || e.target.id}`);
-                    e.stopPropagation();
+                    // REMOVIDO: e.stopPropagation() - bloqueava navegação no Edge
                 }
             }, true);
             

@@ -338,7 +338,7 @@ const ModuleSystem = {
         
         // Remover listeners existentes para evitar duplicação
         if (this.globalClickHandler) {
-            document.removeEventListener('click', this.globalClickHandler, true);
+            document.removeEventListener('click', this.globalClickHandler, false);
         }
         if (this.globalSubmitHandler) {
             document.removeEventListener('submit', this.globalSubmitHandler, true);
@@ -398,7 +398,7 @@ const ModuleSystem = {
             if (tag === 'form') return;
 
             e.preventDefault();
-            e.stopPropagation();
+            // NÃO usar stopPropagation — bloqueia navegação no Edge/mobile
 
             const action = actionEl.getAttribute('data-action');
             const module = actionEl.getAttribute('data-module');
@@ -408,8 +408,8 @@ const ModuleSystem = {
             this.handleCRUDAction(action, module, id);
         }).bind(this);
         
-        // Adicionar listener em captura para funcionar mesmo se outros handlers pararem a bolha
-        document.addEventListener('click', this.globalClickHandler, true);
+        // capture:false para não bloquear handlers de navegação no Edge
+        document.addEventListener('click', this.globalClickHandler, false);
 
         this.globalSubmitHandler = ((e) => {
             const form = e.target;

@@ -105,22 +105,41 @@ const AuthSystem = {
         return headers;
     },
 
+    // Limpar todos os dados de sessão CRM (tokens, cookies, storage)
+    _clearAllSessionData() {
+        // Limpar tokens em memória
+        window._crmSessionToken = null;
+        // Limpar sessionStorage
+        try { sessionStorage.removeItem('crm_fallback_token'); } catch {}
+        // Limpar localStorage (apenas chaves CRM)
+        try {
+            localStorage.removeItem('crm_fallback_token');
+            localStorage.removeItem('sams_crm_session');
+            localStorage.removeItem('sams_crm_user');
+        } catch {}
+        // Limpar cookie crm_session via document.cookie
+        try {
+            document.cookie = 'crm_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'crm_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/api/crm;';
+        } catch {}
+    },
+
     async checkSession() {
         try {
             const headers = this._getAuthHeaders();
             const resp = await fetch('/api/crm/me', { credentials: 'include', headers });
             const payload = await resp.json().catch(() => ({}));
             if (!resp.ok) {
-                // Limpar token inválido
-                try { sessionStorage.removeItem('crm_fallback_token'); } catch {}
-                try { localStorage.removeItem('crm_fallback_token'); } catch {}
-                window._crmSessionToken = null;
+                // Sessão inválida (401/403) — limpar TUDO e mostrar login
+                console.warn('[Auth] Sessão inválida (HTTP ' + resp.status + ') — limpando dados e redirecionando para login');
+                this._clearAllSessionData();
                 this.currentUser = null;
                 this.showLogin();
                 return;
             }
             const user = payload && payload.user ? payload.user : null;
             if (!user) {
+                this._clearAllSessionData();
                 this.currentUser = null;
                 this.showLogin();
                 return;
@@ -135,6 +154,8 @@ const AuthSystem = {
             this.showMainApp();
         } catch (error) {
             console.error('Erro ao verificar sessão:', error);
+            // Erro de rede ou servidor — limpar sessão para evitar loop
+            this._clearAllSessionData();
             this.currentUser = null;
             this.showLogin();
         }
