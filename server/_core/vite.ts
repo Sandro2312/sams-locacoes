@@ -25,9 +25,26 @@ export async function setupVite(app: Express, server: Server) {
   const crmPublicPath = path.resolve(import.meta.dirname, "../..", "client", "public", "crm");
   if (fs.existsSync(crmPublicPath)) {
     // redirect:false evita o "Redirecting to /crm/" que trava Edge e mobile
-    app.get("/crm", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
-    app.use("/crm", express.static(crmPublicPath, { redirect: false }));
-    app.get("/crm/*splat", (_req, res) => res.sendFile(path.resolve(crmPublicPath, "index.html")));
+    app.get("/crm", (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.sendFile(path.resolve(crmPublicPath, "index.html"));
+    });
+    app.use("/crm", express.static(crmPublicPath, {
+      redirect: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      }
+    }));
+    app.get("/crm/*splat", (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.sendFile(path.resolve(crmPublicPath, "index.html"));
+    });
   }
 
   app.use(vite.middlewares);

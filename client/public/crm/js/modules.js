@@ -8188,10 +8188,13 @@ window.MarketingModule.loadLeads = async function(options) {
       apiOk = !!window.MarketingModule._leadsLastApiOk;
     } else {
       try {
+        const _tkn = window._crmSessionToken || (function(){ try { return localStorage.getItem('crm_fallback_token'); } catch(e){ return null; } })() || (function(){ try { return sessionStorage.getItem('crm_fallback_token'); } catch(e){ return null; } })();
+        const _hdrs = { 'Cache-Control': 'no-cache' };
+        if (_tkn) _hdrs['Authorization'] = 'Bearer ' + _tkn;
         const response = await fetch('/api/crm/leads?limit=500', {
           credentials: 'include',
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' }
+          headers: _hdrs
         });
         const data = await response.json().catch(() => null);
         const dataArray = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : null);

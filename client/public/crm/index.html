@@ -3,8 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAMS Locações - Sistema CRM/ERP v5.6</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SAMS Locações - Sistema CRM/ERP v5.8</title>
     <meta name="csrf-token" content="">
+    <script>
+    // Auto-reload: força atualização quando versão muda
+    (function(){
+      var CRM_VERSION = '5.8.3';
+      try {
+        var stored = localStorage.getItem('crm_app_version');
+        if (stored && stored !== CRM_VERSION) {
+          localStorage.setItem('crm_app_version', CRM_VERSION);
+          // Limpar caches de service worker se existirem
+          if ('caches' in window) { caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); }); }
+          // Forçar reload sem cache
+          location.reload(true);
+          return;
+        }
+        localStorage.setItem('crm_app_version', CRM_VERSION);
+      } catch(e) {}
+      // Desregistrar service workers antigos
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(r) { r.unregister(); });
+        });
+      }
+    })();
+    </script>
     
     <!-- 
     🚀 SISTEMA MODERNIZADO v4.9.7 - ELIMINAÇÃO DEFINITIVA DE HANDLERS INLINE
@@ -1085,18 +1112,18 @@
     })();
     </script>
     <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
-    <script src="/crm/js/utils.js?v=4.9" defer></script>
-    <script src="/crm/js/auth.js?v=5.8.1" defer></script>
-    <script src="/crm/js/modules.js?v=5.8.2" defer></script>
-    <script src="/crm/js/navigation.js?v=5.8.1" defer></script>
-    <script src="/crm/js/acervo.js?v=1.0.5" defer></script>
-    <script src="/crm/js/validation-system.js?v=4.9" defer></script>
-    <script src="/crm/js/forms.js?v=5.7.0" defer></script>
+    <script src="/crm/js/utils.js?v=1779374781" defer></script>
+    <script src="/crm/js/auth.js?v=1779374781" defer></script>
+    <script src="/crm/js/modules.js?v=1779374781" defer></script>
+    <script src="/crm/js/navigation.js?v=1779374781" defer></script>
+    <script src="/crm/js/acervo.js?v=1779374781" defer></script>
+    <script src="/crm/js/validation-system.js?v=1779374781" defer></script>
+    <script src="/crm/js/forms.js?v=1779374781" defer></script>
     
     <!-- Scripts de montagem e controle de qualidade -->
-    <script src="/crm/js/checklist-montagem.js?v=5.6" defer></script>
-    <script src="/crm/js/quality-control.js?v=5.6" defer></script>
-    <script src="/crm/js/photo-upload.js?v=5.6" defer></script>
+    <script src="/crm/js/checklist-montagem.js?v=1779374781" defer></script>
+    <script src="/crm/js/quality-control.js?v=1779374781" defer></script>
+    <script src="/crm/js/photo-upload.js?v=1779374781" defer></script>
     
     <!-- Scripts de validação avançada de formulários (produção) -->
     <!-- script src="/crm/js/form-validator.js?v=4.9.7" defer></script -->
@@ -1116,26 +1143,26 @@
             
             // Scripts auxiliares (não críticos)
             const auxiliaryScripts = [
-                'js/marketing-forms.js?v=5.7.0',
-                'js/ux-enhancements.js?v=5.6.2'
+                'js/marketing-forms.js?v=1779374781',
+                'js/ux-enhancements.js?v=1779374781'
             ];
             
             const featureScripts = [
-                'js/audit-system.js?v=4.9',
-                'js/briefing.js?v=5.7.0',
-                'js/projects.js?v=4.9',
-                'js/financial.js?v=4.9',
-                'js/kanban.js?v=5.6.11',
-                'js/permissions.js?v=4.9'
+                'js/audit-system.js?v=1779374781',
+                'js/briefing.js?v=1779374781',
+                'js/projects.js?v=1779374781',
+                'js/financial.js?v=1779374781',
+                'js/kanban.js?v=1779374781',
+                'js/permissions.js?v=1779374781'
             ];
             
             const modernScripts = [
-                'js/security-manager.js?v=4.9',
-                'js/unified-validator.js?v=4.9',
-                'js/crud-manager.js?v=4.9',
-                'js/form-components.js?v=4.9',
-                'js/notification-system.js?v=4.9',
-                'js/forms-modernized.js?v=4.9'
+                'js/security-manager.js?v=1779374781',
+                'js/unified-validator.js?v=1779374781',
+                'js/crud-manager.js?v=1779374781',
+                'js/form-components.js?v=1779374781',
+                'js/notification-system.js?v=1779374781',
+                'js/forms-modernized.js?v=1779374781'
             ];
             
             // Função para carregar scripts em lotes com otimizações
