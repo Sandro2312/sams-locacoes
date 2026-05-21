@@ -326,107 +326,57 @@ const NavigationSystem = {
 
     // Vincular eventos
     bindEvents() {
-        // Verificar se já foi inicializado recentemente (menos de 1 segundo)
-        const now = Date.now();
-        if (this.eventsInitialized && (now - this.lastBindAttempt) < 1000) {
-            console.log('⚠️ NavigationSystem: Tentativa de re-vinculação muito recente, ignorando...');
-            return;
-        }
+        // Usar event delegation universal — funciona em Chrome, Edge, Firefox, Safari e mobile
+        // Um único listener no document captura todos os cliques em module-cards,
+        // independente de quando foram criados no DOM.
+        if (this._delegationBound) return;
+        this._delegationBound = true;
+        this.eventsInitialized = true;
 
-        console.log('🔗 NavigationSystem: Vinculando eventos...');
-        this.lastBindAttempt = now;
-        
-        // Aguardar DOM estar completamente carregado
-        const bindModuleCards = () => {
-            const moduleCards = document.querySelectorAll('.module-card');
-            console.log(`📋 NavigationSystem: Encontrados ${moduleCards.length} module-cards`);
-            
-            let newBindings = 0;
-            moduleCards.forEach((card, index) => {
-                const module = card.getAttribute('data-module');
-                
-                // Verificar se já tem event listener
-                if (card.hasAttribute('data-navigation-bound')) {
-                    return; // Silenciosamente pular cards já vinculados
+        const self = this;
+
+        // Handler unificado para click e touchend (mobile)
+        const handleCardActivation = (e) => {
+            // Subir na árvore DOM até encontrar um .module-card
+            let target = e.target;
+            let card = null;
+            while (target && target !== document.body) {
+                if (target.classList && target.classList.contains('module-card')) {
+                    card = target;
+                    break;
                 }
-                
-                console.log(`🎯 NavigationSystem: Vinculando evento para card ${index + 1}: ${module}`);
-                newBindings++;
-                
-                // Marcar como vinculado
-                card.setAttribute('data-navigation-bound', 'true');
-                
-                card.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`🖱️ NavigationSystem: Clique detectado no módulo ${module}`);
-                    console.log(`🔍 NavigationSystem: Elemento clicado:`, e.target);
-                    console.log(`🔍 NavigationSystem: Card atual:`, card);
-                    this.navigateToModule(module);
-                });
-                
-                // Adicionar indicador visual de que o evento está ativo
-                card.style.cursor = 'pointer';
-                card.setAttribute('title', `Clique para acessar o módulo ${module}`);
-                console.log(`✅ NavigationSystem: Evento vinculado com sucesso para ${module}`);
-            });
-
-            if (newBindings === 0 && moduleCards.length > 0) {
-                console.log('ℹ️ NavigationSystem: Todos os cards já estão vinculados');
-            } else if (newBindings > 0) {
-                console.log(`✅ NavigationSystem: ${newBindings} novos eventos vinculados`);
+                target = target.parentElement;
             }
+            if (!card) return;
+
+            const module = card.getAttribute('data-module');
+            if (!module) return;
+
+            // Prevenir duplo disparo touch+click em mobile
+            if (e.type === 'touchend') {
+                e._samsHandled = true;
+                e.preventDefault();
+            } else if (e.type === 'click' && e._samsHandled) {
+                return;
+            }
+
+            console.log(`🖱️ NavigationSystem: Clique no módulo ${module} (via ${e.type})`);
+            self.navigateToModule(module);
         };
 
-        // Tentar vincular imediatamente
-        bindModuleCards();
-        
-        // Marcar como inicializado após primeira tentativa
-        if (!this.eventsInitialized) {
-            this.eventsInitialized = true;
-            
-            // Também vincular após um pequeno delay apenas na primeira inicialização
-            setTimeout(() => {
-                console.log('🔄 NavigationSystem: Verificação final após delay inicial...');
-                bindModuleCards();
-            }, 500);
-        }
-        
-        // Observar mudanças no DOM para re-vincular eventos se necessário (apenas se não inicializado)
-        if (!this.eventsInitialized && typeof MutationObserver !== 'undefined') {
-            const observer = new MutationObserver((mutations) => {
-                let shouldRebind = false;
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'childList') {
-                        mutation.addedNodes.forEach((node) => {
-                            if (node.nodeType === 1 && (node.classList?.contains('module-card') || node.querySelector?.('.module-card'))) {
-                                shouldRebind = true;
-                            }
-                        });
-                    }
-                });
-                if (shouldRebind) {
-                    console.log('🔄 NavigationSystem: Re-vinculando eventos após mudança no DOM');
-                    setTimeout(() => bindModuleCards(), 50);
-                }
-            });
-            
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        }
+        // Registrar no document com capture:false para máxima compatibilidade
+        document.addEventListener('click', handleCardActivation, false);
+        document.addEventListener('touchend', handleCardActivation, { passive: false });
 
         // Navegação por teclado
         document.addEventListener('keydown', (e) => {
-            // Só processar atalhos se não estivermos em um campo de input
             if (e.ctrlKey && e.key === 'h' && !e.target.matches('input, textarea, select')) {
                 e.preventDefault();
-                this.navigateToModule('dashboard');
+                self.navigateToModule('dashboard');
             }
         });
-        
-        console.log('✅ NavigationSystem: Eventos vinculados com sucesso');
+
+        console.log('✅ NavigationSystem: Event delegation universal registrado (Chrome/Edge/Safari/mobile)');
     },
 
     // Navegar para módulo
@@ -1469,27 +1419,51 @@ const NavigationSystem = {
     },
 
     bindNavigationLinks(root) {
-        const scope = root || document;
-        scope.querySelectorAll('[data-nav-module], [data-nav-page]').forEach(el => {
-            if (el.hasAttribute('data-navigation-bound')) return;
-            el.setAttribute('data-navigation-bound', 'true');
-            el.addEventListener('click', (e) => {
+        // Event delegation já registrado em bindEvents() via _navLinkDelegationBound
+        // Este método é mantido por compatibilidade mas não registra listeners duplicados
+        if (this._navLinkDelegationBound) return;
+        this._navLinkDelegationBound = true;
+
+        const self = this;
+        const handleNavLink = (e) => {
+            let target = e.target;
+            let el = null;
+            while (target && target !== document.body) {
+                if (target.hasAttribute && (target.hasAttribute('data-nav-module') || target.hasAttribute('data-nav-page'))) {
+                    el = target;
+                    break;
+                }
+                target = target.parentElement;
+            }
+            if (!el) return;
+
+            // Não interceptar module-cards (já tratados em bindEvents)
+            if (el.classList && el.classList.contains('module-card')) return;
+
+            const page = el.getAttribute('data-nav-page');
+            const module = el.getAttribute('data-nav-module') || self.currentModule;
+
+            if (!module) return;
+
+            // Prevenir duplo disparo touch+click em mobile
+            if (e.type === 'touchend') {
+                e._samsNavHandled = true;
                 e.preventDefault();
-                e.stopPropagation();
+            } else if (e.type === 'click' && e._samsNavHandled) {
+                return;
+            }
 
-                const page = el.getAttribute('data-nav-page');
-                const module = el.getAttribute('data-nav-module') || this.currentModule;
+            if (page && module) {
+                self.navigateToPage(module, page);
+                return;
+            }
+            if (module) {
+                self.navigateToModule(module);
+            }
+        };
 
-                if (page && module) {
-                    this.navigateToPage(module, page);
-                    return;
-                }
-
-                if (module) {
-                    this.navigateToModule(module);
-                }
-            });
-        });
+        document.addEventListener('click', handleNavLink, false);
+        document.addEventListener('touchend', handleNavLink, { passive: false });
     },
 
     // Mostrar acesso negado
@@ -1652,7 +1626,7 @@ const NavigationSystem = {
         }
         this._leadsReloadRetries = 0;
         console.warn('[NavigationSystem] MarketingModule.loadLeads não disponível após múltiplas tentativas.');
-    }
+    },
 
     /**
      * Recarregar lista de contatos
