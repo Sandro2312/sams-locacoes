@@ -1059,9 +1059,9 @@
     </script>
     <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
     <script src="/crm/js/utils.js?v=4.9" defer></script>
-    <script src="/crm/js/auth.js?v=5.7.0" defer></script>
+    <script src="/crm/js/auth.js?v=5.8.1" defer></script>
     <script src="/crm/js/modules.js?v=5.7.2" defer></script>
-    <script src="/crm/js/navigation.js?v=5.7.0" defer></script>
+    <script src="/crm/js/navigation.js?v=5.8.1" defer></script>
     <script src="/crm/js/acervo.js?v=1.0.5" defer></script>
     <script src="/crm/js/validation-system.js?v=4.9" defer></script>
     <script src="/crm/js/forms.js?v=5.7.0" defer></script>
@@ -2523,6 +2523,119 @@
     } else {
       init();
     }
+  })();
+  </script>
+  <!-- FALLBACK INLINE: Navegação mobile + persistência de token (não depende de cache de JS externo) -->
+  <script>
+  (function() {
+    'use strict';
+    // === FALLBACK NAVEGAÇÃO MOBILE ===
+    // Se o navigation.js cacheado não tiver o event delegation correto,
+    // este script garante que os module-cards funcionem no mobile via touchstart.
+    var _mobileNavTs = 0;
+    document.addEventListener('touchstart', function(e) {
+      var target = e.target;
+      var card = null;
+      while (target && target !== document.body) {
+        if (target.classList && target.classList.contains('module-card')) {
+          card = target;
+          break;
+        }
+        target = target.parentElement;
+      }
+      if (!card) return;
+      var module = card.getAttribute('data-module');
+      if (!module) return;
+      var now = Date.now();
+      if (now - _mobileNavTs < 800) return; // debounce
+      _mobileNavTs = now;
+      // Aguardar 150ms para distinguir de scroll
+      var startX = e.touches[0].clientX;
+      var startY = e.touches[0].clientY;
+      var moved = false;
+      function onMove(ev) {
+        var dx = Math.abs(ev.touches[0].clientX - startX);
+        var dy = Math.abs(ev.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) moved = true;
+      }
+      function onEnd() {
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+        document.removeEventListener('touchcancel', onEnd);
+        if (moved) return; // era scroll, não tap
+        // Navegar para o módulo
+        if (window.NavigationSystem && typeof NavigationSystem.navigateToModule === 'function') {
+          NavigationSystem.navigateToModule(module);
+        }
+      }
+      document.addEventListener('touchmove', onMove, { passive: true });
+      document.addEventListener('touchend', onEnd, { once: true });
+      document.addEventListener('touchcancel', onEnd, { once: true });
+    }, { passive: true });
+
+    // === FALLBACK NAVEGAÇÃO LINKS MOBILE (botões Voltar, Dashboard, etc) ===
+    document.addEventListener('touchstart', function(e) {
+      var target = e.target;
+      var el = null;
+      while (target && target !== document.body) {
+        if (target.hasAttribute && (target.hasAttribute('data-nav-module') || target.hasAttribute('data-nav-page'))) {
+          el = target;
+          break;
+        }
+        target = target.parentElement;
+      }
+      if (!el) return;
+      if (el.classList && el.classList.contains('module-card')) return; // já tratado acima
+      var page = el.getAttribute('data-nav-page');
+      var module = el.getAttribute('data-nav-module');
+      if (!module && !page) return;
+      var startX2 = e.touches[0].clientX;
+      var startY2 = e.touches[0].clientY;
+      var moved2 = false;
+      function onMove2(ev) {
+        var dx = Math.abs(ev.touches[0].clientX - startX2);
+        var dy = Math.abs(ev.touches[0].clientY - startY2);
+        if (dx > 10 || dy > 10) moved2 = true;
+      }
+      function onEnd2() {
+        document.removeEventListener('touchmove', onMove2);
+        document.removeEventListener('touchend', onEnd2);
+        document.removeEventListener('touchcancel', onEnd2);
+        if (moved2) return;
+        if (window.NavigationSystem) {
+          if (page && module) {
+            NavigationSystem.navigateToPage(module, page);
+          } else if (module) {
+            NavigationSystem.navigateToModule(module);
+          }
+        }
+      }
+      document.addEventListener('touchmove', onMove2, { passive: true });
+      document.addEventListener('touchend', onEnd2, { once: true });
+      document.addEventListener('touchcancel', onEnd2, { once: true });
+    }, { passive: true });
+
+    // === FALLBACK PERSISTÊNCIA DE TOKEN ===
+    // Garantir que o token seja persistido após login, mesmo se auth.js estiver cacheado
+    var _origFetch2 = window.fetch;
+    window.fetch = function(input, init) {
+      var result = _origFetch2.call(this, input, init);
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      // Interceptar respostas de login e /me para salvar o token
+      if (url.includes('/api/crm/login') || url.includes('/api/crm/me')) {
+        result.then(function(resp) {
+          // Clonar para não consumir o body
+          return resp.clone().json().catch(function() { return null; });
+        }).then(function(data) {
+          if (data && data._sessionToken) {
+            window._crmSessionToken = data._sessionToken;
+            try { sessionStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
+            try { localStorage.setItem('crm_fallback_token', data._sessionToken); } catch(e) {}
+          }
+        }).catch(function() {});
+      }
+      return result;
+    };
   })();
   </script>
   </body>
