@@ -88,11 +88,11 @@
 - [ ] Testar renderização de leads em telas < 768px
 - [ ] Adicionar filtros mobile-friendly para leads
 
-## Bugs Críticos (CRM)
+## Bugs Críticos (CRM) - v5.10
 
-- [ ] Bug 1: Despesas cadastradas no desktop não aparecem no celular (possível cache de sessão ou dados em memória)
-- [ ] Bug 2: Cadastro de usuário salva mas não aparece na lista após fechar o formulário
-- [ ] Bug 3: Formulário de cadastro de usuário no mobile não mostra o botão Salvar (overflow/scroll)
+- [x] Bug 1: Despesas cadastradas no desktop não aparecem no celular - endpoints /api/crm/despesas criados, syncDespesasFromBackend() sincroniza ao inicializar (v5.10)
+- [x] Bug 2: Cadastro de usuário salva mas não aparece na lista após fechar o formulário - setTimeout(() => refresh(), 100) adicionado após POST bem-sucedido (v5.10)
+- [x] Bug 3: Formulário de cadastro de usuário no mobile não mostra o botão Salvar - modal footer com sticky bottom-0 + flex-shrink-0 aplicado (v5.10)
 
 ## Correções Cross-Browser Urgentes
 

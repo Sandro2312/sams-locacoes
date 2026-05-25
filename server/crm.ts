@@ -1496,6 +1496,80 @@ export function registerCrmRoutes(app: any) {
 
 
 
+  // ─── Despesas (Transações) ────────────────────────────────────────────────────────────────
+  r.get("/despesas", requireCrmAuth, async (req, res) => {
+    try {
+      const rows = await db(
+        "SELECT * FROM crm_transacoes ORDER BY data DESC, created_at DESC"
+      );
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao listar despesas" });
+    }
+  });
+
+  r.post("/despesas", requireCrmAuth, async (req, res) => {
+    try {
+      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_qtd } = req.body;
+      const userId = (req as any).user?.id;
+      
+      if (!descricao || !tipo || valor === undefined) {
+        return res.status(400).json({ error: "Campos obrigatórios: descricao, tipo, valor" });
+      }
+
+      const result = await db(
+        `INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_qtd)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [descricao, tipo, valor, status || "pendente", centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, userId || null, recorrencia || null, recorrencia_qtd || null]
+      );
+      
+      res.status(201).json({ id: (result as any).insertId, message: "Despesa criada com sucesso" });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao criar despesa" });
+    }
+  });
+
+  r.put("/despesas/:id", requireCrmAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id } = req.body;
+      
+      const updates = [];
+      const params = [];
+      
+      if (descricao !== undefined) { updates.push("descricao = ?"); params.push(descricao); }
+      if (tipo !== undefined) { updates.push("tipo = ?"); params.push(tipo); }
+      if (valor !== undefined) { updates.push("valor = ?"); params.push(valor); }
+      if (status !== undefined) { updates.push("status = ?"); params.push(status); }
+      if (centro_custo !== undefined) { updates.push("centro_custo = ?"); params.push(centro_custo); }
+      if (data !== undefined) { updates.push("data = ?"); params.push(data); }
+      if (observacoes !== undefined) { updates.push("observacoes = ?"); params.push(observacoes); }
+      if (evento_id !== undefined) { updates.push("evento_id = ?"); params.push(evento_id); }
+      if (cliente_id !== undefined) { updates.push("cliente_id = ?"); params.push(cliente_id); }
+      
+      if (updates.length === 0) {
+        return res.status(400).json({ error: "Nenhum campo para atualizar" });
+      }
+      
+      params.push(id);
+      await db(`UPDATE crm_transacoes SET ${updates.join(", ")} WHERE id = ?`, params);
+      
+      res.json({ message: "Despesa atualizada com sucesso" });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao atualizar despesa" });
+    }
+  });
+
+  r.delete("/despesas/:id", requireCrmAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await db("DELETE FROM crm_transacoes WHERE id = ?", [id]);
+      res.json({ message: "Despesa deletada com sucesso" });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao deletar despesa" });
+    }
+  });
+
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);
 }

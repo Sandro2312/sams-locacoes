@@ -174,12 +174,12 @@ const AcervoModule = {
 
       <!-- Modal Novo/Editar Documento -->
       <div id="acervo-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen overflow-y-auto">
-          <div class="flex items-center justify-between p-6 border-b">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-screen flex flex-col">
+          <div class="flex items-center justify-between p-6 border-b flex-shrink-0">
             <h3 id="acervo-modal-titulo" class="text-xl font-bold text-gray-800">Novo Documento</h3>
             <button id="acervo-modal-fechar" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
           </div>
-          <form id="acervo-form" class="p-6 space-y-4">
+          <form id="acervo-form" class="p-6 space-y-4 overflow-y-auto flex-1">
             <input type="hidden" id="acervo-form-id">
             
             <!-- Nome -->
@@ -267,7 +267,7 @@ const AcervoModule = {
             </div>
 
             <!-- Botões -->
-            <div class="flex gap-3 pt-2">
+            <div class="flex gap-3 pt-2 flex-shrink-0 sticky bottom-0 bg-white border-t py-4 px-0 -mx-6 px-6 z-10">
               <button type="submit" id="acervo-form-submit"
                       class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2">
                 <i class="fas fa-save"></i> Salvar Documento

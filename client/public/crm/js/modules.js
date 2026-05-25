@@ -7102,7 +7102,7 @@ const ModuleSystem = {
                         } else {
                             try {
                                 await api('/api/admin/users', { method: 'POST', body: JSON.stringify(payload) });
-                                toast('Usuário criado.', 'success');
+                                toast('Usuário criado com sucesso!', 'success');
                             } catch (createErr) {
                                 const createMsg = createErr && createErr.message ? createErr.message : 'Falha ao criar usuário';
                                 const recovered = await tryRecoverCreateByReactivatingInactive(payload, createMsg);
@@ -7111,7 +7111,7 @@ const ModuleSystem = {
                             }
                         }
                         try { window.FormSystem.closeModal(); } catch {}
-                        await refresh();
+                        setTimeout(() => refresh(), 100);
                     } catch (err) {
                         const msg = err && err.message ? err.message : 'Falha ao salvar usuário';
                         setInlineError('adminUserFormError', msg);

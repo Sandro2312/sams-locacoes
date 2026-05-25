@@ -241,7 +241,7 @@ const FormSystem = {
                         <div id="modal-content" style="padding:12px 16px; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch;">
                             <!-- Conteúdo será inserido aqui -->
                         </div>
-                        <div id="modal-footer" class="border-t bg-gray-50 flex-shrink-0" style="padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center;">
+                        <div id="modal-footer" class="border-t bg-gray-50 flex-shrink-0 sticky bottom-0" style="padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center; z-index:10;">
                             <button type="button" id="modal-dashboard" class="text-white bg-gray-600 rounded-md hover:bg-gray-700" style="padding:8px 12px; font-size:13px; font-weight:500; white-space:nowrap;">
                                 Dashboard
                             </button>

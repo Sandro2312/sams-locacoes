@@ -37,6 +37,60 @@ const FinancialSystem = {
                 ModuleSystem.saveData();
             }
         }
+        this.syncDespesasFromBackend();
+    },
+
+    async syncDespesasFromBackend() {
+        try {
+            const resp = await fetch('/api/crm/despesas', { credentials: 'include' });
+            if (!resp.ok) return;
+            const despesas = await resp.json().catch(() => []);
+            if (Array.isArray(despesas) && ModuleSystem.data && ModuleSystem.data.financeiro) {
+                ModuleSystem.data.financeiro.despesas = despesas;
+                ModuleSystem.saveData();
+            }
+        } catch (e) {
+            console.warn('[FinancialSystem] Falha ao sincronizar despesas:', e);
+        }
+    },
+
+    async saveDespesaToBackend(despesa) {
+        try {
+            const isNew = !despesa.id || despesa.id.toString().startsWith('local_');
+            const method = isNew ? 'POST' : 'PUT';
+            const url = isNew ? '/api/crm/despesas' : `/api/crm/despesas/${despesa.id}`;
+            
+            const resp = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    descricao: despesa.descricao,
+                    tipo: despesa.tipo,
+                    valor: despesa.valor,
+                    status: despesa.status,
+                    centro_custo: despesa.centro_custo,
+                    data: despesa.data,
+                    observacoes: despesa.observacoes,
+                    evento_id: despesa.evento_id,
+                    cliente_id: despesa.cliente_id,
+                    recorrencia: despesa.recorrencia,
+                    recorrencia_qtd: despesa.recorrencia_qtd
+                })
+            });
+            
+            if (!resp.ok) throw new Error('Falha ao salvar despesa no servidor');
+            const result = await resp.json().catch(() => ({}));
+            
+            if (isNew && result.id) {
+                despesa.id = result.id;
+            }
+            
+            return result;
+        } catch (e) {
+            console.warn('[FinancialSystem] Falha ao salvar despesa no backend:', e);
+            throw e;
+        }
     },
 
     // Criar estrutura do modal
@@ -49,17 +103,17 @@ const FinancialSystem = {
         const modalHTML = `
             <div id="${this.config.overlayId}" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
                 <div id="${this.config.modalId}" class="fixed inset-0 flex items-center justify-center p-4">
-                    <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] overflow-y-auto">
-                        <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                    <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] flex flex-col">
+                        <div class="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
                             <h2 id="financial-title" class="text-xl font-semibold text-gray-800">Financeiro</h2>
                             <button id="financial-close" class="text-gray-400 hover:text-gray-600 transition duration-300">
                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
-                        <div id="financial-content" class="p-6">
+                        <div id="financial-content" class="p-6 overflow-y-auto flex-1">
                             <!-- Conteúdo será inserido aqui -->
                         </div>
-                        <div class="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                        <div class="flex justify-end space-x-3 p-6 border-t border-gray-200 flex-shrink-0 sticky bottom-0 bg-white z-10">
                             <button id="financial-dashboard" class="px-4 py-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition duration-300">
                                 <i class="fas fa-home mr-2"></i>
                                 Voltar ao Dashboard
