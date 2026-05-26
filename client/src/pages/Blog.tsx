@@ -9,6 +9,16 @@ import { useLocation } from "wouter";
 
 export const artigos = [
   {
+    slug: "maio-2026-desafios-conquistas-sams",
+    titulo: "Maio 2026: Desafios Superados e Conquistas da SAMS Locações em 3 Feiras de SP",
+    resumo: "Maio foi um mês desafiador e de grandes conquistas para a SAMS Locações. Montamos 5 stands em 3 feiras diferentes em São Paulo: BF Show, APAS Show e Feira Hospitalar. Conheça como nossa equipe superou todos os obstáculos com dedicação e profissionalismo.",
+    categoria: "Portfólio",
+    data: "26 de maio de 2026",
+    tempoLeitura: "6 min",
+    imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
+    palavrasChave: ["maio 2026", "BF Show", "APAS Show", "Feira Hospitalar", "São Paulo", "stands personalizados"],
+  },
+    {
     slug: "expoapras-2026-sams-locacoes",
     titulo: "ExpoApras 2026: SAMS Locações entrega 4 stands de alto impacto em Pinhais/PR",
     resumo: "A SAMS Locações marcou presença na 43ª ExpoApras com 4 stands personalizados: Neugebauer, Aromasil, Popper e AlcaFoods. Confira os destaques de cada projeto no Expotrade Convention Center.",

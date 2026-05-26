@@ -108,4 +108,12 @@
 - [x] Botão de download para arquivos S3 com presigned URL - atributo download adicionado
 - [x] Botão de redirecionamento para Google Drive (link externo) - rel="noopener noreferrer" adicionado
 - [x] Testar download em mobile e desktop - sintaxe verificada, cache-busters atualizados
-- [ ] Checkpoint e publicação v5.11
+- [x] Checkpoint e publicação v5.11
+
+## Atualização de Portfolio e Blog - Maio 2026
+
+- [x] Adicionar 5 novos projetos ao portfolio (BF Show Beira Rio, APAS Show Neugebauer/Aromasil/Alcafoods, Feira Hospitalar Siry Global)
+- [x] Criar post de blog destacando desafios e conquistas de maio 2026
+- [x] Atualizar seção de Feiras 2026 com confirmação de Celebra Show com cliente Popper
+- [x] Testar carregamento do site com novas atualizações
+- [ ] Checkpoint e publicação v5.12

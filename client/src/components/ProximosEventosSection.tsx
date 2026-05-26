@@ -30,7 +30,7 @@ const eventos: Evento[] = [
     cor: "from-blue-600 to-blue-800",
   },
   {
-    nome: "CELEBRA SHOW",
+    nome: "CELEBRA SHOW — Cliente Popper Confirmado",
     datas: "31 de maio a 03 de junho de 2026",
     local: "Expo Center Norte",
     cidade: "São Paulo",
