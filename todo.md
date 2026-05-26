@@ -100,3 +100,12 @@
 - [x] Fix #2: Botão olhinho de senha - togglePwdVisibility vinculado ao loginPassword, CSS ::-ms-reveal adicionado para Edge (v5.9.0)
 - [x] Fix #3: Sessão travada após deploy - _clearAllSessionData() limpa tokens/cookies/storage em 401/403, interceptor de fetch também limpa (v5.9.0)
 - [x] Fix #4: Menu hambúrguer lateral mobile - sidebar deslizante com todos os módulos, swipe-to-close, overlay, animações fluidas (v5.9.0)
+
+## Download e Localização de Arquivos (Acervo) - v5.11
+
+- [x] Adicionar coluna "Localização" na tabela do Acervo (S3 ou Google Drive) - badges 🔵 S3 e 🟢 Drive adicionadas
+- [x] Badge visual indicando origem do arquivo (🔵 S3 ou 🟢 Google Drive) - renderizado no renderDocCard
+- [x] Botão de download para arquivos S3 com presigned URL - atributo download adicionado
+- [x] Botão de redirecionamento para Google Drive (link externo) - rel="noopener noreferrer" adicionado
+- [x] Testar download em mobile e desktop - sintaxe verificada, cache-busters atualizados
+- [ ] Checkpoint e publicação v5.11
