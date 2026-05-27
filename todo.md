@@ -127,3 +127,10 @@
 - [x] Corrigir handle para @samslocacoes (correto)
 - [x] Testar carregamento e renderização
 - [ ] Checkpoint e publicação v5.13
+
+## Correção de Vídeos no Portfolio - v5.14
+
+- [x] Remover URLs inválidas de vídeos (/manus-storage/...) que não estavam funcionando
+- [ ] Adicionar URLs corretos de vídeos quando disponibilizados pelo cliente
+- [ ] Testar reprodução de vídeos
+- [ ] Checkpoint e publicação v5.14
