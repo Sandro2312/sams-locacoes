@@ -7,6 +7,7 @@ import DepoimentosSection from "@/components/DepoimentosSection";
 import ParceirosSection from "@/components/ParceirosSection";
 import ContatoSection from "@/components/ContatoSection";
 import ProximosEventosSection from "@/components/ProximosEventosSection";
+import InstagramSection from "@/components/InstagramSection";
 import Footer from "@/components/Footer";
 import LeadPopup from "@/components/LeadPopup";
 
@@ -22,6 +23,7 @@ export default function Home() {
         <ParceirosSection />
         <DepoimentosSection />
         <ProximosEventosSection />
+        <InstagramSection />
         <ContatoSection />
       </main>
       <Footer />

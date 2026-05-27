@@ -117,3 +117,13 @@
 - [x] Atualizar seção de Feiras 2026 com confirmação de Celebra Show com cliente Popper
 - [x] Testar carregamento do site com novas atualizações
 - [ ] Checkpoint e publicação v5.12
+
+## Galeria de Instagram em Tempo Real - v5.13
+
+- [x] Pesquisar soluções de integração Instagram (Behold.so, Graph API, react-instagram-embed)
+- [x] Escolher Behold.so como solução (mais rápida e eficiente)
+- [x] Criar componente InstagramSection.tsx com widget Behold
+- [x] Adicionar InstagramSection entre ProximosEventosSection e ContatoSection
+- [x] Corrigir handle para @samslocacoes (correto)
+- [x] Testar carregamento e renderização
+- [ ] Checkpoint e publicação v5.13
