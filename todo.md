@@ -134,3 +134,10 @@
 - [ ] Adicionar URLs corretos de vídeos quando disponibilizados pelo cliente
 - [ ] Testar reprodução de vídeos
 - [ ] Checkpoint e publicação v5.14
+
+## Bugs Urgentes - Módulo Financeiro (Contas a Receber) - v5.15
+
+- [x] Bug 1: Cliente não salva em Contas a Receber - endpoint POST corrigido para aceitar clienteId (v5.15)
+- [x] Bug 2: Anexo não salva ao editar - endpoint PUT criado com suporte a upload de comprovante (v5.15)
+- [x] Bug 3: Tornar campo Comprovante opcional - validação obrigatória removida (v5.15)
+- [x] Verificação: Nenhuma funcionalidade existente foi modificada

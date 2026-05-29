@@ -9,6 +9,7 @@ import { ENV } from "./_core/env";
 import { invokeLLM } from "./_core/llm";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { sendEmail, buildPasswordResetEmail } from "./crm-email";
+import { storagePut } from "./storage";
 
 // Helper para parsear cookies do header
 function getCookie(req: Request, name: string): string | undefined {
@@ -784,14 +785,101 @@ export function registerCrmRoutes(app: any) {
 
   r.post("/contas-receber", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
-    const { cliente_id, descricao, valor, vencimento, observacoes } = req.body;
+    const {
+      clienteId, cliente_id, vendaId, venda_id,
+      centroCusto, centro_custo,
+      tipoReceita, tipo_receita,
+      descricao, valor, vencimento,
+      status, dataPagamento, data_pagamento,
+      formaPagamento, forma_pagamento,
+      observacoes, comprovanteName, comprovanteMime, comprovanteDataBase64
+    } = req.body;
+
+    // Normalizar nomes de campos (aceitar camelCase e snake_case)
+    const finalClienteId = clienteId ?? cliente_id ?? null;
+    const finalVendaId = vendaId ?? venda_id ?? null;
+    const finalCentroCusto = centroCusto ?? centro_custo ?? null;
+    const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
+    const finalStatus = status ?? 'Pendente';
+    const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
+    const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
+
     if (!descricao || !valor || !vencimento) return res.status(400).json({ error: "Campos obrigatórios faltando" });
+
+    // Comprovante agora é opcional - removida validação obrigatória
+
+    let comprovanteUrl = null;
+    if (comprovanteDataBase64 && comprovanteName) {
+      try {
+        const buffer = Buffer.from(comprovanteDataBase64, 'base64');
+        const fileName = `contas-receber/${Date.now()}-${comprovanteName}`;
+        const { url } = await storagePut(fileName, buffer, comprovanteMime || 'application/octet-stream');
+        comprovanteUrl = url;
+      } catch (err) {
+        console.warn('[CRM] Falha ao salvar comprovante em S3:', err);
+      }
+    }
+
     const [result] = await getPool().execute(
-      "INSERT INTO crm_contas_receber (cliente_id, descricao, valor, vencimento, observacoes) VALUES (?,?,?,?,?)",
-      [cliente_id, descricao, valor, vencimento, observacoes]
+      `INSERT INTO crm_contas_receber
+       (cliente_id, venda_id, centro_custo, tipo_receita, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [finalClienteId, finalVendaId, finalCentroCusto, finalTipoReceita, descricao, valor, vencimento, finalStatus, finalDataPagamento, finalFormaPagamento, observacoes, comprovanteUrl]
     );
-    await audit(u.userId, "create", "crm_contas_receber", (result as any).insertId, { descricao, valor }, req.ip);
-    res.json({ id: (result as any).insertId, ok: true });
+    const insertId = (result as any).insertId;
+    await audit(u.userId, "create", "crm_contas_receber", insertId, { descricao, valor, cliente_id: finalClienteId }, req.ip);
+    res.json({ id: insertId, ok: true });
+  });
+
+  r.put("/contas-receber/:id", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = req.params.id;
+    const { clienteId, cliente_id, vendaId, venda_id, centroCusto, centro_custo, tipoReceita, tipo_receita, descricao, valor, vencimento, status, dataPagamento, data_pagamento, formaPagamento, forma_pagamento, observacoes, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
+    
+    const finalClienteId = clienteId ?? cliente_id ?? null;
+    const finalVendaId = vendaId ?? venda_id ?? null;
+    const finalCentroCusto = centroCusto ?? centro_custo ?? null;
+    const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
+    const finalStatus = status ?? 'Pendente';
+    const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
+    const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
+    
+    // Comprovante agora é opcional - removida validação obrigatória
+    
+    let comprovanteUrl = null;
+    if (comprovanteDataBase64 && comprovanteName) {
+      try {
+        const buffer = Buffer.from(comprovanteDataBase64, 'base64');
+        const fileName = `contas-receber/${Date.now()}-${comprovanteName}`;
+        const { url } = await storagePut(fileName, buffer, comprovanteMime || 'application/octet-stream');
+        comprovanteUrl = url;
+      } catch (err) {
+        console.warn('[CRM] Falha ao salvar comprovante em S3:', err);
+      }
+    }
+    
+    const updates: string[] = [];
+    const values: any[] = [];
+    
+    if (finalClienteId !== undefined) { updates.push("cliente_id=?"); values.push(finalClienteId); }
+    if (finalVendaId !== undefined) { updates.push("venda_id=?"); values.push(finalVendaId); }
+    if (finalCentroCusto !== undefined) { updates.push("centro_custo=?"); values.push(finalCentroCusto); }
+    if (finalTipoReceita !== undefined) { updates.push("tipo_receita=?"); values.push(finalTipoReceita); }
+    if (descricao !== undefined) { updates.push("descricao=?"); values.push(descricao); }
+    if (valor !== undefined) { updates.push("valor=?"); values.push(valor); }
+    if (vencimento !== undefined) { updates.push("vencimento=?"); values.push(vencimento); }
+    if (finalStatus !== undefined) { updates.push("status=?"); values.push(finalStatus); }
+    if (finalDataPagamento !== undefined) { updates.push("data_pagamento=?"); values.push(finalDataPagamento); }
+    if (finalFormaPagamento !== undefined) { updates.push("forma_pagamento=?"); values.push(finalFormaPagamento); }
+    if (observacoes !== undefined) { updates.push("observacoes=?"); values.push(observacoes); }
+    if (comprovanteUrl !== null) { updates.push("comprovante_url=?"); values.push(comprovanteUrl); }
+    
+    if (updates.length === 0) return res.status(400).json({ error: "Nenhum campo para atualizar" });
+    
+    values.push(id);
+    await db(`UPDATE crm_contas_receber SET ${updates.join(", ")} WHERE id=?`, values);
+    await audit(u.userId, "update", "crm_contas_receber", parseInt(id), { descricao, valor }, req.ip);
+    res.json({ ok: true });
   });
 
   r.patch("/contas-receber/:id/pagar", requireCrmAuth, async (req, res) => {
