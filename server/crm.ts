@@ -776,7 +776,7 @@ export function registerCrmRoutes(app: any) {
     const params: any[] = [];
     if (status) { where += " AND cr.status = ?"; params.push(status); }
     const rows = await db(
-      `SELECT cr.*, c.nome as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ${parseInt(limit)||50} OFFSET ${parseInt(offset)||0}`,
+      `SELECT cr.*, COALESCE(c.nome, '') as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ${parseInt(limit)||50} OFFSET ${parseInt(offset)||0}`,
       params
     );
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_contas_receber cr ${where}`, params);
