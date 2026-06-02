@@ -898,13 +898,7 @@ const FormSystem = {
                     }
                 }
 
-                if (isPaid) {
-                    const hasExisting = getExistingHasComprovante();
-                    if (!hasExisting && !file) {
-                        notifyError('Anexe um comprovante para salvar com status Pago.');
-                        return;
-                    }
-                }
+                // Comprovante agora é opcional, mesmo para status Pago
 
                 if (file) {
                     const maxBytes = module === 'contasReceber' ? (12 * 1024 * 1024) : (4 * 1024 * 1024);
@@ -1629,11 +1623,12 @@ const FormSystem = {
                         createdId = payload.id;
                     } else {
                         const msg = payload && payload.error ? String(payload.error) : '';
-                        if (resp.status === 400 && msg.toLowerCase().includes('comprovante')) {
+                        console.error('[FormSystem] POST /api/contas-receber falhou:', { status: resp.status, msg, payload });
+                        if (resp.status >= 400) {
                             if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                                window.NotificationSystem.error(msg || 'Comprovante é obrigatório para status Pago.');
+                                window.NotificationSystem.error(msg || 'Falha ao salvar conta a receber.');
                             }
-                            throw new Error(msg || 'Comprovante é obrigatório para status Pago.');
+                            throw new Error(msg || 'Falha ao salvar conta a receber.');
                         }
                         console.warn('[FormSystem] POST /api/contas-receber não OK, usando fallback local');
                         if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
@@ -1641,12 +1636,12 @@ const FormSystem = {
                         }
                     }
                 } catch (err) {
-                    console.warn('[FormSystem] Falha ao criar conta a receber no backend, usando fallback local:', err);
+                    console.error('[FormSystem] Falha ao criar conta a receber:', err);
                     const msg = err && err.message ? String(err.message) : '';
-                    if (msg.toLowerCase().includes('comprovante')) throw err;
-                    if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                        createdId = ModuleSystem.addItem('contasReceber', { ...data });
+                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                        window.NotificationSystem.error(msg || 'Falha ao salvar conta a receber.');
                     }
+                    throw err;
                 }
             } else {
                 // Delegar geração de ID ao ModuleSystem para demais módulos
@@ -2185,21 +2180,197 @@ const FormSystem = {
                     });
                     const payload = await resp.json().catch(() => ({}));
                     if (!resp.ok) {
-                        const msg = payload && payload.error ? String(payload.error) : '';
-                        if (resp.status === 400 && msg.toLowerCase().includes('comprovante')) {
-                            if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                                window.NotificationSystem.error(msg || 'Comprovante é obrigatório para status Pago.');
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
                             }
-                            throw new Error(msg || 'Comprovante é obrigatório para status Pago.');
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
                         }
-                        console.warn('[FormSystem] PUT /api/contas-receber/:id não OK, atualizando apenas localmente');
                     } else {
                         ok = true;
                     }
-                } catch (err) {
-                    const msg = err && err.message ? String(err.message) : '';
-                    if (msg.toLowerCase().includes('comprovante')) throw err;
-                    console.warn('[FormSystem] Falha ao atualizar conta a receber no backend, atualizando apenas localmente:', err);
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
+                    if (!resp.ok) {
+                        const msg = payload && payload.error ? String(payload.error) : "";
+                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
+                        if (resp.status >= 400) {
+                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
+                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
+                            }
+                            throw new Error(msg || "Falha ao atualizar conta a receber.");
+                        }
+                    } else {
+                        ok = true;
+                    }
                 }
 
                 if (window.ModuleSystem && typeof ModuleSystem.updateItem === 'function') {

@@ -141,3 +141,5 @@
 - [x] Bug 2: Anexo não salva ao editar - endpoint PUT criado com suporte a upload de comprovante (v5.15)
 - [x] Bug 3: Tornar campo Comprovante opcional - validação obrigatória removida (v5.15)
 - [x] Verificação: Nenhuma funcionalidade existente foi modificada
+- [x] Teste automatizado criado: crm-contas-receber-fix.test.ts (6 testes passando) - valida que comprovante é opcional mesmo para status 'Pago'
+- [x] Cache-buster atualizado para forms.js (v=1780400134) para forçar reload no navegador
