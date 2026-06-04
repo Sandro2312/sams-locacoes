@@ -870,7 +870,7 @@ const AuthSystem = {
         moduleCards.forEach(card => {
             const module = card.getAttribute('data-module');
             
-            if (userRole === 'administrador' || this.hasModuleAccess(module)) {
+            if (userRole === 'administrador' || userRole === 'admin' || this.hasModuleAccess(module)) {
                 card.style.display = 'block';
             } else {
                 card.style.display = 'none';
@@ -880,7 +880,7 @@ const AuthSystem = {
         // Módulo de administração apenas para administrador
         const adminModule = document.getElementById('adminModule');
         if (adminModule) {
-            if (userRole === 'administrador') {
+            if (userRole === 'administrador' || userRole === 'admin') {
                 adminModule.style.display = 'block';
             } else {
                 adminModule.style.display = 'none';
@@ -927,7 +927,7 @@ const AuthSystem = {
         if (!this.currentUser) return false;
         
         const userRole = this.currentUser.role;
-        if (userRole === 'administrador') return true;
+        if (userRole === 'administrador' || userRole === 'admin') return true;
         
         // Usar o sistema de permissões se disponível
         if (typeof PermissionSystem !== 'undefined') {
@@ -968,7 +968,7 @@ const AuthSystem = {
         if (!this.currentUser) return false;
         
         const userRole = this.currentUser.role;
-        if (userRole === 'administrador') return true;
+        if (userRole === 'administrador' || userRole === 'admin') return true;
         
         // Usar o sistema de permissões se disponível
         if (typeof PermissionSystem !== 'undefined' && typeof PermissionSystem.hasModuleAccess === 'function') {

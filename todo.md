@@ -143,3 +143,12 @@
 - [x] Verificação: Nenhuma funcionalidade existente foi modificada
 - [x] Teste automatizado criado: crm-contas-receber-fix.test.ts (6 testes passando) - valida que comprovante é opcional mesmo para status 'Pago'
 - [x] Cache-buster atualizado para forms.js (v=1780400134) para forçar reload no navegador
+
+## Bug Permissões - Botões Nova Despesa e Nova Conta a Receber - v5.16
+
+- [x] Bug: role 'admin' não reconhecido como administrador em hasPermission() - corrigido em auth.js linha 930
+- [x] Bug: role 'admin' não reconhecido em hasModuleAccess() - corrigido em auth.js linha 971
+- [x] Bug: Módulo Administração não exibido para role 'admin' - corrigido em auth.js linha 883
+- [x] Bug: Cards de módulos não exibidos para role 'admin' - corrigido em auth.js linha 873
+- [x] Bug: hasSpecificPermission e getUserPermissions em permissions.js também corrigidos (linhas 317 e 329)
+- [x] Cache-buster atualizado para auth.js e permissions.js (v=1780588253)

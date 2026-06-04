@@ -314,7 +314,7 @@ const PermissionSystem = {
                 if (!currentUser) return false;
                 
                 // Administrador tem todas as permissões
-                if (currentUser.role === 'administrador') return true;
+                if (currentUser.role === 'administrador' || currentUser.role === 'admin') return true;
                 
                 // Verificar permissões específicas do usuário
                 const userPermissions = currentUser.permissions || [];
@@ -326,7 +326,7 @@ const PermissionSystem = {
                 const currentUser = AuthSystem.getCurrentUser();
                 if (!currentUser) return [];
                 
-                if (currentUser.role === 'administrador') return 'all';
+                if (currentUser.role === 'administrador' || currentUser.role === 'admin') return 'all';
                 
                 return currentUser.permissions || [];
             };
