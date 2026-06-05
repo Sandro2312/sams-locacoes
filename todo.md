@@ -152,3 +152,9 @@
 - [x] Bug: Cards de módulos não exibidos para role 'admin' - corrigido em auth.js linha 873
 - [x] Bug: hasSpecificPermission e getUserPermissions em permissions.js também corrigidos (linhas 317 e 329)
 - [x] Cache-buster atualizado para auth.js e permissions.js (v=1780588253)
+
+## Bug Crítico - Botões internos não funcionam em nenhum módulo - v5.17
+
+- [x] Causa raiz: DELEGAÇÃO 1 do globalClickHandler interceptava cliques em botões internos porque closest('[data-module]') subia até os module-cards do dashboard (ocultos no DOM mas ainda presentes)
+- [x] Correção: DELEGAÇÃO 1 agora usa closest('.module-card[data-module]') + verifica se dashboardContent está visível antes de interceptar
+- [x] Cache-buster atualizado para modules.js (v=1780588900)

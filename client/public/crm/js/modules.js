@@ -351,8 +351,13 @@ const ModuleSystem = {
 
             // ✅ DELEGAÇÃO 1: Detectar clique em módulo do DASHBOARD (não em cards de páginas nem botões CRUD)
             // Cards de módulos no dashboard têm data-module mas NÃO têm data-page nem data-action
-            const moduleCard = rawTarget.closest('[data-module]');
-            if (moduleCard && !moduleCard.hasAttribute('data-page') && !moduleCard.hasAttribute('data-action')) {
+            // IMPORTANTE: só interceptar se o dashboardContent estiver visível (não hidden)
+            const moduleCard = rawTarget.closest('.module-card[data-module]');
+            const dashboardVisible = (() => {
+                const dc = document.getElementById('dashboardContent');
+                return dc && !dc.classList.contains('hidden') && dc.style.display !== 'none';
+            })();
+            if (moduleCard && dashboardVisible && !moduleCard.hasAttribute('data-page') && !moduleCard.hasAttribute('data-action')) {
                 const moduleName = moduleCard.getAttribute('data-module');
                 console.log('🎯 Clique detectado no módulo:', moduleName);
                 this.showModule(moduleName);
