@@ -52,7 +52,7 @@
 - [x] Artigo 3: "Quanto custa montar um stand em feiras"
 - [x] Artigo 4: "Os maiores eventos de negócios do Brasil em 2026"
 - [x] Submeter sitemap.xml ao Google Search Console
-- [ ] Criar página /feiras-2026 otimizada para SEO
+- [x] Criar página /feiras-2026 otimizada para SEO (implementada em client/src/pages/Feiras2026.tsx)
 - [x] Corrigir tag canônica: garantir que todas as páginas apontem para samslocacoes.com.br (sem www duplicado)
 - [x] Corrigir redirecionamentos: www → sem www (ou vice-versa) com 301 permanente
 - [x] Verificar sitemap.xml com URLs canônicas corretas
@@ -73,14 +73,13 @@
 - [x] CSS responsivo mobile para o módulo
 - [x] Build de produção e checkpoint
 
-## Importação em Lote — Google Drive
+## Importação em Lote — Google Drive (Backlog)
 
-- [ ] Endpoint POST /api/crm/acervo/importar-lote (aceita array de itens com url_drive, nome, tipo_doc, ano, evento_nome, cliente_nome)
-- [ ] Modal de importação em lote no acervo.js com textarea para colar links
-- [ ] Parsing automático do link do Google Drive para extrair nome da pasta/arquivo
-- [ ] Tabela de preview com campos editáveis antes de confirmar importação
-- [ ] Feedback de progresso durante importação (X de Y cadastrados)
-- [ ] Checkpoint e publicação
+- [ ] Endpoint POST /api/crm/acervo/importar-lote (backlog — aguardando priorização)
+- [ ] Modal de importação em lote no acervo.js (backlog)
+- [ ] Parsing automático do link do Google Drive (backlog)
+- [ ] Tabela de preview com campos editáveis (backlog)
+- [ ] Feedback de progresso durante importação (backlog)
 
 ## Layout Responsivo (CRM)
 
@@ -116,7 +115,7 @@
 - [x] Criar post de blog destacando desafios e conquistas de maio 2026
 - [x] Atualizar seção de Feiras 2026 com confirmação de Celebra Show com cliente Popper
 - [x] Testar carregamento do site com novas atualizações
-- [ ] Checkpoint e publicação v5.12
+- [x] Checkpoint e publicação v5.12 (incluído no v5.15+)
 
 ## Galeria de Instagram em Tempo Real - v5.13
 
@@ -126,14 +125,14 @@
 - [x] Adicionar InstagramSection entre ProximosEventosSection e ContatoSection
 - [x] Corrigir handle para @samslocacoes (correto)
 - [x] Testar carregamento e renderização
-- [ ] Checkpoint e publicação v5.13
+- [x] Checkpoint e publicação v5.13 (incluído no v5.15+)
 
 ## Correção de Vídeos no Portfolio - v5.14
 
 - [x] Remover URLs inválidas de vídeos (/manus-storage/...) que não estavam funcionando
-- [ ] Adicionar URLs corretos de vídeos quando disponibilizados pelo cliente
-- [ ] Testar reprodução de vídeos
-- [ ] Checkpoint e publicação v5.14
+- [ ] Adicionar URLs corretos de vídeos quando disponibilizados pelo cliente (aguardando cliente)
+- [ ] Testar reprodução de vídeos (aguardando URLs)
+- [x] Checkpoint e publicação v5.14 (incluído no v5.15+)
 
 ## Bugs Urgentes - Módulo Financeiro (Contas a Receber) - v5.15
 
@@ -158,3 +157,12 @@
 - [x] Causa raiz: DELEGAÇÃO 1 do globalClickHandler interceptava cliques em botões internos porque closest('[data-module]') subia até os module-cards do dashboard (ocultos no DOM mas ainda presentes)
 - [x] Correção: DELEGAÇÃO 1 agora usa closest('.module-card[data-module]') + verifica se dashboardContent está visível antes de interceptar
 - [x] Cache-buster atualizado para modules.js (v=1780588900)
+
+## Documentação Markdown — v5.18
+
+- [x] README.md principal com visão geral, stack, estrutura e links de documentação
+- [x] docs/crm-guide.md — Manual completo de uso do CRM (14 seções, todos os módulos)
+- [x] docs/api-reference.md — Referência de todos os endpoints REST e procedures tRPC
+- [x] docs/architecture.md — Arquitetura do sistema, decisões técnicas, banco de dados
+- [x] docs/contributing.md — Guia de contribuição, padrões de código, armadilhas conhecidas
+- [x] todo.md corrigido: itens duplicados removidos, itens já implementados marcados como concluídos
