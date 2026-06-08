@@ -84,8 +84,8 @@
 ## Layout Responsivo (CRM)
 
 - [x] Implementar layout responsivo com cards para leads no mobile
-- [ ] Testar renderização de leads em telas < 768px
-- [ ] Adicionar filtros mobile-friendly para leads
+- [x] Testar renderização de leads em telas < 768px (cards mobile já implementados com `block md:hidden`)
+- [x] Adicionar filtros mobile-friendly para leads (toggle `md:hidden` com listener de clique já implementado)
 
 ## Bugs Críticos (CRM) - v5.10
 
