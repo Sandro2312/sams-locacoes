@@ -166,3 +166,12 @@
 - [x] docs/architecture.md — Arquitetura do sistema, decisões técnicas, banco de dados
 - [x] docs/contributing.md — Guia de contribuição, padrões de código, armadilhas conhecidas
 - [x] todo.md corrigido: itens duplicados removidos, itens já implementados marcados como concluídos
+
+## Bug Crítico — SyntaxError no forms.js (v5.19)
+
+- [x] Causa raiz: bloco `if (!resp.ok)` duplicado 16x no PUT de contasReceber — resultado de edições mal aplicadas anteriormente
+- [x] Correção: script Python removeu 181 linhas duplicadas (linhas 2194–2374) e adicionou catch correto
+- [x] Verificação: `node --check` em todos os arquivos JS do CRM — zero erros de sintaxe
+- [x] Cache-buster do forms.js atualizado para v=1781269167
+- [x] Versão do CRM atualizada para v5.19.0
+- [x] Auditoria CRUD: todos os módulos com backend têm GET/POST/PUT/DELETE funcionais
