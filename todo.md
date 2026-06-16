@@ -175,3 +175,9 @@
 - [x] Cache-buster do forms.js atualizado para v=1781269167
 - [x] Versão do CRM atualizada para v5.19.0
 - [x] Auditoria CRUD: todos os módulos com backend têm GET/POST/PUT/DELETE funcionais
+
+## Correções v5.20 — Botão Novo Lead e Salvar Conta a Receber
+
+- [x] Bug: Botão "Novo Lead" não aparecia quando lista de leads estava vazia — corrigido em modules.js (estado vazio agora inclui o botão e o leads-list-container)
+- [x] Bug: Botão Salvar de "Nova Conta a Receber" não agia — causa raiz: openModal vinculava modal-save ANTES de injetar o content no DOM, resultando em type="button" sem form; corrigido para buscar o form APÓS injetar o content
+- [x] Cache-busters atualizados: forms.js e modules.js v=1781612746

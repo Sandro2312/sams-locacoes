@@ -383,11 +383,12 @@ const FormSystem = {
         if (titleElement) titleElement.textContent = title;
         if (contentElement) contentElement.innerHTML = content;
 
+        // Vincular modal-save APÓS injetar o content no DOM
         try {
             const saveBtn = document.getElementById('modal-save');
             const footerForm = (() => {
-                if (!overlay) return null;
-                const f = overlay.querySelector('form');
+                if (!contentElement) return null;
+                const f = contentElement.querySelector('form');
                 return f && f.id ? f : null;
             })();
             if (saveBtn) {
@@ -395,8 +396,9 @@ const FormSystem = {
                     saveBtn.type = 'submit';
                     saveBtn.setAttribute('form', footerForm.id);
                 } else {
-                    saveBtn.type = 'button';
-                    saveBtn.removeAttribute('form');
+                    // Fallback: garantir que o botão sempre submeta crud-form
+                    saveBtn.type = 'submit';
+                    saveBtn.setAttribute('form', 'crud-form');
                 }
             }
         } catch {}

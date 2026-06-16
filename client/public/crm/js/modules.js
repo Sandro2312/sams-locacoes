@@ -951,9 +951,15 @@ const ModuleSystem = {
                                     <i class="fas fa-arrow-left mr-2"></i>Voltar ao Marketing
                                 </button>
                             </div>
+                            <button type="button"
+                                    data-action="create"
+                                    data-module="marketing_leads"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
+                                <i class="fas fa-plus mr-2"></i>Novo Lead
+                            </button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <div id="leads-list-container" class="bg-white rounded-lg shadow p-6">
                         <p class="text-gray-600 text-center">Carregando leads...</p>
                     </div>
                 `;
