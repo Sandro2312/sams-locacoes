@@ -384,21 +384,33 @@ const FormSystem = {
         if (contentElement) contentElement.innerHTML = content;
 
         // Vincular modal-save APÓS injetar o content no DOM
+        // Se o formulário já tem botões internos próprios, ocultar o rodapé externo do modal
         try {
             const saveBtn = document.getElementById('modal-save');
+            const footer = document.getElementById('modal-footer');
             const footerForm = (() => {
                 if (!contentElement) return null;
                 const f = contentElement.querySelector('form');
                 return f && f.id ? f : null;
             })();
-            if (saveBtn) {
-                if (footerForm) {
-                    saveBtn.type = 'submit';
-                    saveBtn.setAttribute('form', footerForm.id);
-                } else {
-                    // Fallback: garantir que o botão sempre submeta crud-form
-                    saveBtn.type = 'submit';
-                    saveBtn.setAttribute('form', 'crud-form');
+            // Detectar se o form já tem botões de submit internos (btn-submit ou type=submit dentro do form)
+            const formHasInternalButtons = (() => {
+                if (!footerForm) return false;
+                return !!(footerForm.querySelector('button[type="submit"], .btn-submit, button.btn-submit'));
+            })();
+            if (formHasInternalButtons) {
+                // Ocultar o rodapé externo — o form tem seus próprios botões
+                if (footer) footer.classList.add('hidden');
+            } else {
+                if (footer) footer.classList.remove('hidden');
+                if (saveBtn) {
+                    if (footerForm) {
+                        saveBtn.type = 'submit';
+                        saveBtn.setAttribute('form', footerForm.id);
+                    } else {
+                        saveBtn.type = 'submit';
+                        saveBtn.setAttribute('form', 'crud-form');
+                    }
                 }
             }
         } catch {}
@@ -615,6 +627,11 @@ const FormSystem = {
             // Resetar flag de foco para próxima abertura
             delete overlay.dataset.focusApplied;
         }
+        // Restaurar o rodapé externo para o próximo modal que precisar dele
+        try {
+            const footer = document.getElementById('modal-footer');
+            if (footer) footer.classList.remove('hidden');
+        } catch {}
         try {
             const lists = document.querySelectorAll('datalist[data-cc-centro-custo="1"]');
             lists.forEach(el => el.remove());
