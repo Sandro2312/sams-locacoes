@@ -188,3 +188,12 @@
 - [x] Bug 2: Dados (clientes, eventos, contas a receber, leads) salvos no Edge não apareciam no Chrome/Mobile — causa raiz: init() do ModuleSystem só sincronizava transações do backend; corrigido adicionando syncClientesFromBackend, syncEventosFromBackend, syncContasReceberFromBackend e syncLeadsFromBackend chamados no init() com setTimeout(800ms)
 - [x] Bug 3: Botão Salvar em "Nova Conta a Receber" sem ação — causa raiz: campo vencimento não era required no HTML, era ignorado pelo handleSave (que pula campos vazios), e o backend rejeitava com HTTP 400 (vencimento DATE NOT NULL); corrigido tornando o campo required com valor padrão = hoje, e adicionando fallback no handleSave
 - [x] Sintaxe verificada: node --check em forms.js e modules.js — zero erros
+
+## Correções v5.25 — Botão Salvar Conta a Receber (causa raiz definitiva)
+
+- [x] Bug: Botão "Salvar Conta" em Nova Conta a Receber não salvava — causa raiz: backend INSERT usava colunas `centro_custo` e `tipo_receita` que NÃO existem na tabela `crm_contas_receber`, causando crash 502
+- [x] Bug: Mesmo com colunas removidas, o campo `status` recebia "Pendente" (P maiúsculo) mas o ENUM do banco aceita apenas "pendente" (minúsculo), causando "Data truncated" e crash 502
+- [x] Correção: removidas colunas inexistentes do INSERT e UPDATE, adicionado `.toLowerCase()` no status
+- [x] Rodapé externo do modal (Dashboard, Criar Card, Cancelar) agora é ocultado para módulos com botões internos
+- [x] Headers anti-cache reforçados (no-store + Surrogate-Control) para evitar cache do Cloudflare
+- [x] Testado end-to-end no browser: formulário salva corretamente e tabela é atualizada

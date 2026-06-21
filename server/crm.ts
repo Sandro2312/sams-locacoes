@@ -800,7 +800,7 @@ export function registerCrmRoutes(app: any) {
     const finalVendaId = vendaId ?? venda_id ?? null;
     const finalCentroCusto = centroCusto ?? centro_custo ?? null;
     const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
-    const finalStatus = status ?? 'Pendente';
+    const finalStatus = (status ?? 'pendente').toString().toLowerCase();
     const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
     const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
 
@@ -822,9 +822,9 @@ export function registerCrmRoutes(app: any) {
 
     const [result] = await getPool().execute(
       `INSERT INTO crm_contas_receber
-       (cliente_id, venda_id, centro_custo, tipo_receita, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [finalClienteId, finalVendaId, finalCentroCusto, finalTipoReceita, descricao, valor, vencimento, finalStatus, finalDataPagamento, finalFormaPagamento, observacoes, comprovanteUrl]
+       (cliente_id, venda_id, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [finalClienteId, finalVendaId, descricao, valor, vencimento, finalStatus, finalDataPagamento, finalFormaPagamento, observacoes, comprovanteUrl]
     );
     const insertId = (result as any).insertId;
     await audit(u.userId, "create", "crm_contas_receber", insertId, { descricao, valor, cliente_id: finalClienteId }, req.ip);
@@ -840,7 +840,7 @@ export function registerCrmRoutes(app: any) {
     const finalVendaId = vendaId ?? venda_id ?? null;
     const finalCentroCusto = centroCusto ?? centro_custo ?? null;
     const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
-    const finalStatus = status ?? 'Pendente';
+    const finalStatus = (status ?? 'pendente').toString().toLowerCase();
     const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
     const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
     
@@ -863,8 +863,7 @@ export function registerCrmRoutes(app: any) {
     
     if (finalClienteId !== undefined) { updates.push("cliente_id=?"); values.push(finalClienteId); }
     if (finalVendaId !== undefined) { updates.push("venda_id=?"); values.push(finalVendaId); }
-    if (finalCentroCusto !== undefined) { updates.push("centro_custo=?"); values.push(finalCentroCusto); }
-    if (finalTipoReceita !== undefined) { updates.push("tipo_receita=?"); values.push(finalTipoReceita); }
+    // centro_custo e tipo_receita removidos - colunas não existem na tabela
     if (descricao !== undefined) { updates.push("descricao=?"); values.push(descricao); }
     if (valor !== undefined) { updates.push("valor=?"); values.push(valor); }
     if (vencimento !== undefined) { updates.push("vencimento=?"); values.push(vencimento); }
