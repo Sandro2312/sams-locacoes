@@ -73,9 +73,13 @@ const ModuleSystem = {
         this.initialized = true;
         console.log('ModuleSystem inicializado com sucesso');
 
-        // Sincronizar transações do servidor após inicialização (garante mobile/desktop em sincronia)
+        // Sincronizar dados do servidor após inicialização (garante mobile/desktop em sincronia)
         setTimeout(() => {
             this.loadTransacoes().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar transações:', e));
+            this.syncClientesFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar clientes:', e));
+            this.syncEventosFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar eventos:', e));
+            this.syncContasReceberFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar contas a receber:', e));
+            this.syncLeadsFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar leads:', e));
         }, 800);
     },
 
@@ -217,6 +221,121 @@ const ModuleSystem = {
             }
         } catch (e) {
             console.warn('Falha ao carregar memoriais:', e);
+        }
+    },
+
+    // Sincronizar clientes do backend (garante cross-browser)
+    async syncClientesFromBackend() {
+        try {
+            const response = await fetch('/api/crm/clientes', { credentials: 'include' });
+            if (!response.ok) return;
+            const rows = await response.json().catch(() => []);
+            if (!Array.isArray(rows)) return;
+            const normalize = (r) => ({
+                ...r,
+                id: r.id,
+                nome: r.nome || r.razao_social || '',
+                documento: r.documento || r.cnpj || null,
+                telefone: r.telefone || null,
+                email: r.email || null,
+                status: r.status || 'Ativo',
+                segmento: r.segmento || r.categoria || r.setor || null
+            });
+            const byId = new Map();
+            for (const c of (Array.isArray(this.data.clientes) ? this.data.clientes : [])) {
+                if (c && c.id != null && !/^\d+$/.test(String(c.id)) === false) continue;
+                if (c && c.id != null) byId.set(String(c.id), c);
+            }
+            for (const c of rows) {
+                if (c && c.id != null) byId.set(String(c.id), normalize(c));
+            }
+            this.data.clientes = Array.from(byId.values());
+            this.saveData();
+            console.log(`✅ [ModuleSystem] Clientes sincronizados da API: ${rows.length} registros`);
+        } catch (e) {
+            console.warn('[ModuleSystem] Falha ao sincronizar clientes:', e);
+        }
+    },
+
+    // Sincronizar eventos do backend (garante cross-browser)
+    async syncEventosFromBackend() {
+        try {
+            const response = await fetch('/api/crm/eventos', { credentials: 'include' });
+            if (!response.ok) return;
+            const rows = await response.json().catch(() => []);
+            if (!Array.isArray(rows)) return;
+            const byId = new Map();
+            for (const e of (Array.isArray(this.data.eventos) ? this.data.eventos : [])) {
+                if (e && e.id != null) byId.set(String(e.id), e);
+            }
+            for (const e of rows) {
+                if (e && e.id != null) byId.set(String(e.id), { ...(byId.get(String(e.id)) || {}), ...e });
+            }
+            this.data.eventos = Array.from(byId.values());
+            this.saveData();
+            console.log(`✅ [ModuleSystem] Eventos sincronizados da API: ${rows.length} registros`);
+        } catch (e) {
+            console.warn('[ModuleSystem] Falha ao sincronizar eventos:', e);
+        }
+    },
+
+    // Sincronizar contas a receber do backend (garante cross-browser)
+    async syncContasReceberFromBackend() {
+        try {
+            const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
+            if (!response.ok) return;
+            const rows = await response.json().catch(() => []);
+            if (!Array.isArray(rows)) return;
+            const normalize = (r) => ({
+                ...r,
+                id: r.id,
+                clienteId: r.clienteId ?? r.cliente_id ?? null,
+                vendaId: r.vendaId ?? r.venda_id ?? null,
+                centroCusto: r.centroCusto ?? r.centro_custo ?? null,
+                tipoReceita: r.tipoReceita ?? r.tipo_receita ?? null,
+                descricao: r.descricao ?? '',
+                valor: r.valor ?? 0,
+                vencimento: r.vencimento ?? null,
+                status: r.status ?? 'Pendente',
+                dataPagamento: r.dataPagamento ?? r.data_pagamento ?? null,
+                formaPagamento: r.formaPagamento ?? r.forma_pagamento ?? null,
+                observacoes: r.observacoes ?? null,
+                clienteNome: r.clienteNome ?? r.cliente_nome ?? null
+            });
+            const byId = new Map();
+            for (const c of (Array.isArray(this.data.contasReceber) ? this.data.contasReceber : [])) {
+                if (c && c.id != null) byId.set(String(c.id), c);
+            }
+            for (const c of rows) {
+                if (c && c.id != null) byId.set(String(c.id), normalize(c));
+            }
+            this.data.contasReceber = Array.from(byId.values());
+            this.saveData();
+            console.log(`✅ [ModuleSystem] Contas a Receber sincronizadas da API: ${rows.length} registros`);
+        } catch (e) {
+            console.warn('[ModuleSystem] Falha ao sincronizar contas a receber:', e);
+        }
+    },
+
+    // Sincronizar leads do backend (garante cross-browser)
+    async syncLeadsFromBackend() {
+        try {
+            const response = await fetch('/api/crm/leads', { credentials: 'include' });
+            if (!response.ok) return;
+            const rows = await response.json().catch(() => []);
+            if (!Array.isArray(rows)) return;
+            const byId = new Map();
+            for (const l of (Array.isArray(this.data.leads) ? this.data.leads : [])) {
+                if (l && l.id != null) byId.set(String(l.id), l);
+            }
+            for (const l of rows) {
+                if (l && l.id != null) byId.set(String(l.id), { ...(byId.get(String(l.id)) || {}), ...l });
+            }
+            this.data.leads = Array.from(byId.values());
+            this.saveData();
+            console.log(`✅ [ModuleSystem] Leads sincronizados da API: ${rows.length} registros`);
+        } catch (e) {
+            console.warn('[ModuleSystem] Falha ao sincronizar leads:', e);
         }
     },
 
