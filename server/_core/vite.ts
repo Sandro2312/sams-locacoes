@@ -112,8 +112,11 @@ export function serveStatic(app: Express) {
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
         } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-          // Arquivos JS/CSS sem cache para garantir sempre a versão mais recente
-          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+          // no-store + Surrogate-Control garante que Cloudflare e browsers não façam cache
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          res.setHeader('Surrogate-Control', 'no-store');
         }
       }
     }));
