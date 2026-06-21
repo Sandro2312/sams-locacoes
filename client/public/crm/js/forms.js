@@ -2375,13 +2375,22 @@ const FormSystem = {
         
         this.openModal(title, formHtml);
         try { this.applySmartDefaults(module, document.getElementById('modal-content') || document); } catch {}
+        // Módulos com botões internos próprios: ocultar o rodapé externo explicitamente
         try {
-            const saveBtn = document.getElementById('modal-save');
-            if (saveBtn) {
-                if (module !== 'briefings') {
-                    saveBtn.textContent = 'Salvar';
-                    if (module === 'clientes') saveBtn.textContent = 'Salvar Cliente';
-                    if (module === 'eventos') saveBtn.textContent = 'Salvar Evento';
+            const _modulesWithInternalButtons = ['contasReceber', 'transacoes', 'financeiro', 'demandasJuridicas', 'tarefas'];
+            const _footer = document.getElementById('modal-footer');
+            const _saveBtn = document.getElementById('modal-save');
+            const _contentEl = document.getElementById('modal-content');
+            const _form = _contentEl ? _contentEl.querySelector('form') : null;
+            const _hasInternal = _form ? !!_form.querySelector('button[type="submit"], .btn-submit') : false;
+            if (_hasInternal || _modulesWithInternalButtons.includes(module)) {
+                if (_footer) _footer.classList.add('hidden');
+                if (_saveBtn) _saveBtn.classList.add('hidden');
+            } else {
+                if (_saveBtn) {
+                    _saveBtn.textContent = 'Salvar';
+                    if (module === 'clientes') _saveBtn.textContent = 'Salvar Cliente';
+                    if (module === 'eventos') _saveBtn.textContent = 'Salvar Evento';
                 }
             }
         } catch {}
@@ -2993,13 +3002,24 @@ ENTREGA
                 this.bindEventoAI(root);
             } catch {}
         }
+        // Módulos com botões internos próprios: ocultar o rodapé externo explicitamente
         try {
-            const saveBtn = document.getElementById('modal-save');
-            if (saveBtn) {
-                if (module !== 'briefings') {
-                    saveBtn.textContent = 'Salvar';
-                    if (module === 'clientes') saveBtn.textContent = 'Atualizar Cliente';
-                    if (module === 'eventos') saveBtn.textContent = 'Atualizar Evento';
+            const _modulesWithInternalButtons = ['contasReceber', 'transacoes', 'financeiro', 'demandasJuridicas', 'tarefas'];
+            const _footer = document.getElementById('modal-footer');
+            const _saveBtn = document.getElementById('modal-save');
+            const _contentEl = document.getElementById('modal-content');
+            const _form = _contentEl ? _contentEl.querySelector('form') : null;
+            const _hasInternal = _form ? !!_form.querySelector('button[type="submit"], .btn-submit') : false;
+            if (_hasInternal || _modulesWithInternalButtons.includes(module)) {
+                if (_footer) _footer.classList.add('hidden');
+                if (_saveBtn) _saveBtn.classList.add('hidden');
+            } else {
+                if (_saveBtn) {
+                    if (module !== 'briefings') {
+                        _saveBtn.textContent = 'Salvar';
+                        if (module === 'clientes') _saveBtn.textContent = 'Atualizar Cliente';
+                        if (module === 'eventos') _saveBtn.textContent = 'Atualizar Evento';
+                    }
                 }
             }
         } catch {}
