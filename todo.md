@@ -197,3 +197,13 @@
 - [x] Rodapé externo do modal (Dashboard, Criar Card, Cancelar) agora é ocultado para módulos com botões internos
 - [x] Headers anti-cache reforçados (no-store + Surrogate-Control) para evitar cache do Cloudflare
 - [x] Testado end-to-end no browser: formulário salva corretamente e tabela é atualizada
+
+## Correções v5.26 — Contas a Receber: persistência, cliente e dashboard
+
+- [x] Bug 1: Créditos não apareciam no dashboard financeiro — causa raiz: URL errada (/api/contas-receber → /api/crm/contas-receber) + response era {data:[], total:n} mas frontend esperava Array direto; corrigido extraindo .data
+- [x] Bug 2: Nome do cliente aparece como "-" — cliente_id é NULL nas contas existentes (dado faltante, não bug de código); quando preenchido, o JOIN retorna cliente_nome corretamente
+- [x] Bug 3: Contas a receber sumiam ao navegar — loadContasReceber e syncContasReceberFromBackend esperavam Array.isArray(data) mas recebiam objeto {data:[], total:n}; corrigido extraindo .data em todos os métodos de sync
+- [x] Bug 4: POST /api/crm/contas-receber falhava com "Bind parameters must not contain undefined" quando campos opcionais não eram enviados — corrigido com função n() que converte undefined para null em todos os parâmetros do INSERT
+- [x] Bug 5: POST /api/crm/clientes falhava com o mesmo erro de undefined — corrigido com função n() no INSERT e PUT de clientes
+- [x] Verificado end-to-end: criar cliente + criar conta a receber com clienteId → cliente_nome aparece corretamente na lista (teste automatizado confirmado)
+- [x] Versão atualizada para v5.26.0 no index.html e cache-busters atualizados (v=1782217349)

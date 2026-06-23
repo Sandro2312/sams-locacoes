@@ -229,8 +229,9 @@ const ModuleSystem = {
         try {
             const response = await fetch('/api/crm/clientes', { credentials: 'include' });
             if (!response.ok) return;
-            const rows = await response.json().catch(() => []);
-            if (!Array.isArray(rows)) return;
+            const json = await response.json().catch(() => ({}));
+            const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+            if (!rows.length) return;
             const normalize = (r) => ({
                 ...r,
                 id: r.id,
@@ -262,8 +263,9 @@ const ModuleSystem = {
         try {
             const response = await fetch('/api/crm/eventos', { credentials: 'include' });
             if (!response.ok) return;
-            const rows = await response.json().catch(() => []);
-            if (!Array.isArray(rows)) return;
+            const json = await response.json().catch(() => ({}));
+            const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+            if (!rows.length) return;
             const byId = new Map();
             for (const e of (Array.isArray(this.data.eventos) ? this.data.eventos : [])) {
                 if (e && e.id != null) byId.set(String(e.id), e);
@@ -284,8 +286,9 @@ const ModuleSystem = {
         try {
             const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
             if (!response.ok) return;
-            const rows = await response.json().catch(() => []);
-            if (!Array.isArray(rows)) return;
+            const json = await response.json().catch(() => ({}));
+            const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+            if (!rows.length) return;
             const normalize = (r) => ({
                 ...r,
                 id: r.id,
@@ -322,8 +325,9 @@ const ModuleSystem = {
         try {
             const response = await fetch('/api/crm/leads', { credentials: 'include' });
             if (!response.ok) return;
-            const rows = await response.json().catch(() => []);
-            if (!Array.isArray(rows)) return;
+            const json = await response.json().catch(() => ({}));
+            const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+            if (!rows.length) return;
             const byId = new Map();
             for (const l of (Array.isArray(this.data.leads) ? this.data.leads : [])) {
                 if (l && l.id != null) byId.set(String(l.id), l);
@@ -5451,8 +5455,8 @@ const ModuleSystem = {
                 let contas = [];
                 let fetchError = null;
                 try {
-                    const res = await api('/api/contas-receber');
-                    contas = Array.isArray(res) ? res : [];
+                    const res = await api('/api/crm/contas-receber');
+                    contas = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
                     try { if (window.ModuleSystem && ModuleSystem.data) { ModuleSystem.data.contasReceber = contas; if (typeof ModuleSystem.saveData === 'function') ModuleSystem.saveData(); } } catch {}
                 } catch (e) {
                     fetchError = e;
@@ -9684,8 +9688,10 @@ window.FinanceiroModule.loadContasReceber = async function() {
     let api = [];
     try {
       const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
-      const data = await response.json().catch(() => []);
-      if (response.ok && Array.isArray(data)) api = data;
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        api = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+      }
     } catch {}
 
     const resolveCliente = (clienteId) => {

@@ -487,9 +487,10 @@ export function registerCrmRoutes(app: any) {
     const u = (req as any).crmUser;
     const { nome, email, telefone, documento, cep, endereco, bairro, cidade, estado, segmento, observacoes } = req.body;
     if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
+    const n = (v: any) => (v === undefined ? null : v);
     const [result] = await getPool().execute(
       "INSERT INTO crm_clientes (nome, email, telefone, documento, cep, endereco, bairro, cidade, estado, segmento, observacoes) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      [nome, email, telefone, documento, cep, endereco, bairro, cidade, estado, segmento, observacoes]
+      [n(nome), n(email), n(telefone), n(documento), n(cep), n(endereco), n(bairro), n(cidade), n(estado), n(segmento), n(observacoes)]
     );
     const id = (result as any).insertId;
     await audit(u.userId, "create", "crm_clientes", id, { nome }, req.ip);
@@ -499,9 +500,10 @@ export function registerCrmRoutes(app: any) {
   r.put("/clientes/:id", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
     const { nome, email, telefone, documento, cep, endereco, bairro, cidade, estado, segmento, status, observacoes } = req.body;
+    const nu = (v: any) => (v === undefined ? null : v);
     await db(
       "UPDATE crm_clientes SET nome=?, email=?, telefone=?, documento=?, cep=?, endereco=?, bairro=?, cidade=?, estado=?, segmento=?, status=?, observacoes=? WHERE id=?",
-      [nome, email, telefone, documento, cep, endereco, bairro, cidade, estado, segmento, status ?? "Ativo", observacoes, req.params.id]
+      [nu(nome), nu(email), nu(telefone), nu(documento), nu(cep), nu(endereco), nu(bairro), nu(cidade), nu(estado), nu(segmento), status ?? "Ativo", nu(observacoes), req.params.id]
     );
     await audit(u.userId, "update", "crm_clientes", parseInt(req.params.id), req.body, req.ip);
     res.json({ ok: true });
@@ -820,11 +822,13 @@ export function registerCrmRoutes(app: any) {
       }
     }
 
+    // Garantir que nenhum parâmetro seja undefined (MySQL2 rejeita undefined, exige null)
+    const n = (v: any) => (v === undefined ? null : v);
     const [result] = await getPool().execute(
       `INSERT INTO crm_contas_receber
        (cliente_id, venda_id, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [finalClienteId, finalVendaId, descricao, valor, vencimento, finalStatus, finalDataPagamento, finalFormaPagamento, observacoes, comprovanteUrl]
+      [n(finalClienteId), n(finalVendaId), n(descricao), n(valor), n(vencimento), n(finalStatus), n(finalDataPagamento), n(finalFormaPagamento), n(observacoes), n(comprovanteUrl)]
     );
     const insertId = (result as any).insertId;
     await audit(u.userId, "create", "crm_contas_receber", insertId, { descricao, valor, cliente_id: finalClienteId }, req.ip);
