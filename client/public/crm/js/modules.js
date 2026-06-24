@@ -8032,7 +8032,7 @@ const ModuleSystem = {
                     : (isContato ? `/api/contatos/${encodeURIComponent(idStr)}`
                     : (isEvento
                         ? `/api/eventos/${encodeURIComponent(idStr)}`
-                        : (isBriefing ? `/api/briefings/${encodeURIComponent(idStr)}` : (isContaReceber ? `/api/contas-receber/${encodeURIComponent(idStr)}` : (isCliente ? `/api/clientes/${encodeURIComponent(idStr)}` : `/api/memoriais/${encodeURIComponent(idStr)}`)))));
+                        : (isBriefing ? `/api/briefings/${encodeURIComponent(idStr)}` : (isContaReceber ? `/api/crm/contas-receber/${encodeURIComponent(idStr)}` : (isCliente ? `/api/clientes/${encodeURIComponent(idStr)}` : `/api/memoriais/${encodeURIComponent(idStr)}`)))));
                 const resp = await fetch(endpoint, {
                     method: 'DELETE',
                     credentials: 'include'
@@ -8061,6 +8061,16 @@ const ModuleSystem = {
         }
         const allowLocalLeadDelete = isLead && (!shouldCallBackend || backendStatus === 400 || backendStatus === 404);
         if ((isLead || isContato || isEvento || isBriefing || isContaReceber || isCliente) && !backendSuccess && !allowLocalLeadDelete) {
+            // Detectar 401 especificamente para dar mensagem útil
+            if (backendStatus === 401) {
+                const msg = 'Sua sessão expirou. Faça login novamente para excluir itens.';
+                if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                    window.NotificationSystem.error(msg);
+                } else {
+                    alert(msg);
+                }
+                return;
+            }
             const msg = backendError || 'Falha ao excluir no servidor. Faça login e tente novamente.';
             if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
                 window.NotificationSystem.error(msg);
@@ -8128,6 +8138,17 @@ const ModuleSystem = {
                             window.NavigationSystem.reloadContatosList();
                             return;
                         }
+                        // Bug 3c Fix: contasReceber sempre recarrega via FinanceiroModule
+                        if (module === 'contasReceber') {
+                            try {
+                                if (window.FinanceiroModule && typeof window.FinanceiroModule.loadContasReceber === 'function') {
+                                    window.FinanceiroModule.loadContasReceber();
+                                } else {
+                                    window.NavigationSystem.reloadCurrentPage();
+                                }
+                            } catch {}
+                            return;
+                        }
                     }
                     if (window.formIntegration && typeof window.formIntegration.refreshModuleData === 'function') {
                         const refreshTarget = (module === 'transacoes' || module === 'contasReceber') ? 'financeiro' : (module === 'marketing_leads' ? 'leads' : module);
@@ -8142,6 +8163,45 @@ const ModuleSystem = {
                     }
                 }
             }
+        }
+
+        // --- Bug 3 Fix: Para contasReceber, garantir reload da lista via API após delete ---
+        // O item pode estar só no backend (não em ModuleSystem.data.contasReceber),
+        // então removedLocally pode ser false mesmo com backendSuccess=true.
+        if (isContaReceber && backendSuccess) {
+            // Remover da memória local pelo ID caso não tenha sido removido ainda
+            if (!removedLocally && window.ModuleSystem && Array.isArray(ModuleSystem.data.contasReceber)) {
+                const idx = ModuleSystem.data.contasReceber.findIndex(item => item && String(item.id) === idStr);
+                if (idx !== -1) {
+                    ModuleSystem.data.contasReceber.splice(idx, 1);
+                    ModuleSystem.saveData();
+                }
+            }
+            // Remover a linha da tabela diretamente do DOM (feedback imediato)
+            try {
+                const escapeCss = (v) => (window.CSS && typeof window.CSS.escape === 'function') ? window.CSS.escape(v) : v;
+                document.querySelectorAll(`[data-action="delete"][data-module="contasReceber"][data-id="${escapeCss(idStr)}"]`).forEach((btn) => {
+                    const row = btn && btn.closest ? btn.closest('tr') : null;
+                    if (row && row.parentNode) row.parentNode.removeChild(row);
+                });
+            } catch {}
+            // Notificar sucesso
+            try {
+                if (window.NotificationSystem && typeof window.NotificationSystem.showCRUDSuccess === 'function') {
+                    window.NotificationSystem.showCRUDSuccess('delete', 'Conta a Receber');
+                } else if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
+                    window.NotificationSystem.success('Conta a Receber excluída com sucesso.');
+                }
+            } catch {}
+            // Recarregar a lista via API para garantir dados frescos
+            try {
+                if (window.FinanceiroModule && typeof window.FinanceiroModule.loadContasReceber === 'function') {
+                    window.FinanceiroModule.loadContasReceber();
+                } else if (window.NavigationSystem && typeof window.NavigationSystem.reloadCurrentPage === 'function') {
+                    window.NavigationSystem.reloadCurrentPage();
+                }
+            } catch {}
+            return;
         }
 
         if (!removedLocally && backendSuccess) {

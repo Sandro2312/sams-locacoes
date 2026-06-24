@@ -1006,8 +1006,8 @@ const FormSystem = {
                     const parsed = parseFloat(String(data.valor).replace(',', '.'));
                     if (!isNaN(parsed)) data.valor = parsed;
                 }
-                if (data.clienteId != null && data.clienteId !== '') data.clienteId = Number(data.clienteId);
-                if (data.vendaId != null && data.vendaId !== '') data.vendaId = Number(data.vendaId);
+                if (data.clienteId != null && data.clienteId !== '') data.clienteId = Number(data.clienteId); else data.clienteId = null;
+                if (data.vendaId != null && data.vendaId !== '') data.vendaId = Number(data.vendaId); else data.vendaId = null;
                 if ((data.clienteNome == null || data.clienteNome === '') && data.clienteId != null && data.clienteId !== '' && window.ModuleSystem && ModuleSystem.data) {
                     const cid = String(data.clienteId);
                     const all = [
@@ -1030,12 +1030,10 @@ const FormSystem = {
                 }
                 if (!data.status) data.status = 'Pendente';
                 if (!data.tipoReceita) data.tipoReceita = 'stand';
-                if (!data.vencimento) {
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    data.vencimento = `${yyyy}-${mm}-${dd}`;
+                // NÃO preencher vencimento automaticamente - o campo é obrigatório (required)
+                // e deve ser preenchido explicitamente pelo usuário
+                if (!data.vencimento || String(data.vencimento).trim() === '') {
+                    delete data.vencimento; // deixa o backend rejeitar com 400 se vier vazio
                 }
                 if (data.status === 'Pago' && !data.dataPagamento) {
                     const today = new Date();
@@ -1784,8 +1782,8 @@ const FormSystem = {
                     const parsed = parseFloat(String(data.valor).replace(',', '.'));
                     if (!isNaN(parsed)) data.valor = parsed;
                 }
-                if (data.clienteId != null && data.clienteId !== '') data.clienteId = Number(data.clienteId);
-                if (data.vendaId != null && data.vendaId !== '') data.vendaId = Number(data.vendaId);
+                if (data.clienteId != null && data.clienteId !== '') data.clienteId = Number(data.clienteId); else data.clienteId = null;
+                if (data.vendaId != null && data.vendaId !== '') data.vendaId = Number(data.vendaId); else data.vendaId = null;
                 if ((data.clienteNome == null || data.clienteNome === '') && data.clienteId != null && data.clienteId !== '' && window.ModuleSystem && ModuleSystem.data) {
                     const cid = String(data.clienteId);
                     const all = [
@@ -2346,7 +2344,61 @@ const FormSystem = {
                 break;
             case 'contasReceber':
                 title = 'Nova Conta a Receber';
+                // Limpar defaults anteriores para garantir formulário vazio
+                try {
+                    const _sd = window.FormSystem && typeof window.FormSystem.readSmartDefaults === 'function' ? window.FormSystem.readSmartDefaults() : null;
+                    if (_sd && _sd.contasReceber) {
+                        delete _sd.contasReceber;
+                        if (typeof window.FormSystem.saveSmartDefaults === 'function') window.FormSystem.saveSmartDefaults(_sd);
+                    }
+                } catch (_e0) {}
                 formHtml = this.getContaReceberForm();
+                // Após abrir o modal, garantir lista de clientes atualizada e popular o select
+                Promise.resolve().then(async () => {
+                    try {
+                        if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
+                            await ModuleSystem.syncClientesFromBackend();
+                        }
+                    } catch (_e) {}
+                    try {
+                        const allClientes = (() => {
+                            const merged = [];
+                            const seen = new Set();
+                            const push = (c) => {
+                                if (!c || c.id == null) return;
+                                const key = String(c.id);
+                                if (seen.has(key)) return;
+                                seen.add(key);
+                                merged.push(c);
+                            };
+                            (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
+                            (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
+                            return merged;
+                        })();
+                        // Encontrar o select de cliente dentro do modal aberto
+                        const modalContent = document.getElementById('modal-content');
+                        if (!modalContent) return;
+                        const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
+                        if (!form) return;
+                        const sel = form.querySelector('select[name="clienteId"]');
+                        if (!sel) return;
+                        // Só repopular se o select ainda tem apenas a opção placeholder
+                        if (allClientes.length === 0) return;
+                        const currentVal = sel.value;
+                        // Remover options antigas (exceto o placeholder)
+                        while (sel.options.length > 1) sel.remove(1);
+                        allClientes.forEach(c => {
+                            const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
+                            const email = c.email ? ` • ${c.email}` : '';
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.textContent = `${nome}${email}`;
+                            sel.appendChild(opt);
+                        });
+                        // Restaurar valor selecionado se havia um
+                        if (currentVal) sel.value = currentVal;
+                    } catch (_e2) {}
+                });
                 break;
             case 'marketing_campanhas':
                 title = 'Nova Campanha';
@@ -2967,6 +3019,47 @@ ENTREGA
             case 'contasReceber':
                 title = 'Editar Conta a Receber';
                 formHtml = this.getContaReceberForm(id);
+                // Garantir que o select de clientes seja populado mesmo no modo edição
+                Promise.resolve().then(async () => {
+                    try {
+                        if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
+                            await ModuleSystem.syncClientesFromBackend();
+                        }
+                    } catch (_e) {}
+                    try {
+                        const allClientes = (() => {
+                            const merged = [];
+                            const seen = new Set();
+                            const push = (c) => {
+                                if (!c || c.id == null) return;
+                                const key = String(c.id);
+                                if (seen.has(key)) return;
+                                seen.add(key);
+                                merged.push(c);
+                            };
+                            (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
+                            (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
+                            return merged;
+                        })();
+                        const modalContent = document.getElementById('modal-content');
+                        if (!modalContent) return;
+                        const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
+                        if (!form) return;
+                        const sel = form.querySelector('select[name="clienteId"]');
+                        if (!sel || allClientes.length === 0) return;
+                        const currentVal = sel.value;
+                        while (sel.options.length > 1) sel.remove(1);
+                        allClientes.forEach(c => {
+                            const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
+                            const email = c.email ? ` • ${c.email}` : '';
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.textContent = `${nome}${email}`;
+                            sel.appendChild(opt);
+                        });
+                        if (currentVal) sel.value = currentVal;
+                    } catch (_e2) {}
+                });
                 break;
             case 'marketing_campanhas':
                 title = 'Editar Campanha';
@@ -4529,7 +4622,8 @@ ENTREGA
                             <label for="tipo_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Tipo *</label>
                             <select id="tipo_${formId}" name="tipoReceita" required
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                ${['stand','locacao','adicional','outro'].map(t => `<option value="${t}" ${(conta?.tipoReceita ?? conta?.tipo_receita ?? 'stand') === t ? 'selected' : ''}>${t}</option>`).join('')}
+                                ${!id ? '<option value="">Selecione o tipo...</option>' : ''}
+                                ${['stand','locacao','adicional','outro'].map(t => `<option value="${t}" ${id && (conta?.tipoReceita ?? conta?.tipo_receita) === t ? 'selected' : ''}>${t}</option>`).join('')}
                             </select>
                         </div>
 
@@ -4541,7 +4635,8 @@ ENTREGA
 
                         <div>
                             <label for="vencimento_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Vencimento *</label>
-                            <input type="date" id="vencimento_${formId}" name="vencimento" value="${vencimento || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}" required
+                            <input type="date" id="vencimento_${formId}" name="vencimento" value="${vencimento}" required
+                                   placeholder="Selecione a data de vencimento"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         </div>
 
@@ -4549,7 +4644,8 @@ ENTREGA
                             <label for="status_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                             <select id="status_${formId}" name="status"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                ${['Pendente','Pago','Vencido','Cancelado'].map(s => `<option value="${s}" ${(conta?.status ?? 'Pendente') === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                ${!id ? '<option value="Pendente">Pendente</option>' : ''}
+                                ${['Pendente','Pago','Vencido','Cancelado'].map(s => `<option value="${s}" ${id && (conta?.status) === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </div>
 
