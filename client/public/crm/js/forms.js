@@ -1635,7 +1635,7 @@ const FormSystem = {
                             newItem.comprovante = {
                                 nome: data.comprovanteName || 'comprovante',
                                 mime: data.comprovanteMime || null,
-                                download_url: `/api/contas-receber/${payload.id}/comprovante/download`
+                                download_url: `/api/crm/contas-receber/${payload.id}/comprovante/download`
                             };
                             delete newItem.comprovanteDataBase64;
                             delete newItem.comprovanteName;
@@ -1647,14 +1647,14 @@ const FormSystem = {
                         createdId = payload.id;
                     } else {
                         const msg = payload && payload.error ? String(payload.error) : '';
-                        console.error('[FormSystem] POST /api/contas-receber falhou:', { status: resp.status, msg, payload });
+                        console.error('[FormSystem] POST /api/crm/contas-receber falhou:', { status: resp.status, msg, payload });
                         if (resp.status >= 400) {
                             if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
                                 window.NotificationSystem.error(msg || 'Falha ao salvar conta a receber.');
                             }
                             throw new Error(msg || 'Falha ao salvar conta a receber.');
                         }
-                        console.warn('[FormSystem] POST /api/contas-receber não OK, usando fallback local');
+                        console.warn('[FormSystem] POST /api/crm/contas-receber não OK, usando fallback local');
                         if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
                             createdId = ModuleSystem.addItem('contasReceber', { ...data });
                         }
@@ -2227,7 +2227,7 @@ const FormSystem = {
                         nextData.comprovante = {
                             nome: data.comprovanteName || 'comprovante',
                             mime: data.comprovanteMime || null,
-                            download_url: `/api/contas-receber/${id}/comprovante/download`
+                            download_url: `/api/crm/contas-receber/${id}/comprovante/download`
                         };
                         delete nextData.comprovanteDataBase64;
                         delete nextData.comprovanteName;
@@ -4575,7 +4575,7 @@ ENTREGA
         const dataPagamento = (conta?.dataPagamento ?? conta?.data_pagamento ?? '').slice(0, 10);
         const comprovanteObj = conta?.comprovante && typeof conta.comprovante === 'object' ? conta.comprovante : null;
         const comprovanteNome = comprovanteObj?.nome ?? conta?.comprovanteNome ?? conta?.comprovante_nome ?? '';
-        const comprovanteUrl = comprovanteObj?.download_url ?? (id ? `/api/contas-receber/${id}/comprovante/download` : '');
+        const comprovanteUrl = comprovanteObj?.download_url ?? (id ? `/api/crm/contas-receber/${id}/comprovante/download` : '');
 
         return `
             <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" autocomplete="on">
