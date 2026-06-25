@@ -203,7 +203,16 @@
 - [x] Bug 1: Créditos não apareciam no dashboard financeiro — causa raiz: URL errada (/api/contas-receber → /api/crm/contas-receber) + response era {data:[], total:n} mas frontend esperava Array direto; corrigido extraindo .data
 - [x] Bug 2: Nome do cliente aparece como "-" — cliente_id é NULL nas contas existentes (dado faltante, não bug de código); quando preenchido, o JOIN retorna cliente_nome corretamente
 - [x] Bug 3: Contas a receber sumiam ao navegar — loadContasReceber e syncContasReceberFromBackend esperavam Array.isArray(data) mas recebiam objeto {data:[], total:n}; corrigido extraindo .data em todos os métodos de sync
+<<<<<<< Updated upstream
 - [x] Bug 4: POST /api/crm/contas-receber falhava com "Bind parameters must not contain undefined" quando campos opcionais não eram enviados — corrigido com função n() que converte undefined para null em todos os parâmetros do INSERT
 - [x] Bug 5: POST /api/crm/clientes falhava com o mesmo erro de undefined — corrigido com função n() no INSERT e PUT de clientes
 - [x] Verificado end-to-end: criar cliente + criar conta a receber com clienteId → cliente_nome aparece corretamente na lista (teste automatizado confirmado)
 - [x] Versão atualizada para v5.26.0 no index.html e cache-busters atualizados (v=1782217349)
+=======
+
+## Bugs v5.27 — Contas a Receber: cliente, formulário e exclusão
+
+- [ ] Bug 1: Cliente selecionado no formulário não aparece na coluna CLIENTE da lista após salvar
+- [ ] Bug 2: Formulário "Nova Conta a Receber" abre com campos pré-preenchidos (cliente e vencimento) em vez de vazio
+- [ ] Bug 3: Botões CRUD (excluir) não funcionam no módulo Contas a Receber
+>>>>>>> Stashed changes
