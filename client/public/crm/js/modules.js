@@ -212,7 +212,7 @@ const ModuleSystem = {
 
     async loadMemoriais(projetoId = null) {
         try {
-            const url = projetoId ? `/api/memoriais?projeto_id=${encodeURIComponent(projetoId)}` : '/api/memoriais';
+            const url = projetoId ? `/api/crm/memoriais?projeto_id=${encodeURIComponent(projetoId)}` : '/api/crm/memoriais';
             const response = await fetch(url, { credentials: 'include' });
             const json = await response.json().catch(() => []);
             if (Array.isArray(json)) {
@@ -409,7 +409,7 @@ const ModuleSystem = {
                     <button data-action="read" data-module="memoriais" data-id="${m.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar"><i class="fas fa-eye"></i></button>
                     <button data-action="update" data-module="memoriais" data-id="${m.id}" class="text-green-600 hover:text-green-900" title="Editar"><i class="fas fa-edit"></i></button>
                     <button type="button" onclick="(async()=>{const r=await fetch('/api/crm/memoriais/${m.id}/generate-html',{method:'POST',credentials:'include'});const t=await r.text(); const w=window.open('about:blank'); if(w){w.document.write(t); w.document.close();}})()" class="text-purple-600 hover:text-purple-900" title="Gerar Documento"><i class="fas fa-file-export"></i></button>
-                    <button type="button" onclick="(async()=>{try{window.open('/api/memoriais/${m.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
+                    <button type="button" onclick="(async()=>{try{window.open('/api/crm/memoriais/${m.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
                     <button type="button" onclick="(async()=>{try{if(!confirm('Duplicar este memorial como nova versão (rascunho)?')) return; const r=await fetch('/api/crm/memoriais/${m.id}/duplicar',{method:'POST',credentials:'include'}); const j=await r.json().catch(()=>null); if(!r.ok){alert((j&&j.error)?j.error:'Falha ao duplicar memorial'); return;} await ModuleSystem.refreshMemoriaisUI(ModuleSystem.data && ModuleSystem.data._memoriaisFiltroProjetoId ? String(ModuleSystem.data._memoriaisFiltroProjetoId) : null);}catch{alert('Falha ao duplicar memorial');}})()" class="text-gray-700 hover:text-gray-900" title="Duplicar Versão"><i class="fas fa-copy"></i></button>
                     <button data-action="delete" data-module="memoriais" data-id="${m.id}" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></button>
                 </td>
@@ -972,7 +972,7 @@ const ModuleSystem = {
         if (resultEl) resultEl.textContent = 'Varredura em andamento...';
 
         try {
-            let endpoint = '/api/eventos/scan-turismo-oficial';
+            let endpoint = '/api/crm/eventos/scan-turismo-oficial';
             const parseList = (text) => String(text || '')
                 .split(/[\r\n,;|]+/g)
                 .map(s => s.trim())
@@ -990,7 +990,7 @@ const ModuleSystem = {
             };
 
             if (preset === 'sites_govbr') {
-                endpoint = '/api/eventos/scan-sites';
+                endpoint = '/api/crm/eventos/scan-sites';
                 const seedUrls = seedUrlsText
                     .split(/\r?\n/)
                     .map(s => s.trim())
@@ -1910,7 +1910,7 @@ const ModuleSystem = {
             };
             const refresh = async () => {
                 try {
-                    const rows = await api('/api/contratos');
+                    const rows = await api('/api/crm/contratos');
                     body.innerHTML = (rows || []).map(c => `
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 text-sm text-gray-900">${c.numero || '-'}</td>
@@ -1983,11 +1983,11 @@ const ModuleSystem = {
                 return j;
             };
             const loadUsers = async () => {
-                const rows = await api('/api/users');
+                const rows = await api('/api/crm/users');
                 selResp.innerHTML = `<option value="">Todos os responsáveis</option>` + rows.map(u => `<option value="${u.id}">${u.name || u.email || u.id}</option>`).join('');
             };
             const loadEventos = async () => {
-                const rows = await api('/api/eventos');
+                const rows = await api('/api/crm/eventos');
                 selEvento.innerHTML = `<option value="">Todos os eventos</option>` + rows.map(e => `<option value="${e.id}">${e.nome || e.id}</option>`).join('');
             };
             const render = (ops) => {
@@ -2058,7 +2058,7 @@ const ModuleSystem = {
                 const qs = new URLSearchParams();
                 if (selResp.value) qs.set('responsavel_id', selResp.value);
                 if (selEvento.value) qs.set('evento_id', selEvento.value);
-                return await api('/api/oportunidades' + (qs.toString() ? ('?' + qs.toString()) : ''));
+                return await api('/api/crm/oportunidades' + (qs.toString() ? ('?' + qs.toString()) : ''));
             };
             const refresh = async () => {
                 try {
@@ -2382,7 +2382,7 @@ const ModuleSystem = {
                                             <button data-action="read" data-module="briefings" data-id="${briefing.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar"><i class="fas fa-eye"></i></button>
                                             <button data-action="update" data-module="briefings" data-id="${briefing.id}" class="text-green-600 hover:text-green-900" title="Editar"><i class="fas fa-edit"></i></button>
                                             <button type="button" onclick="(async()=>{try{const r=await fetch('/api/crm/briefings/${briefing.id}/generate-html',{method:'POST',credentials:'include'});const t=await r.text(); if(!r.ok) throw new Error('Falha ao gerar HTML'); const w=window.open('about:blank'); if(w){w.document.open(); w.document.write(t); w.document.close();} else {alert('Pop-up bloqueado');} if(window.ComercialModule && typeof ComercialModule.loadBriefings==='function'){await ComercialModule.loadBriefings();}}catch(e){alert(e&&e.message?e.message:'Falha ao gerar documento');}})()" class="text-purple-600 hover:text-purple-900" title="Gerar Documento"><i class="fas fa-file-export"></i></button>
-                                            <button type="button" onclick="(async()=>{try{window.open('/api/briefings/${briefing.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
+                                            <button type="button" onclick="(async()=>{try{window.open('/api/crm/briefings/${briefing.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
                                             <button type="button" onclick="(async()=>{try{if(!confirm('Duplicar este briefing como nova versão?')) return; const r=await fetch('/api/crm/briefings/${briefing.id}/duplicar',{method:'POST',credentials:'include'}); const j=await r.json().catch(()=>null); if(!r.ok){alert((j&&j.error)?j.error:'Falha ao duplicar briefing'); return;} if(window.ComercialModule && typeof ComercialModule.loadBriefings==='function'){await ComercialModule.loadBriefings();} else {location.reload();}}catch{alert('Falha ao duplicar briefing');}})()" class="text-gray-700 hover:text-gray-900" title="Duplicar Versão"><i class="fas fa-copy"></i></button>
                                             <button data-action="delete" data-module="briefings" data-id="${briefing.id}" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></button>
                                         </td>
@@ -2461,7 +2461,7 @@ const ModuleSystem = {
             const build = async () => {
                 const [t, users] = await Promise.all([
                     api('/api/tarefas-admin/' + encodeURIComponent(taskId)),
-                    api('/api/users').catch(() => [])
+                    api('/api/crm/users').catch(() => [])
                 ]);
 
                 const roleNorm = (u) => {
@@ -3344,7 +3344,7 @@ const ModuleSystem = {
                                     aria-label="Gerar documento do projeto ${getNomeProjeto(projeto)}">
                                 <i class="fas fa-file-export"></i>
                             </button>
-                            <button type="button" onclick="(async()=>{try{window.open('/api/projetos/${projeto.id}/download-html','_blank');}catch{}})()"
+                            <button type="button" onclick="(async()=>{try{window.open('/api/crm/projetos/${projeto.id}/download-html','_blank');}catch{}})()"
                                     class="text-indigo-600 hover:text-indigo-900"
                                     title="Baixar HTML"
                                     aria-label="Baixar HTML do projeto ${getNomeProjeto(projeto)}">
@@ -3480,7 +3480,7 @@ const ModuleSystem = {
             };
             const refresh = async () => {
                 try {
-                    const rows = await api('/api/ordens-servico');
+                    const rows = await api('/api/crm/ordens-servico');
                     body.innerHTML = (rows || []).map(os => `
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-3 text-sm text-gray-900">${os.numero || '-'}</td>
@@ -4352,7 +4352,7 @@ const ModuleSystem = {
                 if (!isManagerOrAdmin || !canManageTeam) return;
                 const { mes, ano, base } = readFilters();
                 teamPanel.innerHTML = `<div class="text-sm text-gray-500">Carregando...</div>`;
-                const users = await api('/api/users');
+                const users = await api('/api/crm/users');
                 const sellers = (users || []).filter(u => u && u.active === 1 && ['vendedor','comercial','vendas'].includes(String(u.role || '').toLowerCase()));
                 const dash = await api(`/api/metas/dashboard?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
 
@@ -5720,7 +5720,7 @@ const ModuleSystem = {
                             if (state.includeAuto) qs.set('include_auto', '1');
                             const [tasks, users] = await Promise.all([
                                 api('/api/tarefas-admin?' + qs.toString()),
-                                api('/api/users')
+                                api('/api/crm/users')
                             ]);
                             state.tasks = Array.isArray(tasks) ? tasks : [];
                             state.users = Array.isArray(users) ? users : [];
@@ -8029,10 +8029,10 @@ const ModuleSystem = {
             try {
                 const endpoint = isLead
                     ? `/api/crm/leads/${encodeURIComponent(idStr)}`
-                    : (isContato ? `/api/contatos/${encodeURIComponent(idStr)}`
+                    : (isContato ? `/api/crm/contatos/${encodeURIComponent(idStr)}`
                     : (isEvento
-                        ? `/api/eventos/${encodeURIComponent(idStr)}`
-                        : (isBriefing ? `/api/briefings/${encodeURIComponent(idStr)}` : (isContaReceber ? `/api/crm/contas-receber/${encodeURIComponent(idStr)}` : (isCliente ? `/api/clientes/${encodeURIComponent(idStr)}` : `/api/memoriais/${encodeURIComponent(idStr)}`)))));
+                        ? `/api/crm/eventos/${encodeURIComponent(idStr)}`
+                        : (isBriefing ? `/api/crm/briefings/${encodeURIComponent(idStr)}` : (isContaReceber ? `/api/crm/contas-receber/${encodeURIComponent(idStr)}` : (isCliente ? `/api/crm/clientes/${encodeURIComponent(idStr)}` : `/api/crm/memoriais/${encodeURIComponent(idStr)}`)))));
                 const resp = await fetch(endpoint, {
                     method: 'DELETE',
                     credentials: 'include'
@@ -9023,7 +9023,7 @@ window.MarketingModule.loadContatos = async function() {
     let apiRows = [];
     let apiOk = false;
     try {
-      const url = filter === 'unassigned' ? '/api/contatos?unassigned=1' : '/api/contatos';
+      const url = filter === 'unassigned' ? '/api/crm/contatos?unassigned=1' : '/api/crm/contatos';
       const r = await fetch(url, { credentials: 'include' });
       const j = await r.json().catch(() => []);
       if (r.ok && Array.isArray(j)) {
@@ -9607,7 +9607,7 @@ window.ComercialModule.loadBriefings = async function() {
           <button data-action="read" data-module="briefings" data-id="${briefing.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar"><i class="fas fa-eye"></i></button>
           <button data-action="update" data-module="briefings" data-id="${briefing.id}" class="text-green-600 hover:text-green-900" title="Editar"><i class="fas fa-edit"></i></button>
           <button type="button" onclick="(async()=>{try{const r=await fetch('/api/crm/briefings/${briefing.id}/generate-html',{method:'POST',credentials:'include'});const t=await r.text(); if(!r.ok) throw new Error('Falha ao gerar HTML'); const w=window.open('about:blank'); if(w){w.document.open(); w.document.write(t); w.document.close();} else {alert('Pop-up bloqueado');} if(window.ComercialModule && typeof ComercialModule.loadBriefings==='function'){await ComercialModule.loadBriefings();}}catch(e){alert(e&&e.message?e.message:'Falha ao gerar documento');}})()" class="text-purple-600 hover:text-purple-900" title="Gerar Documento"><i class="fas fa-file-export"></i></button>
-          <button type="button" onclick="(async()=>{try{window.open('/api/briefings/${briefing.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
+          <button type="button" onclick="(async()=>{try{window.open('/api/crm/briefings/${briefing.id}/download-html','_blank');}catch{}})()" class="text-indigo-600 hover:text-indigo-900" title="Baixar HTML"><i class="fas fa-download"></i></button>
           <button type="button" onclick="(async()=>{try{if(!confirm('Duplicar este briefing como nova versão?')) return; const r=await fetch('/api/crm/briefings/${briefing.id}/duplicar',{method:'POST',credentials:'include'}); const j=await r.json().catch(()=>null); if(!r.ok){alert((j&&j.error)?j.error:'Falha ao duplicar briefing'); return;} if(window.ComercialModule && typeof ComercialModule.loadBriefings==='function'){await ComercialModule.loadBriefings();} else {location.reload();}}catch{alert('Falha ao duplicar briefing');}})()" class="text-gray-700 hover:text-gray-900" title="Duplicar Versão"><i class="fas fa-copy"></i></button>
           <button data-action="delete" data-module="briefings" data-id="${briefing.id}" class="text-red-600 hover:text-red-900" title="Excluir"><i class="fas fa-trash"></i></button>
         </td>

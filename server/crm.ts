@@ -509,6 +509,25 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true });
   });
 
+  r.delete("/clientes/:id", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const existing = await dbOne("SELECT id, nome FROM crm_clientes WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Cliente não encontrado" });
+    // Verificar vínculos antes de excluir
+    const vinculos = await dbOne<any>(
+      "SELECT COUNT(*) as total FROM crm_contas_receber WHERE cliente_id = ?",
+      [id]
+    );
+    if (vinculos && vinculos.total > 0) {
+      return res.status(409).json({ error: `Este cliente possui ${vinculos.total} conta(s) a receber vinculada(s). Exclua-as antes.` });
+    }
+    await db("DELETE FROM crm_clientes WHERE id = ?", [id]);
+    await audit(u.userId, "delete", "crm_clientes", id, { nome: (existing as any).nome }, req.ip);
+    res.json({ ok: true, success: true });
+  });
+
   // ── Briefings ───────────────────────────────────────────────────────────────
   r.get("/briefings", requireCrmAuth, async (req, res) => {
     const { status, limit = 50, offset = 0 } = req.query as any;
@@ -686,6 +705,18 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true, projetoId, transacaoId, valorContaPagar, custoProjetoM2, metragemM2, centroCusto });
   });
 
+  r.delete("/briefings/:id", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const existing = await dbOne("SELECT id FROM crm_briefings WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Briefing não encontrado" });
+    await db("DELETE FROM crm_briefing_checklist WHERE briefing_id = ?", [id]);
+    await db("DELETE FROM crm_briefings WHERE id = ?", [id]);
+    await audit(u.userId, "delete", "crm_briefings", id, {}, req.ip);
+    res.json({ ok: true, success: true });
+  });
+
   // ── Oportunidades (Kanban) ──────────────────────────────────────────────────
   r.get("/oportunidades", requireCrmAuth, async (req, res) => {
     const { etapa, responsavel_id } = req.query as any;
@@ -742,6 +773,31 @@ export function registerCrmRoutes(app: any) {
     );
     await audit(u.userId, "create", "crm_eventos", (result as any).insertId, { nome }, req.ip);
     res.json({ id: (result as any).insertId, ok: true });
+  });
+
+  r.put("/eventos/:id", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const { nome, organizadora, local, endereco, data_inicio, data_fim, status, taxas_json, observacoes } = req.body;
+    if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
+    await db(
+      "UPDATE crm_eventos SET nome=?, organizadora=?, local=?, endereco=?, data_inicio=?, data_fim=?, status=?, taxas_json=?, observacoes=? WHERE id=?",
+      [nome, organizadora, local, endereco, data_inicio, data_fim, status ?? "Planejado", taxas_json ? JSON.stringify(taxas_json) : null, observacoes, id]
+    );
+    await audit(u.userId, "update", "crm_eventos", id, req.body, req.ip);
+    res.json({ ok: true });
+  });
+
+  r.delete("/eventos/:id", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const existing = await dbOne("SELECT id, nome FROM crm_eventos WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Evento não encontrado" });
+    await db("DELETE FROM crm_eventos WHERE id = ?", [id]);
+    await audit(u.userId, "delete", "crm_eventos", id, { nome: (existing as any).nome }, req.ip);
+    res.json({ ok: true, success: true });
   });
 
   // ── Contratos ───────────────────────────────────────────────────────────────
@@ -894,6 +950,28 @@ export function registerCrmRoutes(app: any) {
     );
     await audit(u.userId, "pagar", "crm_contas_receber", parseInt(req.params.id), { valor_pago }, req.ip);
     res.json({ ok: true });
+  });
+
+  r.delete("/contas-receber/:id", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const existing = await dbOne("SELECT id, descricao FROM crm_contas_receber WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Conta a receber não encontrada" });
+    await db("DELETE FROM crm_contas_receber WHERE id = ?", [id]);
+    await audit(u.userId, "delete", "crm_contas_receber", id, { descricao: (existing as any).descricao }, req.ip);
+    res.json({ ok: true, success: true });
+  });
+
+  r.delete("/contas-receber/:id/comprovante", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+    const existing = await dbOne<any>("SELECT id, comprovante_url FROM crm_contas_receber WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Conta a receber não encontrada" });
+    await db("UPDATE crm_contas_receber SET comprovante_url = NULL WHERE id = ?", [id]);
+    await audit(u.userId, "delete_comprovante", "crm_contas_receber", id, {}, req.ip);
+    res.json({ ok: true, success: true });
   });
 
   // ── Ordens de Serviço ───────────────────────────────────────────────────────
