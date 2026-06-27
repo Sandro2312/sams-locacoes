@@ -954,7 +954,6 @@ export function registerCrmRoutes(app: any) {
 
   r.delete("/contas-receber/:id", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
-<<<<<<< Updated upstream
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
     const existing = await dbOne("SELECT id, descricao FROM crm_contas_receber WHERE id = ?", [id]);
@@ -973,15 +972,6 @@ export function registerCrmRoutes(app: any) {
     await db("UPDATE crm_contas_receber SET comprovante_url = NULL WHERE id = ?", [id]);
     await audit(u.userId, "delete_comprovante", "crm_contas_receber", id, {}, req.ip);
     res.json({ ok: true, success: true });
-=======
-    const { id } = req.params;
-    if (!id || isNaN(Number(id))) return res.status(400).json({ error: "ID inválido" });
-    const rows = await db("SELECT id FROM crm_contas_receber WHERE id=?", [id]);
-    if (!rows || (rows as any[]).length === 0) return res.status(404).json({ error: "Conta a receber não encontrada" });
-    await db("DELETE FROM crm_contas_receber WHERE id=?", [id]);
-    await audit(u.userId, "delete", "crm_contas_receber", parseInt(id), {}, req.ip);
-    res.json({ ok: true });
->>>>>>> Stashed changes
   });
 
   // ── Ordens de Serviço ───────────────────────────────────────────────────────

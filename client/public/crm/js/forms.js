@@ -2233,7 +2233,32 @@ const FormSystem = {
                         delete nextData.comprovanteName;
                         delete nextData.comprovanteMime;
                     }
+                    // Resolver clienteNome a partir do clienteId para atualizar a lista corretamente
+                    if (nextData.clienteId != null && String(nextData.clienteId).trim() !== '') {
+                        const allClientes = [
+                            ...((window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.clientes)) ? ModuleSystem.data.clientes : []),
+                            ...((window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.leads)) ? ModuleSystem.data.leads : [])
+                        ];
+                        const found = allClientes.find(c => c && c.id != null && String(c.id) === String(nextData.clienteId));
+                        if (found) {
+                            nextData.clienteNome = found.nome || found.razao_social || found.empresa || null;
+                            nextData.clienteEmail = found.email || null;
+                        }
+                    } else if (nextData.clienteId == null || String(nextData.clienteId).trim() === '') {
+                        nextData.clienteNome = null;
+                        nextData.clienteEmail = null;
+                    }
                     ModuleSystem.updateItem('contasReceber', id, nextData);
+                    // Recarregar lista para garantir sincronismo com o backend
+                    if (ok) {
+                        setTimeout(() => {
+                            if (window.FinanceiroModule && typeof window.FinanceiroModule.loadContasReceber === 'function') {
+                                window.FinanceiroModule.loadContasReceber();
+                            } else if (typeof ModuleSystem.syncContasReceberFromBackend === 'function') {
+                                ModuleSystem.syncContasReceberFromBackend().catch(() => {});
+                            }
+                        }, 300);
+                    }
                 }
             } else if (module === 'transacoes') {
                 // Atualizar transação via API REST
@@ -4571,14 +4596,15 @@ ENTREGA
         const selectedClienteId = conta?.clienteId ?? conta?.cliente_id ?? '';
         const selectedVendaId = conta?.vendaId ?? conta?.venda_id ?? '';
 
-        const vencimento = (conta?.vencimento || '').slice(0, 10);
+        // Para novo registro, vencimento deve ficar vazio (não pré-preencher com data atual)
+        const vencimento = id ? (conta?.vencimento || '').slice(0, 10) : '';
         const dataPagamento = (conta?.dataPagamento ?? conta?.data_pagamento ?? '').slice(0, 10);
         const comprovanteObj = conta?.comprovante && typeof conta.comprovante === 'object' ? conta.comprovante : null;
         const comprovanteNome = comprovanteObj?.nome ?? conta?.comprovanteNome ?? conta?.comprovante_nome ?? '';
         const comprovanteUrl = comprovanteObj?.download_url ?? (id ? `/api/crm/contas-receber/${id}/comprovante/download` : '');
 
         return `
-            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" autocomplete="on">
+            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" autocomplete="${id ? 'on' : 'off'}">
                 <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg mb-6 border border-green-200">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">
                         <i class="fas fa-coins mr-3 text-green-600"></i>${id ? 'Editar' : 'Nova'} Conta a Receber
@@ -4593,7 +4619,7 @@ ENTREGA
 
                         <div>
                             <label for="cliente_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-                            <select id="cliente_${formId}" name="clienteId"
+                            <select id="cliente_${formId}" name="clienteId" autocomplete="off"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                                 <option value="">Selecione um cliente...</option>
                                 ${clientes.map(c => {
