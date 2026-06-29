@@ -215,3 +215,8 @@
 - [x] Bug 3: Editar registro sem cliente, adicionar cliente e salvar não atualizava clienteNome na lista → PUT agora resolve clienteNome a partir do clienteId local e chama loadContasReceber() após 300ms para sincronizar com backend
 - [x] Bug 4: Formulário "Nova Conta a Receber" vinha com campo Vencimento pré-preenchido com data atual → corrigido: vencimento só é pré-preenchido ao editar registro existente
 - [x] Versão atualizada para v5.27.0, cache-busters atualizados (v=1782594928)
+
+## Correções v5.28 — Campo "Centro de Custos" em Contas a Receber
+
+- [x] Bug: Campo "Centro de Custos" preenchido no formulário não era salvo — coluna `centro_custo` não existia na tabela `crm_contas_receber`; adicionada via ALTER TABLE; INSERT e UPDATE do backend restaurados
+- [x] Feature: Persistir último valor de "Centro de Custos" no localStorage (`sams_crm_last_centro_custo`) — ao abrir novo formulário, campo é pré-preenchido com o último valor usado

@@ -1631,6 +1631,10 @@ const FormSystem = {
                     const payload = await resp.json().catch(() => ({}));
                     if (resp.ok && payload && payload.id != null) {
                         const newItem = { ...data, id: payload.id };
+                        // Persistir Centro de Custos para futuros lançamentos
+                        if (data.centroCusto && String(data.centroCusto).trim() !== '') {
+                            try { localStorage.setItem('sams_crm_last_centro_custo', String(data.centroCusto).trim()); } catch(e) {}
+                        }
                         if (data.comprovanteDataBase64) {
                             newItem.comprovante = {
                                 nome: data.comprovanteName || 'comprovante',
@@ -2214,6 +2218,10 @@ const FormSystem = {
                         }
                     } else {
                         ok = true;
+                        // Persistir Centro de Custos para futuros lançamentos
+                        if (data.centroCusto && String(data.centroCusto).trim() !== '') {
+                            try { localStorage.setItem('sams_crm_last_centro_custo', String(data.centroCusto).trim()); } catch(e) {}
+                        }
                     }
                 } catch (err) {
                     console.warn('[FormSystem] Falha ao atualizar conta a receber:', err);
@@ -4576,6 +4584,8 @@ ENTREGA
     // Formulário de Contas a Receber (Receitas)
     getContaReceberForm(id = null) {
         const conta = id ? (ModuleSystem.data.contasReceber?.find(c => String(c.id) === String(id)) || {}) : {};
+        // Para novo registro, pré-preencher Centro de Custos com o último valor salvo (localStorage)
+        const lastCentroCusto = !id ? (localStorage.getItem('sams_crm_last_centro_custo') || '') : '';
         const formId = `conta_receber_${id || 'new'}`;
 
         const clientes = (() => {
@@ -4639,7 +4649,7 @@ ENTREGA
                         </div>
                         <div>
                             <label for="centro_custo_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Centro de Custos</label>
-                            <input type="text" id="centro_custo_${formId}" name="centroCusto" value="${conta?.centroCusto ?? conta?.centro_custo ?? ''}"
+                            <input type="text" id="centro_custo_${formId}" name="centroCusto" value="${conta?.centroCusto ?? conta?.centro_custo ?? lastCentroCusto}"
                                    placeholder="Ex: Evento XPTO - Locação / Montagem"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         </div>
