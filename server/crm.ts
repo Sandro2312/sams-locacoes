@@ -11,6 +11,12 @@ import { transcribeAudio } from "./_core/voiceTranscription";
 import { sendEmail, buildPasswordResetEmail } from "./crm-email";
 import { storagePut } from "./storage";
 
+// Helper para LIMIT/OFFSET seguros — evita SQL injection por interpolação
+function safeInt(val: any, defaultVal: number, min = 0, max = 10000): number {
+  const n = parseInt(val, 10);
+  if (!Number.isFinite(n)) return defaultVal;
+  return Math.max(min, Math.min(max, n));
+}
 // Helper para parsear cookies do header
 function getCookie(req: Request, name: string): string | undefined {
   const header = req.headers.cookie;
@@ -368,8 +374,8 @@ export function registerCrmRoutes(app: any) {
     if (status) { where += " AND l.status = ?"; params.push(status); }
     if (temperatura) { where += " AND l.temperatura = ?"; params.push(temperatura); }
     if (responsavel_id) { where += " AND l.responsavel_id = ?"; params.push(responsavel_id); }
-    const limitNum = parseInt(limit) || 50;
-    const offsetNum = parseInt(offset) || 0;
+    const limitNum = safeInt(limit, 50, 1, 500);
+    const offsetNum = safeInt(offset, 0, 0, 100000);
     const rows = await db(
       `SELECT l.*, u.name as responsavel_nome FROM crm_leads l LEFT JOIN crm_users u ON l.responsavel_id = u.id ${where} ORDER BY l.created_at DESC LIMIT ${limitNum} OFFSET ${offsetNum}`,
       params
@@ -471,7 +477,7 @@ export function registerCrmRoutes(app: any) {
     const params: any[] = [];
     if (status) { where += " AND status = ?"; params.push(status); }
     if (q) { where += " AND (nome LIKE ? OR email LIKE ? OR documento LIKE ?)"; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
-    const lim = parseInt(limit) || 50; const off = parseInt(offset) || 0;
+    const lim = safeInt(limit, 50, 1, 500); const off = safeInt(offset, 0, 0, 100000);
     const rows = await db(`SELECT * FROM crm_clientes ${where} ORDER BY nome ASC LIMIT ${lim} OFFSET ${off}`, params);
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_clientes ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
@@ -534,7 +540,7 @@ export function registerCrmRoutes(app: any) {
     let where = "WHERE 1=1";
     const params: any[] = [];
     if (status) { where += " AND status = ?"; params.push(status); }
-    const lim = parseInt(limit) || 50; const off = parseInt(offset) || 0;
+    const lim = safeInt(limit, 50, 1, 500); const off = safeInt(offset, 0, 0, 100000);
     const rows = await db(`SELECT * FROM crm_briefings ${where} ORDER BY created_at DESC LIMIT ${lim} OFFSET ${off}`, params);
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_briefings ${where}`, params);
     res.json({ data: rows, total: (count as any).total });
@@ -834,7 +840,7 @@ export function registerCrmRoutes(app: any) {
     const params: any[] = [];
     if (status) { where += " AND cr.status = ?"; params.push(status); }
     const rows = await db(
-      `SELECT cr.*, COALESCE(c.nome, '') as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ${parseInt(limit)||50} OFFSET ${parseInt(offset)||0}`,
+      `SELECT cr.*, COALESCE(c.nome, '') as cliente_nome FROM crm_contas_receber cr LEFT JOIN crm_clientes c ON cr.cliente_id = c.id ${where} ORDER BY cr.vencimento ASC LIMIT ${safeInt(limit, 50, 1, 500)} OFFSET ${safeInt(offset, 0, 0, 100000)}`,
       params
     );
     const [count] = await db(`SELECT COUNT(*) as total FROM crm_contas_receber cr ${where}`, params);
@@ -1071,7 +1077,7 @@ export function registerCrmRoutes(app: any) {
   r.get("/auditoria", requireCrmAdmin, async (req, res) => {
     const { limit = 100, offset = 0 } = req.query as any;
     const rows = await db(
-      `SELECT a.*, u.name as user_nome FROM crm_auditoria a LEFT JOIN crm_users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT ${parseInt(limit)||100} OFFSET ${parseInt(offset)||0}`,
+      `SELECT a.*, u.name as user_nome FROM crm_auditoria a LEFT JOIN crm_users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT ${safeInt(limit, 100, 1, 500)} OFFSET ${safeInt(offset, 0, 0, 100000)}`,
       []
     );
     res.json(rows);
@@ -1736,6 +1742,201 @@ export function registerCrmRoutes(app: any) {
       res.json({ message: "Despesa deletada com sucesso" });
     } catch (e: any) {
       res.status(500).json({ error: e?.message || "Falha ao deletar despesa" });
+    }
+  });
+
+  // ── Comissões e Metas ───────────────────────────────────────────────────────
+  // Helper: buscar regra de comissão ativa para um vendedor (ou regra global)
+  async function getComissaoRegra(vendedorId: number, baseStatus: string) {
+    // Tenta regra específica do vendedor primeiro, depois regra global (vendedor_id IS NULL)
+    const regra = await dbOne<any>(
+      "SELECT * FROM crm_comissao_regras WHERE (vendedor_id = ? OR vendedor_id IS NULL) AND base_status = ? ORDER BY vendedor_id DESC LIMIT 1",
+      [vendedorId, baseStatus]
+    );
+    return regra || { base_percent: 0.03, bonus_percent: 0.05, bonus_threshold: 1.0 };
+  }
+
+  // GET /vendedor/performance — performance individual do vendedor logado
+  r.get("/vendedor/performance", requireCrmAuth, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const mes = safeInt(req.query.mes, new Date().getMonth() + 1, 1, 12);
+      const ano = safeInt(req.query.ano, new Date().getFullYear(), 2020, 2100);
+      const base = String(req.query.base_status || 'pagas').trim();
+      const statusFilter = base === 'faturadas' ? ['pendente', 'pago'] : ['pago'];
+      const placeholders = statusFilter.map(() => '?').join(',');
+      // Vendas do período filtradas por status
+      const [totRow] = await db<any>(
+        `SELECT COALESCE(SUM(valor), 0) as total FROM crm_contas_receber
+         WHERE MONTH(vencimento) = ? AND YEAR(vencimento) = ? AND status IN (${placeholders})`,
+        [mes, ano, ...statusFilter]
+      );
+      const vendas_realizadas = Number(totRow?.total || 0);
+      // Meta do vendedor para o período
+      const metaRow = await dbOne<any>(
+        "SELECT valor_meta FROM crm_metas WHERE vendedor_id = ? AND ((tipo='mensal' AND mes_ref=? AND ano_ref=?) OR (tipo='anual' AND ano_ref=? AND mes_ref=0)) ORDER BY tipo ASC LIMIT 1",
+        [u.userId, mes, ano, ano]
+      );
+      const meta_mensal = Number(metaRow?.valor_meta || 0);
+      const atingimento_percent = meta_mensal > 0 ? Math.round((vendas_realizadas / meta_mensal) * 100) : null;
+      const regra = await getComissaoRegra(u.userId, base === 'faturadas' ? 'faturadas' : 'pagas');
+      const rate = atingimento_percent != null && atingimento_percent >= Number(regra.bonus_threshold) * 100
+        ? Number(regra.bonus_percent)
+        : Number(regra.base_percent);
+      res.json({ meta_mensal, vendas_realizadas, atingimento_percent, taxa_comissao: rate });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao calcular performance' });
+    }
+  });
+
+  // GET /vendedor/comissoes — extrato de comissões do vendedor logado
+  r.get("/vendedor/comissoes", requireCrmAuth, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const mes = safeInt(req.query.mes, new Date().getMonth() + 1, 1, 12);
+      const ano = safeInt(req.query.ano, new Date().getFullYear(), 2020, 2100);
+      const base = String(req.query.base_status || 'pagas').trim();
+      const statusFilter = base === 'faturadas' ? ['pendente', 'pago'] : ['pago'];
+      const placeholders = statusFilter.map(() => '?').join(',');
+      const rows = await db<any>(
+        `SELECT cr.id, cr.descricao, cr.centro_custo, cr.status, cr.valor,
+                COALESCE(c.nome, '') as cliente_nome
+         FROM crm_contas_receber cr
+         LEFT JOIN crm_clientes c ON cr.cliente_id = c.id
+         WHERE MONTH(cr.vencimento) = ? AND YEAR(cr.vencimento) = ? AND cr.status IN (${placeholders})
+         ORDER BY cr.vencimento ASC`,
+        [mes, ano, ...statusFilter]
+      );
+      const regra = await getComissaoRegra(u.userId, base === 'faturadas' ? 'faturadas' : 'pagas');
+      // Calcular atingimento para determinar taxa
+      const [totRow] = await db<any>(
+        `SELECT COALESCE(SUM(valor), 0) as total FROM crm_contas_receber
+         WHERE MONTH(vencimento) = ? AND YEAR(vencimento) = ? AND status IN (${placeholders})`,
+        [mes, ano, ...statusFilter]
+      );
+      const vendas_total = Number(totRow?.total || 0);
+      const metaRow = await dbOne<any>(
+        "SELECT valor_meta FROM crm_metas WHERE vendedor_id = ? AND ((tipo='mensal' AND mes_ref=? AND ano_ref=?) OR (tipo='anual' AND ano_ref=? AND mes_ref=0)) ORDER BY tipo ASC LIMIT 1",
+        [u.userId, mes, ano, ano]
+      );
+      const meta = Number(metaRow?.valor_meta || 0);
+      const atingimento = meta > 0 ? vendas_total / meta : 0;
+      const rate = atingimento >= Number(regra.bonus_threshold)
+        ? Number(regra.bonus_percent)
+        : Number(regra.base_percent);
+      const items = rows.map((r: any) => ({
+        ...r,
+        comissao: Number(r.valor) * rate,
+        taxa: rate
+      }));
+      const total_comissao = items.reduce((s: number, i: any) => s + i.comissao, 0);
+      res.json({ items, total_comissao, taxa_aplicada: rate });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao calcular comissões' });
+    }
+  });
+
+  // GET /metas/dashboard — painel de metas da equipe (admin/gerente)
+  r.get("/metas/dashboard", requireCrmAuth, async (req, res) => {
+    try {
+      const mes = safeInt(req.query.mes, new Date().getMonth() + 1, 1, 12);
+      const ano = safeInt(req.query.ano, new Date().getFullYear(), 2020, 2100);
+      const base = String(req.query.base_status || 'pagas').trim();
+      const statusFilter = base === 'faturadas' ? ['pendente', 'pago'] : ['pago'];
+      const placeholders = statusFilter.map(() => '?').join(',');
+      // Todos os vendedores
+      const vendedores = await db<any>("SELECT id, name, email FROM crm_users WHERE role='vendedor' ORDER BY name ASC", []);
+      // Vendas totais do período
+      const [totRow] = await db<any>(
+        `SELECT COALESCE(SUM(valor), 0) as total FROM crm_contas_receber
+         WHERE MONTH(vencimento) = ? AND YEAR(vencimento) = ? AND status IN (${placeholders})`,
+        [mes, ano, ...statusFilter]
+      );
+      const vendas_total = Number(totRow?.total || 0);
+      // Montar dados por vendedor
+      const team = await Promise.all(vendedores.map(async (v: any) => {
+        const metaRow = await dbOne<any>(
+          "SELECT valor_meta FROM crm_metas WHERE vendedor_id = ? AND ((tipo='mensal' AND mes_ref=? AND ano_ref=?) OR (tipo='anual' AND ano_ref=? AND mes_ref=0)) ORDER BY tipo ASC LIMIT 1",
+          [v.id, mes, ano, ano]
+        );
+        const meta = Number(metaRow?.valor_meta || 0);
+        const atingimento_percent = meta > 0 ? Math.round((vendas_total / meta) * 100) : null;
+        return { id: v.id, nome: v.name, email: v.email, meta_mensal: meta, vendas_realizadas: vendas_total, atingimento_percent };
+      }));
+      res.json({ team, vendas_total });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao carregar dashboard de metas' });
+    }
+  });
+
+  // POST /metas — salvar/atualizar meta de vendedor
+  r.post("/metas", requireCrmAuth, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const { vendedor_id, mes_ref, ano_ref, valor_meta, tipo = 'mensal' } = req.body;
+      if (!vendedor_id || !ano_ref || valor_meta == null) return res.status(400).json({ error: 'vendedor_id, ano_ref e valor_meta são obrigatórios' });
+      const vid = parseInt(vendedor_id, 10);
+      const ano = parseInt(ano_ref, 10);
+      const mes = tipo === 'anual' ? 0 : safeInt(mes_ref, new Date().getMonth() + 1, 0, 12);
+      const val = Number(valor_meta);
+      if (!Number.isFinite(vid) || !Number.isFinite(ano) || !Number.isFinite(val)) return res.status(400).json({ error: 'Valores inválidos' });
+      // Upsert
+      await db(
+        "INSERT INTO crm_metas (vendedor_id, ano_ref, mes_ref, valor_meta, tipo) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE valor_meta=VALUES(valor_meta), tipo=VALUES(tipo)",
+        [vid, ano, mes, val, tipo]
+      );
+      await audit(u.userId, 'update', 'crm_metas', vid, { ano_ref: ano, mes_ref: mes, valor_meta: val, tipo }, req.ip);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao salvar meta' });
+    }
+  });
+
+  // GET /admin/comissao-regras — listar regras de comissão
+  r.get("/admin/comissao-regras", requireCrmAuth, async (req, res) => {
+    try {
+      const rows = await db<any>(
+        "SELECT cr.*, u.name as vendedor_nome FROM crm_comissao_regras cr LEFT JOIN crm_users u ON cr.vendedor_id = u.id ORDER BY cr.vendedor_id ASC",
+        []
+      );
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao listar regras' });
+    }
+  });
+
+  // POST /admin/comissao-regras — criar regra de comissão
+  r.post("/admin/comissao-regras", requireCrmAdmin, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const { vendedor_id, base_percent, bonus_percent, bonus_threshold, base_status = 'pagas' } = req.body;
+      const bp = Number(base_percent || 0.03);
+      const bonp = Number(bonus_percent || 0.05);
+      const bont = Number(bonus_threshold || 1.0);
+      const vid = vendedor_id ? parseInt(vendedor_id, 10) : null;
+      const [result] = await getPool().execute(
+        "INSERT INTO crm_comissao_regras (vendedor_id, base_percent, bonus_percent, bonus_threshold, base_status) VALUES (?,?,?,?,?)",
+        [vid, bp, bonp, bont, base_status]
+      );
+      const id = (result as any).insertId;
+      await audit(u.userId, 'create', 'crm_comissao_regras', id, req.body, req.ip);
+      res.json({ id, ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao criar regra' });
+    }
+  });
+
+  // DELETE /admin/comissao-regras/:id — excluir regra de comissão
+  r.delete("/admin/comissao-regras/:id", requireCrmAdmin, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const id = safeInt(req.params.id, 0, 1, 999999);
+      if (!id) return res.status(400).json({ error: 'ID inválido' });
+      await db("DELETE FROM crm_comissao_regras WHERE id = ?", [id]);
+      await audit(u.userId, 'delete', 'crm_comissao_regras', id, {}, req.ip);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao excluir regra' });
     }
   });
 

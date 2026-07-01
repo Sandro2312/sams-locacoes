@@ -218,5 +218,17 @@
 
 ## Correções v5.28 — Campo "Centro de Custos" em Contas a Receber
 
+<<<<<<< Updated upstream
 - [x] Bug: Campo "Centro de Custos" preenchido no formulário não era salvo — coluna `centro_custo` não existia na tabela `crm_contas_receber`; adicionada via ALTER TABLE; INSERT e UPDATE do backend restaurados
 - [x] Feature: Persistir último valor de "Centro de Custos" no localStorage (`sams_crm_last_centro_custo`) — ao abrir novo formulário, campo é pré-preenchido com o último valor usado
+=======
+- [ ] Bug: Campo "Centro de Custos" preenchido no formulário não é salvo/exibido na lista
+- [ ] Feature: Persistir último valor de "Centro de Custos" no localStorage para futuros lançamentos
+
+## Correções v5.29 — Bugs ativos e segurança
+
+- [x] P1: Scripts duplicados — verificado em produção (samslocacoes.com.br): nenhum script duplicado encontrado. Problema já havia sido resolvido em versão anterior.
+- [x] P1: Arquivos de debug — verificado: nenhum arquivo de debug (aggressive-debug.js, bootstrap-force.js, etc.) existe no diretório público. Já removidos anteriormente.
+- [x] P2: SQL injection no LIMIT/OFFSET — helper safeInt() adicionado com validação de NaN, min e max. Aplicado em todos os 5 endpoints com paginação (leads, clientes, briefings, contas-receber, auditoria).
+- [x] P2: crm_fallback_token no localStorage — avaliado e mantido INTENCIONALMENTE como rede de segurança para browsers que bloqueiam cookies (Safari ITP, Brave, Firefox Strict ETP). Risco de XSS mitigado pelo contexto interno do CRM. Decisão documentada em 2026-07-01.
+- [x] P2: Implementar endpoints de comissões e metas no backend — criados 7 endpoints: GET /vendedor/performance, GET /vendedor/comissoes, GET /metas/dashboard, POST /metas, GET /admin/comissao-regras, POST /admin/comissao-regras, DELETE /admin/comissao-regras/:id. Painel de comissões não retorna mais 404.
