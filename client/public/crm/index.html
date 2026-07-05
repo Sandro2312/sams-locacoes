@@ -6,12 +6,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SAMS Locações - Sistema CRM/ERP v5.29</title>
+    <title>SAMS Locações - Sistema CRM/ERP v5.30</title>
     <meta name="csrf-token" content="">
     <script>
     // Auto-reload: força atualização quando versão muda
     (function(){
-      var CRM_VERSION = '5.26.0';
+      var CRM_VERSION = '5.30.0';
       try {
         var stored = localStorage.getItem('crm_app_version');
         if (stored && stored !== CRM_VERSION) {
@@ -1205,11 +1205,13 @@
     <!-- Core Scripts - ordem CRÍTICA para funcionamento -->
     <script src="/crm/js/utils.js?v=1779800114" defer></script>
     <script src="/crm/js/auth.js?v=1780588253" defer></script>
-    <script src="/crm/js/modules.js?v=1782733395" defer></script>
+    <!-- Módulo dedicado de Contas a Receber (deve carregar antes de modules.js e forms.js) -->
+    <script src="/crm/js/crm-contas-receber.js?v=1782820000" defer></script>
+    <script src="/crm/js/modules.js?v=1782820000" defer></script>
     <script src="/crm/js/navigation.js?v=1779800114" defer></script>
     <script src="/crm/js/acervo.js?v=1779800114" defer></script>
     <script src="/crm/js/validation-system.js?v=1779800114" defer></script>
-    <script src="/crm/js/forms.js?v=1782733395" defer></script>
+    <script src="/crm/js/forms.js?v=1782820000" defer></script>
     
     <!-- Scripts de montagem e controle de qualidade -->
     <script src="/crm/js/checklist-montagem.js?v=1779800114" defer></script>

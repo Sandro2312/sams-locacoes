@@ -232,3 +232,20 @@
 - [x] P2: SQL injection no LIMIT/OFFSET — helper safeInt() adicionado com validação de NaN, min e max. Aplicado em todos os 5 endpoints com paginação (leads, clientes, briefings, contas-receber, auditoria).
 - [x] P2: crm_fallback_token no localStorage — avaliado e mantido INTENCIONALMENTE como rede de segurança para browsers que bloqueiam cookies (Safari ITP, Brave, Firefox Strict ETP). Risco de XSS mitigado pelo contexto interno do CRM. Decisão documentada em 2026-07-01.
 - [x] P2: Implementar endpoints de comissões e metas no backend — criados 7 endpoints: GET /vendedor/performance, GET /vendedor/comissoes, GET /metas/dashboard, POST /metas, GET /admin/comissao-regras, POST /admin/comissao-regras, DELETE /admin/comissao-regras/:id. Painel de comissões não retorna mais 404.
+
+## Refatoração v5.30 — Extração do módulo Contas a Receber
+
+- [ ] Criar client/public/crm/js/crm-contas-receber.js com código extraído de modules.js e forms.js
+- [ ] Substituir blocos extraídos por chamadas delegadas em modules.js e forms.js
+- [ ] Adicionar script crm-contas-receber.js no index.html após forms.js
+- [ ] Verificar sintaxe com node --check nos 3 arquivos JS modificados
+- [ ] Confirmar que window.FinanceiroModule.loadContasReceber e rerenderContasReceberList continuam acessíveis
+
+## Refatoração v5.30 — Extração do módulo Contas a Receber (CONCLUÍDA)
+
+- [x] Criado crm-contas-receber.js (576 linhas) com: syncFromBackend, load, rerender, getForm, handleCreate, handleUpdate, populateClienteSelect
+- [x] modules.js: syncContasReceberFromBackend substituído por delegação ao ContasReceberModule (com fallback inline)
+- [x] forms.js: getContaReceberForm, POST e PUT de contasReceber substituídos por delegações ao ContasReceberModule
+- [x] index.html: crm-contas-receber.js adicionado antes de modules.js; cache-busters atualizados para v=1782820000; versão atualizada para v5.30
+- [x] Verificação de sintaxe: node --check em todos os 3 arquivos JS — zero erros
+- [x] Redução: modules.js -14 linhas, forms.js -281 linhas (blocos migrados para módulo dedicado)

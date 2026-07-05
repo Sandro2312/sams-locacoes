@@ -281,42 +281,29 @@ const ModuleSystem = {
         }
     },
 
-    // Sincronizar contas a receber do backend (garante cross-browser)
+    // Sincronizar contas a receber do backend — delegado ao ContasReceberModule
     async syncContasReceberFromBackend() {
+        if (window.ContasReceberModule && typeof window.ContasReceberModule.syncFromBackend === 'function') {
+            return window.ContasReceberModule.syncFromBackend();
+        }
+        // Fallback inline caso crm-contas-receber.js ainda não tenha carregado
         try {
             const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
             if (!response.ok) return;
             const json = await response.json().catch(() => ({}));
             const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
             if (!rows.length) return;
-            const normalize = (r) => ({
-                ...r,
-                id: r.id,
-                clienteId: r.clienteId ?? r.cliente_id ?? null,
-                vendaId: r.vendaId ?? r.venda_id ?? null,
-                centroCusto: r.centroCusto ?? r.centro_custo ?? null,
-                tipoReceita: r.tipoReceita ?? r.tipo_receita ?? null,
-                descricao: r.descricao ?? '',
-                valor: r.valor ?? 0,
-                vencimento: r.vencimento ?? null,
-                status: r.status ?? 'Pendente',
-                dataPagamento: r.dataPagamento ?? r.data_pagamento ?? null,
-                formaPagamento: r.formaPagamento ?? r.forma_pagamento ?? null,
-                observacoes: r.observacoes ?? null,
-                clienteNome: r.clienteNome ?? r.cliente_nome ?? null
-            });
             const byId = new Map();
             for (const c of (Array.isArray(this.data.contasReceber) ? this.data.contasReceber : [])) {
                 if (c && c.id != null) byId.set(String(c.id), c);
             }
             for (const c of rows) {
-                if (c && c.id != null) byId.set(String(c.id), normalize(c));
+                if (c && c.id != null) byId.set(String(c.id), { ...c });
             }
             this.data.contasReceber = Array.from(byId.values());
             this.saveData();
-            console.log(`✅ [ModuleSystem] Contas a Receber sincronizadas da API: ${rows.length} registros`);
         } catch (e) {
-            console.warn('[ModuleSystem] Falha ao sincronizar contas a receber:', e);
+            console.warn('[ModuleSystem] Falha ao sincronizar contas a receber (fallback):', e);
         }
     },
 

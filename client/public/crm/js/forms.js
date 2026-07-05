@@ -1605,73 +1605,15 @@ const FormSystem = {
                     }
                 }
             } else if (module === 'contasReceber') {
-                try {
-                    const resp = await fetch('/api/crm/contas-receber', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            vendaId: data.vendaId ?? null,
-                            clienteId: data.clienteId ?? null,
-                            centroCusto: data.centroCusto ?? null,
-                            centro_custo: data.centroCusto ?? null,
-                            tipoReceita: data.tipoReceita ?? 'stand',
-                            descricao: data.descricao ?? '',
-                            valor: data.valor ?? 0,
-                            vencimento: data.vencimento ?? null,
-                            status: data.status ?? 'Pendente',
-                            dataPagamento: data.dataPagamento ?? null,
-                            formaPagamento: data.formaPagamento ?? null,
-                            observacoes: data.observacoes ?? null,
-                            comprovanteName: data.comprovanteName ?? null,
-                            comprovanteMime: data.comprovanteMime ?? null,
-                            comprovanteDataBase64: data.comprovanteDataBase64 ?? null
-                        })
-                    });
-                    const payload = await resp.json().catch(() => ({}));
-                    if (resp.ok && payload && payload.id != null) {
-                        const newItem = { ...data, id: payload.id };
-                        // Persistir Centro de Custos para futuros lançamentos
-                        if (data.centroCusto && String(data.centroCusto).trim() !== '') {
-                            try { localStorage.setItem('sams_crm_last_centro_custo', String(data.centroCusto).trim()); } catch(e) {}
-                        }
-                        if (data.comprovanteDataBase64) {
-                            newItem.comprovante = {
-                                nome: data.comprovanteName || 'comprovante',
-                                mime: data.comprovanteMime || null,
-                                download_url: `/api/crm/contas-receber/${payload.id}/comprovante/download`
-                            };
-                            delete newItem.comprovanteDataBase64;
-                            delete newItem.comprovanteName;
-                            delete newItem.comprovanteMime;
-                        }
-                        if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                            ModuleSystem.addItem('contasReceber', newItem);
-                        }
-                        createdId = payload.id;
-                    } else {
-                        const msg = payload && payload.error ? String(payload.error) : '';
-                        console.error('[FormSystem] POST /api/crm/contas-receber falhou:', { status: resp.status, msg, payload });
-                        if (resp.status >= 400) {
-                            if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                                window.NotificationSystem.error(msg || 'Falha ao salvar conta a receber.');
-                            }
-                            throw new Error(msg || 'Falha ao salvar conta a receber.');
-                        }
-                        console.warn('[FormSystem] POST /api/crm/contas-receber não OK, usando fallback local');
-                        if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                            createdId = ModuleSystem.addItem('contasReceber', { ...data });
-                        }
-                    }
-                } catch (err) {
-                    console.error('[FormSystem] Falha ao criar conta a receber:', err);
-                    const msg = err && err.message ? String(err.message) : '';
-                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                        window.NotificationSystem.error(msg || 'Falha ao salvar conta a receber.');
-                    }
-                    throw err;
+                // Delegado ao ContasReceberModule
+                if (window.ContasReceberModule && typeof window.ContasReceberModule.handleCreate === 'function') {
+                    const result = await window.ContasReceberModule.handleCreate(data);
+                    createdId = result.id;
+                } else {
+                    console.error('[FormSystem] ContasReceberModule não disponível para POST');
+                    throw new Error('Módulo de Contas a Receber não carregado.');
                 }
-            } else {
+                        } else {
                 // Delegar geração de ID ao ModuleSystem para demais módulos
                 const newItem = { ...data };
                 if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
@@ -2182,93 +2124,14 @@ const FormSystem = {
                     }
                 }
             } else if (module === 'contasReceber') {
-                let ok = false;
-                try {
-                    const resp = await fetch(`/api/crm/contas-receber/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            vendaId: data.vendaId ?? null,
-                            clienteId: data.clienteId ?? null,
-                            centroCusto: data.centroCusto ?? null,
-                            centro_custo: data.centroCusto ?? null,
-                            tipoReceita: data.tipoReceita ?? null,
-                            descricao: data.descricao ?? null,
-                            valor: data.valor ?? null,
-                            vencimento: data.vencimento ?? null,
-                            status: data.status ?? null,
-                            dataPagamento: data.dataPagamento ?? null,
-                            formaPagamento: data.formaPagamento ?? null,
-                            observacoes: data.observacoes ?? null,
-                            comprovanteName: data.comprovanteName ?? null,
-                            comprovanteMime: data.comprovanteMime ?? null,
-                            comprovanteDataBase64: data.comprovanteDataBase64 ?? null
-                        })
-                    });
-                    const payload = await resp.json().catch(() => ({}));
-                    if (!resp.ok) {
-                        const msg = payload && payload.error ? String(payload.error) : "";
-                        console.error("[FormSystem] PUT contas-receber falhou:", { status: resp.status, msg });
-                        if (resp.status >= 400) {
-                            if (window.NotificationSystem && typeof window.NotificationSystem.error === "function") {
-                                window.NotificationSystem.error(msg || "Falha ao atualizar conta a receber.");
-                            }
-                            throw new Error(msg || "Falha ao atualizar conta a receber.");
-                        }
-                    } else {
-                        ok = true;
-                        // Persistir Centro de Custos para futuros lançamentos
-                        if (data.centroCusto && String(data.centroCusto).trim() !== '') {
-                            try { localStorage.setItem('sams_crm_last_centro_custo', String(data.centroCusto).trim()); } catch(e) {}
-                        }
-                    }
-                } catch (err) {
-                    console.warn('[FormSystem] Falha ao atualizar conta a receber:', err);
-                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                        window.NotificationSystem.error(err.message || 'Erro ao atualizar conta a receber.');
-                    }
+                // Delegado ao ContasReceberModule
+                if (window.ContasReceberModule && typeof window.ContasReceberModule.handleUpdate === 'function') {
+                    await window.ContasReceberModule.handleUpdate(id, data);
+                } else {
+                    console.error('[FormSystem] ContasReceberModule não disponível para PUT');
+                    throw new Error('Módulo de Contas a Receber não carregado.');
                 }
-                if (window.ModuleSystem && typeof ModuleSystem.updateItem === 'function') {
-                    const nextData = { ...data };
-                    if (ok && data.comprovanteDataBase64) {
-                        nextData.comprovante = {
-                            nome: data.comprovanteName || 'comprovante',
-                            mime: data.comprovanteMime || null,
-                            download_url: `/api/crm/contas-receber/${id}/comprovante/download`
-                        };
-                        delete nextData.comprovanteDataBase64;
-                        delete nextData.comprovanteName;
-                        delete nextData.comprovanteMime;
-                    }
-                    // Resolver clienteNome a partir do clienteId para atualizar a lista corretamente
-                    if (nextData.clienteId != null && String(nextData.clienteId).trim() !== '') {
-                        const allClientes = [
-                            ...((window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.clientes)) ? ModuleSystem.data.clientes : []),
-                            ...((window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.leads)) ? ModuleSystem.data.leads : [])
-                        ];
-                        const found = allClientes.find(c => c && c.id != null && String(c.id) === String(nextData.clienteId));
-                        if (found) {
-                            nextData.clienteNome = found.nome || found.razao_social || found.empresa || null;
-                            nextData.clienteEmail = found.email || null;
-                        }
-                    } else if (nextData.clienteId == null || String(nextData.clienteId).trim() === '') {
-                        nextData.clienteNome = null;
-                        nextData.clienteEmail = null;
-                    }
-                    ModuleSystem.updateItem('contasReceber', id, nextData);
-                    // Recarregar lista para garantir sincronismo com o backend
-                    if (ok) {
-                        setTimeout(() => {
-                            if (window.FinanceiroModule && typeof window.FinanceiroModule.loadContasReceber === 'function') {
-                                window.FinanceiroModule.loadContasReceber();
-                            } else if (typeof ModuleSystem.syncContasReceberFromBackend === 'function') {
-                                ModuleSystem.syncContasReceberFromBackend().catch(() => {});
-                            }
-                        }, 300);
-                    }
-                }
-            } else if (module === 'transacoes') {
+                        } else if (module === 'transacoes') {
                 // Atualizar transação via API REST
                 try {
                     const resp = await fetch(`/api/crm/transacoes/${encodeURIComponent(id)}`, {
@@ -4581,159 +4444,15 @@ ENTREGA
         `;
     },
 
-    // Formulário de Contas a Receber (Receitas)
+    // Formulário de Contas a Receber — delegado ao ContasReceberModule
     getContaReceberForm(id = null) {
-        const conta = id ? (ModuleSystem.data.contasReceber?.find(c => String(c.id) === String(id)) || {}) : {};
-        // Para novo registro, pré-preencher Centro de Custos com o último valor salvo (localStorage)
-        const lastCentroCusto = !id ? (localStorage.getItem('sams_crm_last_centro_custo') || '') : '';
-        const formId = `conta_receber_${id || 'new'}`;
-
-        const clientes = (() => {
-            const merged = [];
-            const seen = new Set();
-            const push = (c) => {
-                if (!c || c.id == null) return;
-                const key = String(c.id);
-                if (seen.has(key)) return;
-                seen.add(key);
-                merged.push(c);
-            };
-            (Array.isArray(ModuleSystem.data?.clientes) ? ModuleSystem.data.clientes : []).forEach(push);
-            (Array.isArray(ModuleSystem.data?.leads) ? ModuleSystem.data.leads : []).forEach(push);
-            return merged;
-        })();
-
-        const selectedClienteId = conta?.clienteId ?? conta?.cliente_id ?? '';
-        const selectedVendaId = conta?.vendaId ?? conta?.venda_id ?? '';
-
-        // Para novo registro, vencimento deve ficar vazio (não pré-preencher com data atual)
-        const vencimento = id ? (conta?.vencimento || '').slice(0, 10) : '';
-        const dataPagamento = (conta?.dataPagamento ?? conta?.data_pagamento ?? '').slice(0, 10);
-        const comprovanteObj = conta?.comprovante && typeof conta.comprovante === 'object' ? conta.comprovante : null;
-        const comprovanteNome = comprovanteObj?.nome ?? conta?.comprovanteNome ?? conta?.comprovante_nome ?? '';
-        const comprovanteUrl = comprovanteObj?.download_url ?? (id ? `/api/crm/contas-receber/${id}/comprovante/download` : '');
-
-        return `
-            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" autocomplete="${id ? 'on' : 'off'}">
-                <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg mb-6 border border-green-200">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">
-                        <i class="fas fa-coins mr-3 text-green-600"></i>${id ? 'Editar' : 'Nova'} Conta a Receber
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="md:col-span-2">
-                            <label for="descricao_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Descrição *</label>
-                            <input type="text" id="descricao_${formId}" name="descricao" value="${conta?.descricao || ''}" required
-                                   placeholder="Ex: Locação stand, sinal de contrato, adicional"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div>
-                            <label for="cliente_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-                            <select id="cliente_${formId}" name="clienteId" autocomplete="off"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                <option value="">Selecione um cliente...</option>
-                                ${clientes.map(c => {
-                                    const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
-                                    const email = c.email ? ` • ${c.email}` : '';
-                                    const selected = String(selectedClienteId) !== '' && String(c.id) === String(selectedClienteId) ? 'selected' : '';
-                                    return `<option value="${c.id}" ${selected}>${nome}${email}</option>`;
-                                }).join('')}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="venda_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Venda (ID)</label>
-                            <input type="number" id="venda_${formId}" name="vendaId" value="${selectedVendaId ?? ''}" min="1" step="1"
-                                   placeholder="Opcional"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-                        <div>
-                            <label for="centro_custo_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Centro de Custos</label>
-                            <input type="text" id="centro_custo_${formId}" name="centroCusto" value="${conta?.centroCusto ?? conta?.centro_custo ?? lastCentroCusto}"
-                                   placeholder="Ex: Evento XPTO - Locação / Montagem"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div>
-                            <label for="tipo_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Tipo *</label>
-                            <select id="tipo_${formId}" name="tipoReceita" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                ${!id ? '<option value="">Selecione o tipo...</option>' : ''}
-                                ${['stand','locacao','adicional','outro'].map(t => `<option value="${t}" ${id && (conta?.tipoReceita ?? conta?.tipo_receita) === t ? 'selected' : ''}>${t}</option>`).join('')}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="valor_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Valor (R$) *</label>
-                            <input type="number" id="valor_${formId}" name="valor" value="${conta?.valor ?? ''}" required step="0.01" min="0"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div>
-                            <label for="vencimento_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Vencimento *</label>
-                            <input type="date" id="vencimento_${formId}" name="vencimento" value="${vencimento}" required
-                                   placeholder="Selecione a data de vencimento"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div>
-                            <label for="status_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select id="status_${formId}" name="status"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                ${!id ? '<option value="Pendente">Pendente</option>' : ''}
-                                ${['Pendente','Pago','Vencido','Cancelado'].map(s => `<option value="${s}" ${id && (conta?.status) === s ? 'selected' : ''}>${s}</option>`).join('')}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label for="data_pagamento_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Data de Pagamento</label>
-                            <input type="date" id="data_pagamento_${formId}" name="dataPagamento" value="${dataPagamento}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div>
-                            <label for="forma_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
-                            <input type="text" id="forma_${formId}" name="formaPagamento" value="${conta?.formaPagamento ?? conta?.forma_pagamento ?? ''}"
-                                   placeholder="Ex: Pix, Boleto, Transferência"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label for="comprovante_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Comprovante (arquivo)</label>
-                            <input id="comprovante_${formId}" type="file" name="comprovante" accept="application/pdf,image/*"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white">
-                            <div class="text-xs text-gray-600 mt-1">Obrigatório apenas quando o status for Pago.</div>
-                            ${comprovanteNome ? `
-                                <div class="flex items-center gap-2 mt-2">
-                                    <div class="text-xs text-gray-700">Atual: ${this.escapeHtml(String(comprovanteNome))}</div>
-                                    ${comprovanteUrl ? `<a class="text-xs text-indigo-600 hover:text-indigo-900" href="${this.escapeHtml(String(comprovanteUrl))}" target="_blank" rel="noopener">Baixar</a>` : ''}
-                                    ${id ? `<button type="button" class="text-xs text-red-600 hover:text-red-900" onclick="(async()=>{try{const r=await fetch('/api/crm/contas-receber/${id}/comprovante',{method:'DELETE',credentials:'include'});const j=await r.json().catch(()=>null); if(!r.ok) throw new Error((j&&j.error)?j.error:'Falha ao remover'); if(window.NotificationSystem&&typeof window.NotificationSystem.success==='function') window.NotificationSystem.success('Comprovante removido.'); if(window.FormSystem) { FormSystem.closeModal(); FormSystem.showEditForm('contasReceber','${id}'); }}catch(e){ if(window.NotificationSystem&&typeof window.NotificationSystem.error==='function') window.NotificationSystem.error(e&&e.message?e.message:'Falha ao remover comprovante'); else alert(e&&e.message?e.message:'Falha ao remover comprovante'); }})()">Remover</button>` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label for="obs_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
-                            <textarea id="obs_${formId}" name="observacoes" rows="3" placeholder="Observações adicionais (opcional)"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">${conta?.observacoes || ''}</textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end space-x-4 pt-6 border-t">
-                    <button type="button" onclick="FormSystem.closeModal()"
-                            class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-300">
-                        <i class="fas fa-times mr-2"></i>Cancelar
-                    </button>
-                    <button type="submit"
-                            class="btn-submit px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300">
-                        <i class="fas fa-save mr-2"></i>${id ? 'Atualizar' : 'Salvar'} Conta
-                    </button>
-                </div>
-            </form>
-        `;
+        if (window.ContasReceberModule && typeof window.ContasReceberModule.getForm === 'function') {
+            return window.ContasReceberModule.getForm(id);
+        }
+        // Fallback mínimo caso o módulo não tenha carregado
+        return '<p class="text-red-500 p-4">Erro: módulo de Contas a Receber não carregado. Recarregue a página.</p>';
     },
-
-    // Formulário de Cliente (Comercial) com Busca CEP/CNPJ e validação unificada
+        // Formulário de Cliente (Comercial) com Busca CEP/CNPJ e validação unificada
     getClienteForm(id = null) {
         const cliente = id ? ModuleSystem.data.clientes?.find(c => String(c.id) === String(id)) : {};
         const formId = `cliente-${id || 'new'}`;
