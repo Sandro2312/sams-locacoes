@@ -215,8 +215,10 @@ const AuthSystem = {
         }, true);
 
         // Delegação de clique para toggle de senha
+        // Nota: o onclick inline no botão #togglePassword já cuida do toggle.
+        // Mantemos este handler apenas para data-action="togglePassword" em outros contextos.
         document.body.addEventListener('click', (e) => {
-            const btn = e.target.closest('#togglePassword,[data-action="togglePassword"]');
+            const btn = e.target.closest('[data-action="togglePassword"]');
             if (btn) {
                 e.preventDefault();
                 this.togglePasswordVisibility();
@@ -230,7 +232,7 @@ const AuthSystem = {
         }
 
         // Botão de desbloqueio (somente em ambiente de desenvolvimento)
-    const isDev = location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1') || location.hostname.includes('manus') || location.hostname.includes('samslocacoes.com.br');
+    const isDev = location.hostname.includes('localhost') || location.hostname.includes('127.0.0.1') || location.hostname.includes('manus.computer');
     const devUnlockBtn = document.getElementById('devUnlockBtn');
     if (isDev && devUnlockBtn) {
         devUnlockBtn.classList.remove('hidden');

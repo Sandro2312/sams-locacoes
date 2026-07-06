@@ -249,3 +249,10 @@
 - [x] index.html: crm-contas-receber.js adicionado antes de modules.js; cache-busters atualizados para v=1782820000; versão atualizada para v5.30
 - [x] Verificação de sintaxe: node --check em todos os 3 arquivos JS — zero erros
 - [x] Redução: modules.js -14 linhas, forms.js -281 linhas (blocos migrados para módulo dedicado)
+
+## Melhorias v5.31 — Tela de Login
+
+- [ ] Fix: botão olhinho (toggle senha) não funciona
+- [ ] Remover botões "Desbloquear Conta (dev)" e "Login de Teste (dev)"
+- [ ] Corrigir versão exibida na tela de loading (estava v5.22, deve ser v5.30+)
+- [ ] Redesenhar tela de login com layout moderno e interativo
