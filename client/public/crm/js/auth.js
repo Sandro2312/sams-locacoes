@@ -501,6 +501,10 @@ const AuthSystem = {
 
     // Logout
     logout() {
+        // Parar timer de inatividade antes de fazer logout
+        if (window.IdleTimer && typeof IdleTimer.stop === 'function') {
+            IdleTimer.stop();
+        }
         try {
             fetch('/api/crm/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
         } catch (e) {}
@@ -680,6 +684,11 @@ const AuthSystem = {
         setTimeout(() => {
             this.maybeShowDailyWelcome();
         }, 350);
+
+        // Iniciar timer de logout por inatividade
+        if (window.IdleTimer && typeof IdleTimer.start === 'function') {
+            IdleTimer.start();
+        }
     },
 
     getLocalDateKey() {
