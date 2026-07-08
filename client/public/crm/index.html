@@ -671,52 +671,297 @@
 
     <!-- Login Screen -->
     <div id="loginScreen" class="fixed inset-0 z-40 flex" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%)">
-        <!-- Painel esquerdo: identidade visual (oculto em mobile) -->
-        <div class="hidden lg:flex lg:w-1/2 flex-col items-center justify-center px-12 relative overflow-hidden">
-            <!-- Círculos decorativos -->
-            <div style="position:absolute;top:-80px;left:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none"></div>
-            <div style="position:absolute;bottom:-100px;right:-60px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none"></div>
-            <div style="position:absolute;top:40%;left:60%;width:180px;height:180px;border-radius:50%;background:rgba(96,165,250,0.08);pointer-events:none"></div>
+        <!-- Painel esquerdo: interativo com rotação de mensagens -->
+        <div class="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden" style="padding:48px 40px">
+
+            <!-- Partículas decorativas animadas -->
+            <div class="login-particle" style="width:300px;height:300px;top:-80px;left:-80px;animation-duration:18s"></div>
+            <div class="login-particle" style="width:450px;height:450px;bottom:-120px;right:-100px;animation-duration:24s;animation-delay:-8s"></div>
+            <div class="login-particle" style="width:200px;height:200px;top:45%;left:55%;animation-duration:14s;animation-delay:-4s"></div>
+
             <!-- Conteúdo central -->
-            <div class="relative z-10 text-center text-white">
-                <div style="width:96px;height:96px;background:rgba(255,255,255,0.12);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.2)">
-                    <i class="fas fa-building" style="font-size:40px;color:#fff"></i>
-                </div>
-                <h1 style="font-size:2.5rem;font-weight:800;letter-spacing:-1px;margin-bottom:8px">SAMS Locações</h1>
-                <p style="font-size:1.1rem;color:rgba(147,197,253,1);margin-bottom:40px">Sistema CRM/ERP</p>
-                <!-- Diferenciais -->
-                <div style="display:flex;flex-direction:column;gap:16px;text-align:left">
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:12px;padding:14px 18px;border:1px solid rgba(255,255,255,0.1)">
-                        <div style="width:36px;height:36px;background:rgba(96,165,250,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <i class="fas fa-chart-line" style="color:#93c5fd"></i>
-                        </div>
-                        <div>
-                            <p style="font-weight:600;font-size:0.9rem">Gestão Completa</p>
-                            <p style="font-size:0.78rem;color:rgba(147,197,253,0.8)">Comercial, Financeiro e Projetos</p>
-                        </div>
+            <div class="relative z-10 text-white w-full" style="max-width:420px">
+
+                <!-- Logo + nome -->
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:40px">
+                    <div style="width:56px;height:56px;background:rgba(255,255,255,0.12);border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+                        <i class="fas fa-building" style="font-size:22px;color:#fff"></i>
                     </div>
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:12px;padding:14px 18px;border:1px solid rgba(255,255,255,0.1)">
-                        <div style="width:36px;height:36px;background:rgba(96,165,250,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <i class="fas fa-users" style="color:#93c5fd"></i>
-                        </div>
-                        <div>
-                            <p style="font-weight:600;font-size:0.9rem">CRM Integrado</p>
-                            <p style="font-size:0.78rem;color:rgba(147,197,253,0.8)">Clientes, Leads e Oportunidades</p>
-                        </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:12px;padding:14px 18px;border:1px solid rgba(255,255,255,0.1)">
-                        <div style="width:36px;height:36px;background:rgba(96,165,250,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <i class="fas fa-shield-alt" style="color:#93c5fd"></i>
-                        </div>
-                        <div>
-                            <p style="font-weight:600;font-size:0.9rem">Acesso Seguro</p>
-                            <p style="font-size:0.78rem;color:rgba(147,197,253,0.8)">Controle por perfil de usuário</p>
-                        </div>
+                    <div>
+                        <p style="font-size:1.35rem;font-weight:800;letter-spacing:-0.5px;line-height:1.1">SAMS Locações</p>
+                        <p style="font-size:0.8rem;color:rgba(147,197,253,0.85)">Sistema CRM/ERP</p>
                     </div>
                 </div>
-                <p style="margin-top:40px;font-size:0.75rem;color:rgba(147,197,253,0.5)">SAMS Locações &copy; 2026 &mdash; v5.31</p>
+
+                <!-- Card de mensagem rotativa -->
+                <div id="loginMsgCard" style="
+                    background:rgba(255,255,255,0.08);
+                    border:1px solid rgba(255,255,255,0.15);
+                    border-radius:20px;
+                    padding:28px 28px 24px;
+                    backdrop-filter:blur(12px);
+                    min-height:200px;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:space-between;
+                    margin-bottom:28px;
+                    position:relative;
+                    overflow:hidden;
+                ">
+                    <!-- Ícone de categoria -->
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+                        <div id="loginMsgIcon" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(96,165,250,0.25)">
+                            <i class="fas fa-star" style="color:#93c5fd;font-size:15px"></i>
+                        </div>
+                        <span id="loginMsgCategory" style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(147,197,253,0.7)">Dica do Sistema</span>
+                    </div>
+
+                    <!-- Texto da mensagem -->
+                    <p id="loginMsgText" style="
+                        font-size:1.05rem;
+                        line-height:1.65;
+                        color:rgba(255,255,255,0.92);
+                        font-style:italic;
+                        flex:1;
+                        margin-bottom:16px;
+                    ">&ldquo;Registre cada lead com atenção: um contato bem documentado hoje pode se tornar o contrato de amanhã.&rdquo;</p>
+
+                    <!-- Referência / autor -->
+                    <p id="loginMsgRef" style="font-size:0.78rem;color:rgba(147,197,253,0.6);font-weight:600;text-align:right"></p>
+
+                    <!-- Barra de progresso da rotação -->
+                    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:0 0 20px 20px;overflow:hidden">
+                        <div id="loginMsgProgress" style="height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,#93c5fd);border-radius:0 0 20px 20px;transition:width 0.5s linear"></div>
+                    </div>
+                </div>
+
+                <!-- Indicadores de slide -->
+                <div id="loginMsgDots" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:24px;flex-wrap:nowrap"></div>
+
+                <!-- Linha divisória -->
+                <div style="height:1px;background:rgba(255,255,255,0.1);margin-bottom:24px"></div>
+
+                <!-- Três diferenciais compactos -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                    <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
+                        <i class="fas fa-chart-line" style="color:#93c5fd;font-size:18px;margin-bottom:6px;display:block"></i>
+                        <p style="font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.85)">Gestão</p>
+                        <p style="font-size:0.65rem;color:rgba(147,197,253,0.6)">Completa</p>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
+                        <i class="fas fa-users" style="color:#93c5fd;font-size:18px;margin-bottom:6px;display:block"></i>
+                        <p style="font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.85)">CRM</p>
+                        <p style="font-size:0.65rem;color:rgba(147,197,253,0.6)">Integrado</p>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
+                        <i class="fas fa-shield-alt" style="color:#93c5fd;font-size:18px;margin-bottom:6px;display:block"></i>
+                        <p style="font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.85)">Seguro</p>
+                        <p style="font-size:0.65rem;color:rgba(147,197,253,0.6)">Por perfil</p>
+                    </div>
+                </div>
+
+                <p style="text-align:center;margin-top:24px;font-size:0.7rem;color:rgba(147,197,253,0.4)">SAMS Locações &copy; 2026 &mdash; v5.31</p>
             </div>
         </div>
+
+        <!-- CSS e JS do painel interativo -->
+        <style>
+            .login-particle {
+                position:absolute;
+                border-radius:50%;
+                background:rgba(255,255,255,0.03);
+                pointer-events:none;
+                animation:loginFloat linear infinite;
+            }
+            @keyframes loginFloat {
+                0%   { transform:translate(0,0) scale(1); }
+                33%  { transform:translate(15px,-20px) scale(1.04); }
+                66%  { transform:translate(-10px,15px) scale(0.97); }
+                100% { transform:translate(0,0) scale(1); }
+            }
+            #loginMsgCard { transition:opacity 0.4s ease; }
+            #loginMsgCard.fading { opacity:0; }
+        </style>
+        <script>
+        (function(){
+            var MESSAGES = [
+                // ── Salmos ──────────────────────────────────────────────
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"O Senhor é o meu pastor e nada me faltará."',
+                  ref:'Salmo 23:1' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Entrega o teu caminho ao Senhor; confia nele, e ele tudo fará."',
+                  ref:'Salmo 37:5' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Deus é o nosso refúgio e fortaleza, socorro bem presente nas tribulações."',
+                  ref:'Salmo 46:1' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Alegra-te no Senhor, e ele satisfará os desejos do teu coração."',
+                  ref:'Salmo 37:4' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Cria em mim, ó Deus, um coração puro, e renova em mim um espírito resoluto."',
+                  ref:'Salmo 51:10' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Porque sou eu que conheço os planos que tenho para vocês, planos de fazê-los prosperar."',
+                  ref:'Jeremias 29:11' },
+                { cat:'Salmos', icon:'fas fa-dove', color:'rgba(167,139,250,0.3)', iconColor:'#c4b5fd',
+                  text:'"Tudo posso naquele que me fortalece."',
+                  ref:'Filipenses 4:13' },
+                // ── Dicas do sistema ────────────────────────────────────
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"Registre cada lead com atenção: um contato bem documentado hoje pode se tornar o contrato de amanhã."',
+                  ref:'Módulo Marketing' },
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"Use o módulo Financeiro para acompanhar contas a receber em tempo real e evitar inadimplências."',
+                  ref:'Módulo Financeiro' },
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"O Kanban de tarefas permite visualizar o andamento de todos os projetos em um único lugar."',
+                  ref:'Módulo Kanban' },
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"Cadastre seus clientes com CNPJ e segmento para gerar relatórios comerciais mais precisos."',
+                  ref:'Módulo Comercial' },
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"O checklist de montagem garante que nenhum detalhe seja esquecido na execução do stand."',
+                  ref:'Módulo Montagem' },
+                { cat:'Dica do Sistema', icon:'fas fa-lightbulb', color:'rgba(251,191,36,0.2)', iconColor:'#fbbf24',
+                  text:'"Atualize o status dos leads regularmente para que a equipe comercial saiba onde focar energia."',
+                  ref:'Módulo Marketing' },
+                // ── Ideias e inspiração ─────────────────────────────────
+                { cat:'Inspiração', icon:'fas fa-star', color:'rgba(52,211,153,0.2)', iconColor:'#6ee7b7',
+                  text:'"Excelência não é um ato, é um hábito. Cada stand entregue é a nossa assinatura no mercado."',
+                  ref:'SAMS Locações' },
+                { cat:'Inspiração', icon:'fas fa-star', color:'rgba(52,211,153,0.2)', iconColor:'#6ee7b7',
+                  text:'"Um cliente satisfeito não apenas volta — ele traz outros. Cuide de cada projeto como se fosse único."',
+                  ref:'SAMS Locações' },
+                { cat:'Inspiração', icon:'fas fa-star', color:'rgba(52,211,153,0.2)', iconColor:'#6ee7b7',
+                  text:'"15 anos de experiência nos ensinaram que o detalhe faz a diferença entre um stand e uma experiência."',
+                  ref:'SAMS Locações' },
+                { cat:'Inspiração', icon:'fas fa-star', color:'rgba(52,211,153,0.2)', iconColor:'#6ee7b7',
+                  text:'"Cada feira é uma nova oportunidade de mostrar ao Brasil a qualidade do nosso trabalho."',
+                  ref:'SAMS Locações' },
+                { cat:'Inspiração', icon:'fas fa-star', color:'rgba(52,211,153,0.2)', iconColor:'#6ee7b7',
+                  text:'"Trabalhar com propósito é transformar cada montagem em uma obra de arte funcional."',
+                  ref:'SAMS Locações' },
+            ];
+
+            var INTERVAL = 7000; // 7 segundos por mensagem
+            var current  = 0;
+            var timer    = null;
+            var progTimer = null;
+            var progVal  = 0;
+
+            function shuffle(arr) {
+                for (var i = arr.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+                }
+                return arr;
+            }
+
+            // Embaralhar na carga
+            shuffle(MESSAGES);
+
+            function buildDots() {
+                var dots = document.getElementById('loginMsgDots');
+                if (!dots) return;
+                dots.innerHTML = '';
+                // Mostrar no máximo 7 dots; se houver mais mensagens, usar dots menores
+                var maxDots = Math.min(MESSAGES.length, 5);
+                for (var i = 0; i < maxDots; i++) {
+                    (function(idx){
+                        var d = document.createElement('div');
+                        d.dataset.idx = idx;
+                        d.style.cssText = 'width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;transition:all 0.3s ease';
+                        d.addEventListener('click', function(){ goTo(idx); });
+                        dots.appendChild(d);
+                    })(i);
+                }
+                updateDots();
+            }
+
+            function updateDots() {
+                var dots = document.getElementById('loginMsgDots');
+                if (!dots) return;
+                var maxDots = dots.children.length;
+                // Mapear current para o dot correspondente (agrupado se > maxDots)
+                var activeDot = current % maxDots;
+                Array.from(dots.children).forEach(function(d, i) {
+                    if (i === activeDot) {
+                        d.style.background = 'rgba(255,255,255,0.9)';
+                        d.style.width = '16px';
+                        d.style.borderRadius = '3px';
+                    } else {
+                        d.style.background = 'rgba(255,255,255,0.22)';
+                        d.style.width = '6px';
+                        d.style.borderRadius = '50%';
+                    }
+                });
+            }
+
+            function renderMessage(idx) {
+                var m = MESSAGES[idx];
+                var card = document.getElementById('loginMsgCard');
+                var iconEl = document.getElementById('loginMsgIcon');
+                var catEl  = document.getElementById('loginMsgCategory');
+                var txtEl  = document.getElementById('loginMsgText');
+                var refEl  = document.getElementById('loginMsgRef');
+                if (!card || !iconEl || !catEl || !txtEl || !refEl) return;
+
+                card.classList.add('fading');
+                setTimeout(function() {
+                    iconEl.style.background = m.color;
+                    iconEl.innerHTML = '<i class="' + m.icon + '" style="color:' + m.iconColor + ';font-size:15px"></i>';
+                    catEl.textContent = m.cat;
+                    txtEl.innerHTML   = m.text;
+                    refEl.textContent = m.ref || '';
+                    card.classList.remove('fading');
+                    updateDots();
+                }, 400);
+            }
+
+            function startProgress() {
+                clearInterval(progTimer);
+                progVal = 0;
+                var bar = document.getElementById('loginMsgProgress');
+                if (bar) bar.style.width = '0%';
+                var step = 100 / (INTERVAL / 500);
+                progTimer = setInterval(function() {
+                    progVal += step;
+                    if (progVal > 100) progVal = 100;
+                    var bar2 = document.getElementById('loginMsgProgress');
+                    if (bar2) bar2.style.width = progVal + '%';
+                }, 500);
+            }
+
+            function goTo(idx) {
+                clearInterval(timer);
+                clearInterval(progTimer);
+                current = ((idx % MESSAGES.length) + MESSAGES.length) % MESSAGES.length;
+                renderMessage(current);
+                startProgress();
+                timer = setInterval(next, INTERVAL);
+            }
+
+            function next() {
+                goTo((current + 1) % MESSAGES.length);
+            }
+
+            function init() {
+                buildDots();
+                renderMessage(current);
+                startProgress();
+                timer = setInterval(next, INTERVAL);
+            }
+
+            // Iniciar quando o DOM estiver pronto
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+        </script>
+
 
         <!-- Painel direito: formulário de login -->
         <div class="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
