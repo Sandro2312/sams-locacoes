@@ -254,7 +254,14 @@ const Utils = {
 
         // Mostrar notificação genérica
         show(message, type = 'info', duration = 3000) {
+            // Deduplicação: não empilhar notificações idênticas
+            const dedupKey = `${type}:${String(message).trim()}`;
+            const existing = document.querySelectorAll('[data-notif-key]');
+            for (const el of existing) {
+                if (el.getAttribute('data-notif-key') === dedupKey) return;
+            }
             const notification = document.createElement('div');
+            notification.setAttribute('data-notif-key', dedupKey);
             notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full`;
             
             const colors = {

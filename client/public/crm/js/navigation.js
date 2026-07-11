@@ -1163,6 +1163,47 @@ const NavigationSystem = {
                 load().catch(() => {});
             }, 80);
         }
+        // Bind de filtragem: Clientes
+        if (module === 'comercial' && page === 'clientes') {
+            setTimeout(() => {
+                try { window.ComercialModule?.loadClientes?.(); } catch {}
+            }, 150);
+        }
+        // Bind de filtragem: Projetos (client-side via DOM)
+        if (module === 'projetos' && page === 'projetos') {
+            setTimeout(() => {
+                const qElP = document.getElementById('projetos-filter-q');
+                const stElP = document.getElementById('projetos-filter-status');
+                const clElP = document.getElementById('projetos-filter-clear');
+                const tbodyP = document.getElementById('projetos-list-body');
+                if (!tbodyP) return;
+                const normP = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const filterP = () => {
+                    const q = qElP ? normP(qElP.value) : '';
+                    const st = stElP ? String(stElP.value || '').trim().toLowerCase() : '';
+                    Array.from(tbodyP.querySelectorAll('tr')).forEach(row => {
+                        const text = normP(row.textContent || '');
+                        row.style.display = (!q || text.includes(q)) && (!st || text.includes(st)) ? '' : 'none';
+                    });
+                };
+                if (qElP && !qElP.getAttribute('data-proj-bound')) {
+                    qElP.setAttribute('data-proj-bound', '1');
+                    qElP.addEventListener('input', filterP);
+                }
+                if (stElP && !stElP.getAttribute('data-proj-bound')) {
+                    stElP.setAttribute('data-proj-bound', '1');
+                    stElP.addEventListener('change', filterP);
+                }
+                if (clElP && !clElP.getAttribute('data-proj-bound')) {
+                    clElP.setAttribute('data-proj-bound', '1');
+                    clElP.addEventListener('click', () => {
+                        if (qElP) qElP.value = '';
+                        if (stElP) stElP.value = '';
+                        filterP();
+                    });
+                }
+            }, 200);
+        }
         // Módulo Acervo Documental
         if (module === 'acervo' && page === 'documentos') {
             const tryInitAcervo = (attempts) => {

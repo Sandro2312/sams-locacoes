@@ -631,6 +631,9 @@ const AuthSystem = {
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('mainApp').classList.remove('hidden');
         
+        // Resetar flag de sessão expirada ao fazer novo login
+        window._crmSessionExpired = false;
+        
         this.updateUserDisplay();
         this.updateModuleAccess();
         this.forceDashboardHome();
@@ -751,6 +754,43 @@ const AuthSystem = {
         const hour = new Date().getHours();
         const saudacao = hour < 12 ? 'Bom dia' : (hour < 18 ? 'Boa tarde' : 'Boa noite');
 
+        // ── Banco de lembretes, dicas e salmos ─────────────────────────────────
+        const MENSAGENS = [
+            // Salmos
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 23:1', texto: '"O Senhor é meu pastor; nada me faltará."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 91:11', texto: '"Deus ordenará que os seus anjos cuidem de você em todos os seus caminhos."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 37:5', texto: '"Entrega o teu caminho ao Senhor; confia nele, e ele agirá."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 46:1', texto: '"Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 118:24', texto: '"Este é o dia que o Senhor fez; regozijemo-nos e alegremo-nos nele."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Salmo 121:2', texto: '"O meu socorro vem do Senhor, que fez os céus e a terra."' },
+            { tipo: 'salmo', icone: '✝️', cor: '#7c3aed', titulo: 'Provérbios 3:5-6', texto: '"Confia no Senhor de todo o teu coração e não te apoies no teu próprio entendimento."' },
+            // Dicas do sistema
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'Use o Kanban para visualizar todas as tarefas em andamento de uma vez. Acesse: Módulo → Kanban.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'Ao criar um Briefing, vincule-o a um Cliente e Evento para que o projeto seja gerado automaticamente.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'No módulo Financeiro, use os filtros de período para gerar relatórios mensais de receitas e despesas.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'Você pode buscar qualquer registro digitando no campo de busca no topo de cada módulo.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'Registre os comprovantes de pagamento diretamente em Contas a Receber para manter o histórico completo.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'No módulo Acervo, organize documentos por feira e evento para facilitar consultas futuras.' },
+            { tipo: 'dica', icone: '💡', cor: '#d97706', titulo: 'Dica do Sistema', texto: 'Use o módulo Jurídico para registrar demandas e acompanhar prazos contratuais com clientes.' },
+            // Lembretes operacionais
+            { tipo: 'lembrete', icone: '📌', cor: '#0891b2', titulo: 'Lembrete Operacional', texto: 'Verifique as Contas a Receber vencidas hoje e atualize o status de pagamento.' },
+            { tipo: 'lembrete', icone: '📌', cor: '#0891b2', titulo: 'Lembrete Operacional', texto: 'Confira se há Briefings aguardando aprovação no módulo Comercial.' },
+            { tipo: 'lembrete', icone: '📌', cor: '#0891b2', titulo: 'Lembrete Operacional', texto: 'Atualize o checklist de montagem dos projetos em andamento no módulo Montagem.' },
+            { tipo: 'lembrete', icone: '📌', cor: '#0891b2', titulo: 'Lembrete Operacional', texto: 'Registre os leads captados na última feira no módulo Marketing antes de esfriar o contato.' },
+            { tipo: 'lembrete', icone: '📌', cor: '#0891b2', titulo: 'Lembrete Operacional', texto: 'Revise os projetos com prazo próximo no módulo Projetos e comunique a equipe.' },
+            // Inspiração
+            { tipo: 'inspiracao', icone: '⭐', cor: '#059669', titulo: 'Inspiração', texto: 'Um cliente satisfeito é a melhor estratégia de negócios de todas. — Michael LeBoeuf' },
+            { tipo: 'inspiracao', icone: '⭐', cor: '#059669', titulo: 'Inspiração', texto: 'A qualidade nunca é um acidente; é sempre o resultado de um esforço inteligente. — John Ruskin' },
+            { tipo: 'inspiracao', icone: '⭐', cor: '#059669', titulo: 'Inspiração', texto: 'Excelência não é uma habilidade, é uma atitude. — Ralph Marston' },
+            { tipo: 'inspiracao', icone: '⭐', cor: '#059669', titulo: 'Inspiração', texto: 'O sucesso é a soma de pequenos esforços repetidos dia após dia. — Robert Collier' },
+        ];
+
+        // Escolher uma mensagem aleatória do dia (baseada na data para ser consistente)
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+        const msgIdx = dayOfYear % MENSAGENS.length;
+        const msg = MENSAGENS[msgIdx];
+
+        // ── Buscar tarefas pendentes ────────────────────────────────────────────
         let tarefas = [];
         try {
             const resp = await fetch(`/api/crm/tarefas-admin?responsavel_id=${encodeURIComponent(u.id)}`, { credentials: 'include' });
@@ -766,12 +806,17 @@ const AuthSystem = {
             if (!m) return null;
             return m[1];
         };
+        const formatDateBr = (ymd) => {
+            if (!ymd) return '—';
+            const [y, mo, d] = String(ymd).slice(0, 10).split('-');
+            return `${d}/${mo}/${y}`;
+        };
         const prLabel = (p) => {
             const v = String(p || '').toLowerCase();
-            if (v === 'critica') return 'Crítica';
-            if (v === 'alta') return 'Alta';
-            if (v === 'media') return 'Média';
-            if (v === 'baixa') return 'Baixa';
+            if (v === 'critica') return '<span style="color:#dc2626;font-weight:600">Crítica</span>';
+            if (v === 'alta') return '<span style="color:#ea580c;font-weight:600">Alta</span>';
+            if (v === 'media') return '<span style="color:#ca8a04">Média</span>';
+            if (v === 'baixa') return '<span style="color:#16a34a">Baixa</span>';
             return '—';
         };
         const stLabel = (s) => {
@@ -796,7 +841,11 @@ const AuthSystem = {
                 if (ad !== bd) return ad.localeCompare(bd);
                 return Number(b.id || 0) - Number(a.id || 0);
             })
-            .slice(0, 6);
+            .slice(0, 5);
+
+        // Verificar tarefas vencidas hoje
+        const todayStr = today; // AAAA-MM-DD
+        const vencidas = top.filter(t => parseDate(t.data_vencimento) && parseDate(t.data_vencimento) <= todayStr);
 
         let goAction = '';
         try {
@@ -808,49 +857,100 @@ const AuthSystem = {
         } catch {}
 
         const content = `
-            <div class="space-y-4">
-                <div class="text-sm text-gray-700">${escapeHtml(saudacao)}, <span class="font-semibold">${escapeHtml(u.name || '')}</span>.</div>
-                <div class="text-sm text-gray-600">Prioridades do dia (tarefas em aberto):</div>
-                ${top.length ? `
-                    <div class="border rounded-lg overflow-hidden">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tarefa</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prioridade</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimento</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y">
-                                ${top.map(t => `
-                                    <tr>
-                                        <td class="px-3 py-2 text-gray-900">${escapeHtml(t.titulo || '')}</td>
-                                        <td class="px-3 py-2 text-gray-700">${escapeHtml(prLabel(t.prioridade))}</td>
-                                        <td class="px-3 py-2 text-gray-700">${escapeHtml(parseDate(t.data_vencimento) || '—')}</td>
-                                        <td class="px-3 py-2 text-gray-700">${escapeHtml(stLabel(t.status))}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+            <div style="font-family:inherit;max-width:600px">
+                <!-- Cabeçalho de saudação -->
+                <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;padding:20px 24px;margin-bottom:16px;color:white">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px">
+                            ${hour < 12 ? '🌅' : (hour < 18 ? '☀️' : '🌙')}
+                        </div>
+                        <div>
+                            <div style="font-size:18px;font-weight:700">${escapeHtml(saudacao)}, ${escapeHtml(u.name || '')}!</div>
+                            <div style="font-size:13px;opacity:0.85;margin-top:2px">${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        </div>
                     </div>
-                ` : `
-                    <div class="text-sm text-gray-500">Você não tem tarefas pendentes atribuídas no momento.</div>
-                `}
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    ${goAction ? `<button type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm" onclick="${goAction}">Abrir minhas tarefas</button>` : ''}
-                    <button type="button" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm" onclick="try{FormSystem.closeModal();}catch{}">Fechar</button>
+                </div>
+
+                <!-- Mensagem do dia -->
+                <div style="background:#f8fafc;border-left:4px solid ${msg.cor};border-radius:8px;padding:14px 16px;margin-bottom:16px">
+                    <div style="display:flex;align-items:flex-start;gap:10px">
+                        <span style="font-size:20px;line-height:1.3">${msg.icone}</span>
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:${msg.cor};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${escapeHtml(msg.titulo)}</div>
+                            <div style="font-size:14px;color:#374151;line-height:1.5;font-style:${msg.tipo === 'salmo' ? 'italic' : 'normal'}">${escapeHtml(msg.texto)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alertas de tarefas vencidas -->
+                ${vencidas.length > 0 ? `
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">
+                    <span style="font-size:18px">⚠️</span>
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:4px">${vencidas.length} tarefa${vencidas.length > 1 ? 's' : ''} vencida${vencidas.length > 1 ? 's' : ''} ou com prazo hoje!</div>
+                        <div style="font-size:12px;color:#7f1d1d">${vencidas.map(t => escapeHtml(t.titulo || '')).join(', ')}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Tarefas pendentes -->
+                <div style="margin-bottom:16px">
+                    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                        <span>📋</span> Minhas prioridades do dia
+                        ${top.length > 0 ? `<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600">${top.length} tarefa${top.length > 1 ? 's' : ''}</span>` : ''}
+                    </div>
+                    ${top.length ? `
+                        <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            <table style="width:100%;border-collapse:collapse;font-size:13px">
+                                <thead>
+                                    <tr style="background:#f9fafb">
+                                        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase">Tarefa</th>
+                                        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase">Prioridade</th>
+                                        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase">Prazo</th>
+                                        <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${top.map((t, i) => `
+                                        <tr style="border-top:1px solid #f3f4f6;${i % 2 === 1 ? 'background:#fafafa' : ''}">
+                                            <td style="padding:8px 12px;color:#111827;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(t.titulo || '')}">${escapeHtml(t.titulo || '')}</td>
+                                            <td style="padding:8px 12px">${prLabel(t.prioridade)}</td>
+                                            <td style="padding:8px 12px;color:${parseDate(t.data_vencimento) && parseDate(t.data_vencimento) <= todayStr ? '#dc2626' : '#374151'};font-weight:${parseDate(t.data_vencimento) && parseDate(t.data_vencimento) <= todayStr ? '600' : '400'}">${formatDateBr(parseDate(t.data_vencimento))}</td>
+                                            <td style="padding:8px 12px;color:#6b7280">${escapeHtml(stLabel(t.status))}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;background:#f9fafb;border-radius:8px;border:1px dashed #e5e7eb">
+                            <div style="font-size:24px;margin-bottom:8px">🎉</div>
+                            Nenhuma tarefa pendente atribuída a você. Bom trabalho!
+                        </div>
+                    `}
+                </div>
+
+                <!-- Botões de ação -->
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:4px;border-top:1px solid #f3f4f6">
+                    <div style="font-size:11px;color:#9ca3af">💬 Precisa de ajuda? Clique no botão <strong>?</strong> no canto inferior direito.</div>
+                    <div style="display:flex;gap:8px">
+                        ${goAction ? `<button type="button" style="padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer" onclick="${goAction}">📋 Minhas tarefas</button>` : ''}
+                        <button type="button" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:13px;cursor:pointer" onclick="try{FormSystem.closeModal();}catch{}">Fechar</button>
+                    </div>
                 </div>
             </div>
         `;
 
         try {
             if (window.FormSystem && typeof window.FormSystem.openModal === 'function') {
-                window.FormSystem.openModal('Bem-vindo!', content);
+                window.FormSystem.openModal('', content);
                 const saveBtn = document.getElementById('modal-save');
                 if (saveBtn) saveBtn.classList.add('hidden');
                 const cancelBtn = document.getElementById('modal-cancel');
                 if (cancelBtn) cancelBtn.classList.add('hidden');
+                // Ocultar o título padrão do modal (usamos nosso próprio cabeçalho)
+                const modalTitle = document.getElementById('modal-title');
+                if (modalTitle) modalTitle.style.display = 'none';
                 return;
             }
         } catch {}
@@ -862,7 +962,7 @@ const AuthSystem = {
         } catch {}
     },
 
-    // Atualizar display do usuário
+        // Atualizar display do usuário
     updateUserDisplay() {
         if (this.currentUser) {
             document.getElementById('userNameDisplay').textContent = this.currentUser.name;

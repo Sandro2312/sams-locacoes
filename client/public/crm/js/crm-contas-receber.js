@@ -21,6 +21,40 @@
 (function () {
   'use strict';
 
+  // ─── Flag global de sessão expirada ────────────────────────────────────────
+  // Inicializar a flag apenas se ainda não existir (evitar reset por reload)
+  if (typeof window._crmSessionExpired === 'undefined') window._crmSessionExpired = false;
+
+  /** Trata um 401/403: seta flag, para polling e exibe login — UMA única vez */
+  function handleAuthError() {
+    if (window._crmSessionExpired) return; // já tratado, não repetir
+    window._crmSessionExpired = true;
+    // Parar setInterval do módulo, se existir
+    try {
+      if (window._crmContasReceberInterval) {
+        clearInterval(window._crmContasReceberInterval);
+        window._crmContasReceberInterval = null;
+      }
+    } catch {}
+    // Exibir notificação única (deduplicação já está no utils.js)
+    try {
+      if (window.NotificationSystem && typeof window.NotificationSystem.warning === 'function') {
+        window.NotificationSystem.warning('Sessão expirada. Redirecionando para o login...');
+      }
+    } catch {}
+    // Redirecionar para login após breve delay
+    setTimeout(() => {
+      try {
+        if (window.AuthSystem && typeof window.AuthSystem.logout === 'function') {
+          window.AuthSystem.logout();
+        } else if (window.AuthSystem && typeof window.AuthSystem.showLogin === 'function') {
+          window.AuthSystem.showLogin();
+        }
+      } catch {}
+    }, 800);
+  }
+
+
   // ─── Utilitários internos ────────────────────────────────────────────────────
 
   function formatMoney(value) {
@@ -37,12 +71,18 @@
     if (!ymd) return '-';
     try {
       const s = String(ymd).trim();
+      // Bug 3 Fix: extrair componentes diretamente da string para evitar conversão de fuso horário
+      // new Date('AAAA-MM-DD') interpreta como UTC meia-noite, que em UTC-3 vira o dia anterior
       if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
         const [y, m, d] = s.slice(0, 10).split('-');
         return `${d}/${m}/${y}`;
       }
-      const dt = new Date(s);
-      if (!isNaN(dt.getTime())) return dt.toLocaleDateString('pt-BR');
+      // Para timestamps ISO (ex: 2026-07-01T00:00:00.000Z), extrair a parte de data
+      if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+        const [y, m, d] = s.slice(0, 10).split('-');
+        return `${d}/${m}/${y}`;
+      }
+      // Fallback para outros formatos
       return s;
     } catch {
       return String(ymd);
@@ -149,8 +189,12 @@
     /** Sincroniza dados do backend para o ModuleSystem local */
     async syncFromBackend() {
       try {
+        if (window._crmSessionExpired) return; // sessão já expirada, não tentar
         const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) handleAuthError();
+          return;
+        }
         const json = await response.json().catch(() => ({}));
         const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
         if (!rows.length) return;
@@ -200,10 +244,14 @@
       let api = [];
 
       try {
-        const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
-        const data = await response.json().catch(() => ({}));
-        if (response.ok) {
-          api = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        if (window._crmSessionExpired) { api = []; } else {
+          const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
+          const data = await response.json().catch(() => ({}));
+          if (response.ok) {
+            api = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+          } else if (response.status === 401 || response.status === 403) {
+            handleAuthError();
+          }
         }
       } catch {}
 

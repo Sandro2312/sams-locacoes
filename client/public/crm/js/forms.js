@@ -2915,47 +2915,63 @@ ENTREGA
             case 'contasReceber':
                 title = 'Editar Conta a Receber';
                 formHtml = this.getContaReceberForm(id);
-                // Garantir que o select de clientes seja populado mesmo no modo edição
-                Promise.resolve().then(async () => {
-                    try {
-                        if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
-                            await ModuleSystem.syncClientesFromBackend();
-                        }
-                    } catch (_e) {}
-                    try {
-                        const allClientes = (() => {
-                            const merged = [];
-                            const seen = new Set();
-                            const push = (c) => {
-                                if (!c || c.id == null) return;
-                                const key = String(c.id);
-                                if (seen.has(key)) return;
-                                seen.add(key);
-                                merged.push(c);
-                            };
-                            (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
-                            (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
-                            return merged;
-                        })();
-                        const modalContent = document.getElementById('modal-content');
-                        if (!modalContent) return;
-                        const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
-                        if (!form) return;
-                        const sel = form.querySelector('select[name="clienteId"]');
-                        if (!sel || allClientes.length === 0) return;
-                        const currentVal = sel.value;
-                        while (sel.options.length > 1) sel.remove(1);
-                        allClientes.forEach(c => {
-                            const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
-                            const email = c.email ? ` • ${c.email}` : '';
-                            const opt = document.createElement('option');
-                            opt.value = c.id;
-                            opt.textContent = `${nome}${email}`;
-                            sel.appendChild(opt);
-                        });
-                        if (currentVal) sel.value = currentVal;
-                    } catch (_e2) {}
-                });
+                // Bug 2 Fix: popular select de clientes com selectedId explícito (evita race condition)
+                // O selectedId é extraído do registro ANTES da chamada assíncrona,
+                // garantindo que o valor correto seja definido após as opções carregarem.
+                {
+                    const _crRecord = this.getRecordData('contasReceber', id) || {};
+                    const _crSelectedId = String(_crRecord.clienteId ?? _crRecord.cliente_id ?? '');
+                    Promise.resolve().then(async () => {
+                        try {
+                            if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
+                                await ModuleSystem.syncClientesFromBackend();
+                            }
+                        } catch (_e) {}
+                        try {
+                            const allClientes = (() => {
+                                const merged = [];
+                                const seen = new Set();
+                                const push = (c) => {
+                                    if (!c || c.id == null) return;
+                                    const key = String(c.id);
+                                    if (seen.has(key)) return;
+                                    seen.add(key);
+                                    merged.push(c);
+                                };
+                                (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
+                                (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
+                                return merged;
+                            })();
+                            const modalContent = document.getElementById('modal-content');
+                            if (!modalContent) return;
+                            const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
+                            if (!form) return;
+                            const sel = form.querySelector('select[name="clienteId"]');
+                            if (!sel || allClientes.length === 0) return;
+                            // Usar o selectedId capturado ANTES da chamada async (evita race condition)
+                            const targetVal = _crSelectedId || sel.value;
+                            while (sel.options.length > 1) sel.remove(1);
+                            allClientes.forEach(c => {
+                                const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
+                                const email = c.email ? ` • ${c.email}` : '';
+                                const opt = document.createElement('option');
+                                opt.value = String(c.id);
+                                opt.textContent = `${nome}${email}`;
+                                sel.appendChild(opt);
+                            });
+                            // Definir o valor após popular as opções
+                            if (targetVal) {
+                                sel.value = targetVal;
+                                // Se ainda não encontrou, tentar comparação numérica
+                                if (sel.value !== targetVal) {
+                                    const numTarget = parseInt(targetVal, 10);
+                                    const matchOpt = Array.from(sel.options).find(o => parseInt(o.value, 10) === numTarget);
+                                    if (matchOpt) sel.value = matchOpt.value;
+                                }
+                            }
+                        } catch (_e2) {}
+                    });
+                }
                 break;
             case 'marketing_campanhas':
                 title = 'Editar Campanha';

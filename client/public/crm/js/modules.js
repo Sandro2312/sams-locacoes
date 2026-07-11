@@ -75,6 +75,7 @@ const ModuleSystem = {
 
         // Sincronizar dados do servidor após inicialização (garante mobile/desktop em sincronia)
         setTimeout(() => {
+            if (window._crmSessionExpired) return; // sessão expirada, não sincronizar
             this.loadTransacoes().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar transações:', e));
             this.syncClientesFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar clientes:', e));
             this.syncEventosFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar eventos:', e));
@@ -288,8 +289,15 @@ const ModuleSystem = {
         }
         // Fallback inline caso crm-contas-receber.js ainda não tenha carregado
         try {
+            if (window._crmSessionExpired) return; // sessão expirada, não tentar
             const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
-            if (!response.ok) return;
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    window._crmSessionExpired = true;
+                    try { if (window.NotificationSystem) window.NotificationSystem.warning('Sessão expirada. Faça login novamente.'); } catch {}
+                }
+                return;
+            }
             const json = await response.json().catch(() => ({}));
             const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
             if (!rows.length) return;
@@ -2079,12 +2087,29 @@ const ModuleSystem = {
                 
                 <div id="clientes-list-container" class="bg-white rounded-lg shadow">
                     <div class="p-6 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
+                        <div class="flex flex-wrap justify-between items-center gap-3">
                             <h3 class="text-lg font-semibold text-gray-800">Lista de Clientes</h3>
-                            <button data-action="create" data-module="clientes" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
-                                <i class="fas fa-plus mr-2"></i>Novo Cliente
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2 ml-auto">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input id="clientes-filter-q" type="text" placeholder="Buscar por nome, e-mail, documento..."
+                                           class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           style="min-width:240px" />
+                                </div>
+                                <select id="clientes-filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Todos os status</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="inativo">Inativo</option>
+                                    <option value="prospect">Prospect</option>
+                                </select>
+                                <button id="clientes-filter-clear" type="button" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                                    <i class="fas fa-times mr-1"></i>Limpar
+                                </button>
+                                <button data-action="create" data-module="clientes" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300 text-sm">
+                                    <i class="fas fa-plus mr-2"></i>Novo Cliente
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -3181,8 +3206,14 @@ const ModuleSystem = {
             };
 
             const formatDate = (raw) => {
-                const d = parseDate(raw);
-                return d ? d.toLocaleDateString('pt-BR') : '—';
+                // Bug 3 Fix: extrair componentes sem conversão de fuso horário
+                if (!raw) return '—';
+                const _s = String(raw).trim().slice(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(_s)) {
+                    const [_y, _m, _d] = _s.split('-');
+                    return `${_d}/${_m}/${_y}`;
+                }
+                return _s || '—';
             };
 
             const getNomeProjeto = (p) => {
@@ -3267,17 +3298,33 @@ const ModuleSystem = {
             return `
                 <div class="bg-white rounded-lg shadow">
                     <div class="p-6 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
+                        <div class="flex flex-wrap justify-between items-center gap-3">
                             <h3 class="text-lg font-semibold text-gray-800">Lista de Projetos</h3>
-                            <div class="flex gap-2">
-                            <button data-action="create" data-module="projetos" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
-                                <i class="fas fa-plus mr-2"></i>Novo Projeto
-                            </button>
-                            <button type="button" onclick="(async()=>{await ModuleSystem.loadProjetos(); await ModuleSystem.loadMemoriais(); if(window.NavigationSystem&&NavigationSystem.reloadCurrentPage) NavigationSystem.reloadCurrentPage();})()"
-                                    class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition duration-300">
-                                <i class="fas fa-sync mr-2"></i>Atualizar
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2 ml-auto">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input id="projetos-filter-q" type="text" placeholder="Buscar por nome, projetista, status..."
+                                           class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           style="min-width:220px" />
+                                </div>
+                                <select id="projetos-filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Todos os status</option>
+                                    <option value="em_andamento">Em Andamento</option>
+                                    <option value="aprovado">Aprovado</option>
+                                    <option value="concluido">Concluído</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                                <button id="projetos-filter-clear" type="button" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                                    <i class="fas fa-times mr-1"></i>Limpar
+                                </button>
+                                <button data-action="create" data-module="projetos" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300 text-sm">
+                                    <i class="fas fa-plus mr-2"></i>Novo Projeto
+                                </button>
+                                <button type="button" onclick="(async()=>{await ModuleSystem.loadProjetos(); await ModuleSystem.loadMemoriais(); if(window.NavigationSystem&&NavigationSystem.reloadCurrentPage) NavigationSystem.reloadCurrentPage();})()"
+                                        class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg transition duration-300 text-sm">
+                                    <i class="fas fa-sync mr-2"></i>Atualizar
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3294,7 +3341,7 @@ const ModuleSystem = {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody id="projetos-list-body" class="bg-white divide-y divide-gray-200">
                                 ${projetos.map(projeto => `
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -3858,7 +3905,10 @@ const ModuleSystem = {
             const dateBR = (ymd) => {
                 if (!ymd) return '-';
                 try {
-                    return new Date(String(ymd).slice(0, 10)).toLocaleDateString('pt-BR');
+                    // Bug 3 Fix: sem conversão de fuso horário
+                    const _s3869 = String(ymd).slice(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(_s3869)) { const [_y,_m,_d] = _s3869.split('-'); return `${_d}/${_m}/${_y}`; }
+                    return _s3869;
                 } catch {
                     return String(ymd);
                 }
@@ -4014,7 +4064,13 @@ const ModuleSystem = {
             const formatDate = (ymd) => {
                 if (!ymd) return '-';
                 try {
-                    return new Date(String(ymd).slice(0, 10)).toLocaleDateString('pt-BR');
+                    // Bug 3 Fix: sem conversão de fuso horário
+                    const _s = String(ymd).slice(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(_s)) {
+                        const [_y, _m, _d] = _s.split('-');
+                        return `${_d}/${_m}/${_y}`;
+                    }
+                    return _s;
                 } catch {
                     return String(ymd);
                 }
@@ -4745,7 +4801,7 @@ const ModuleSystem = {
                                                                             <tr class="border-t border-green-200">
                                                                                 <td class="py-1 pr-2">${it.descricao || '-'}</td>
                                                                                 <td class="py-1 pr-2">${it.status || '-'}</td>
-                                                                                <td class="py-1 pr-2">${it.vencimento ? new Date(String(it.vencimento).slice(0,10)).toLocaleDateString('pt-BR') : '-'}</td>
+                                                                                <td class="py-1 pr-2">${it.vencimento ? (()=>{ const _s=String(it.vencimento).slice(0,10); const [_y,_m,_d]=_s.split('-'); return `${_d}/${_m}/${_y}`; })() : '-'}</td>
                                                                                 <td class="py-1 text-right">${toBR(it.valor)}</td>
                                                                             </tr>
                                                                         `).join('')}
@@ -4771,7 +4827,7 @@ const ModuleSystem = {
                                                                             <tr class="border-t border-red-200">
                                                                                 <td class="py-1 pr-2">${it.descricao || '-'}</td>
                                                                                 <td class="py-1 pr-2">${it.tipo || '-'}</td>
-                                                                                <td class="py-1 pr-2">${it.data ? new Date(String(it.data).slice(0,10)).toLocaleDateString('pt-BR') : '-'}</td>
+                                                                                <td class="py-1 pr-2">${it.data ? (()=>{ const _s=String(it.data).slice(0,10); const [_y,_m,_d]=_s.split('-'); return `${_d}/${_m}/${_y}`; })() : '-'}</td>
                                                                                 <td class="py-1 text-right">${toBR(it.valor)}</td>
                                                                             </tr>
                                                                         `).join('')}
@@ -5047,7 +5103,7 @@ const ModuleSystem = {
                     const rowsHtml = data.proximas.map(cr => {
                         const desc = escapeHtml(cr && cr.descricao != null ? cr.descricao : '-');
                         const venc = String(cr && cr.vencimento != null ? cr.vencimento : '').slice(0, 10);
-                        const vencBr = venc ? new Date(venc).toLocaleDateString('pt-BR') : '-';
+                        const vencBr = venc ? (()=>{ const _s=String(venc).slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(_s)){const [_y,_m,_d]=_s.split('-');return `${_d}/${_m}/${_y}`;}return _s; })() : '-';
                         const valor = toBR(toMoney(cr && cr.valor != null ? cr.valor : 0));
                         return (
                             '<tr>' +
@@ -5290,7 +5346,7 @@ const ModuleSystem = {
 
                 const dayHtml = (() => {
                     const br = (d) => {
-                        try { return new Date(String(d).slice(0, 10)).toLocaleDateString('pt-BR'); } catch { return String(d || ''); }
+                        try { const _s5301=String(d).slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(_s5301)){const [_y,_m,_dd]=_s5301.split('-');return `${_dd}/${_m}/${_y}`;}return _s5301; } catch { return String(d || ''); }
                     };
                     const debitos = Array.isArray(data.debitosDia) ? data.debitosDia : [];
                     const credPagos = Array.isArray(data.creditosDiaContasPagas) ? data.creditosDiaContasPagas : [];
@@ -5492,6 +5548,7 @@ const ModuleSystem = {
             try {
                 setInterval(() => {
                     if (!document.getElementById('financeiroDashBody')) return;
+                    if (window._crmSessionExpired) return; // sessão expirada, parar polling
                     load();
                 }, 60000);
             } catch {}
@@ -5612,7 +5669,7 @@ const ModuleSystem = {
                         const fmtBr = (ymd) => {
                             const s = String(ymd || '').slice(0, 10);
                             if (!s) return '-';
-                            try { return new Date(s + 'T00:00:00').toLocaleDateString('pt-BR'); } catch { return s; }
+                            try { if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const [_y,_m,_d]=s.split('-');return _d+'/'+_m+'/'+_y;}return s; } catch { return s; }
                         };
 
                         const prioMeta = (p) => {
@@ -9208,33 +9265,72 @@ window.ComercialModule.loadClientes = async function() {
     ModuleSystem.data.clientes = merged;
     ModuleSystem.saveData();
 
-    tbody.innerHTML = merged.map(cliente => `
-      <tr class="hover:bg-gray-50">
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="text-sm font-medium text-gray-900">${cliente.nome || ''}</div>
-          <div class="text-sm text-gray-500">${cliente.email || ''}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${cliente.documento || '—'}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${cliente.telefone || '—'}</td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          <div class="flex items-center gap-2">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${UIHelpers.computeStatusClass(cliente.status)}">${cliente.status || '—'}</span>
-            ${UIHelpers.renderSegmentBadge(cliente.segmento || cliente.categoria || cliente.setor)}
-          </div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-          <button data-action="read" data-module="clientes" data-id="${cliente.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar" aria-label="Visualizar detalhes do cliente ${cliente.nome || ''}">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button data-action="update" data-module="clientes" data-id="${cliente.id}" class="text-green-600 hover:text-green-900" title="Editar" aria-label="Editar cliente ${cliente.nome || ''}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button data-action="delete" data-module="clientes" data-id="${cliente.id}" class="text-red-600 hover:text-red-900" title="Excluir" aria-label="Excluir cliente ${cliente.nome || ''}">
-            <i class="fas fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('') || `<tr><td colspan="5" class="px-6 py-4 text-sm text-gray-500">Nenhum cliente encontrado.</td></tr>`;
+    // Cache para filtragem sem novo fetch
+    window.ComercialModule._clientesCache = merged;
+
+    const qEl = document.getElementById('clientes-filter-q');
+    const statusEl = document.getElementById('clientes-filter-status');
+    const clearEl = document.getElementById('clientes-filter-clear');
+
+    const normalizeText = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    const renderRows = (list) => {
+      tbody.innerHTML = (list || []).map(cliente => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">${cliente.nome || ''}</div>
+            <div class="text-sm text-gray-500">${cliente.email || ''}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${cliente.documento || '—'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${cliente.telefone || '—'}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center gap-2">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${UIHelpers.computeStatusClass(cliente.status)}">${cliente.status || '—'}</span>
+              ${UIHelpers.renderSegmentBadge(cliente.segmento || cliente.categoria || cliente.setor)}
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+            <button data-action="read" data-module="clientes" data-id="${cliente.id}" class="text-blue-600 hover:text-blue-900" title="Visualizar" aria-label="Visualizar detalhes do cliente ${cliente.nome || ''}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button data-action="update" data-module="clientes" data-id="${cliente.id}" class="text-green-600 hover:text-green-900" title="Editar" aria-label="Editar cliente ${cliente.nome || ''}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button data-action="delete" data-module="clientes" data-id="${cliente.id}" class="text-red-600 hover:text-red-900" title="Excluir" aria-label="Excluir cliente ${cliente.nome || ''}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('') || `<tr><td colspan="5" class="px-6 py-4 text-sm text-gray-500">Nenhum cliente encontrado.</td></tr>`;
+    };
+
+    const applyFilters = () => {
+      const q = qEl ? normalizeText(qEl.value) : '';
+      const st = statusEl ? String(statusEl.value || '').trim().toLowerCase() : '';
+      const list = Array.isArray(window.ComercialModule._clientesCache) ? window.ComercialModule._clientesCache : [];
+      const filtered = list.filter(c => {
+        if (st && String(c.status || '').toLowerCase() !== st) return false;
+        if (q) {
+          const hay = normalizeText([c.nome, c.email, c.documento, c.cnpj, c.telefone, c.segmento].filter(Boolean).join(' '));
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+      renderRows(filtered);
+    };
+
+    renderRows(merged);
+
+    if (!container.getAttribute('data-filters-bound')) {
+      container.setAttribute('data-filters-bound', '1');
+      if (qEl) qEl.addEventListener('input', applyFilters);
+      if (statusEl) statusEl.addEventListener('change', applyFilters);
+      if (clearEl) clearEl.addEventListener('click', () => {
+        if (qEl) qEl.value = '';
+        if (statusEl) statusEl.value = '';
+        applyFilters();
+      });
+    }
   } finally {
     const container = document.getElementById('clientes-list-container');
     if (container) container.removeAttribute('aria-busy');
@@ -9646,7 +9742,13 @@ window.FinanceiroModule.loadContasReceber = async function() {
   const formatDate = (ymd) => {
     if (!ymd) return '-';
     try {
-      return new Date(String(ymd).slice(0, 10)).toLocaleDateString('pt-BR');
+      // Bug 3 Fix: sem conversão de fuso horário
+      const _s = String(ymd).slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(_s)) {
+        const [_y, _m, _d] = _s.split('-');
+        return `${_d}/${_m}/${_y}`;
+      }
+      return _s;
     } catch {
       return String(ymd);
     }
@@ -9734,6 +9836,7 @@ window.FinanceiroModule.loadContasReceber = async function() {
     const local = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.contasReceber)) ? [...ModuleSystem.data.contasReceber] : [];
     let api = [];
     try {
+      if (window._crmSessionExpired) { return; }
       const response = await fetch('/api/crm/contas-receber', { credentials: 'include' });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
