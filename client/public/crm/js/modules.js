@@ -163,7 +163,9 @@ const ModuleSystem = {
                     clienteNome: r.cliente_nome || r.clienteNome || null,
                     eventoNome: r.evento_nome || r.eventoNome || null,
                     recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,
-                    recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null
+                    recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null,
+                    comprovanteUrl: r.comprovante_url || r.comprovanteUrl || null,
+                    comprovanteNome: r.comprovante_url ? (r.comprovante_url.split('/').pop() || 'comprovante') : (r.comprovanteNome || r.comprovante_nome || null)
                 }));
                 this.data.transacoes = rows;
                 this.saveData();
@@ -4668,11 +4670,12 @@ const ModuleSystem = {
 
             const csv = [header, ...lines].join('\n');
             const filename = `relatorio-centro-custos-${new Date().toISOString().slice(0,10)}.csv`;
+            // Usar AuditSystem (que já adiciona BOM) ou fallback com BOM manual
             if (window.AuditSystem && typeof window.AuditSystem.downloadFile === 'function') {
                 window.AuditSystem.downloadFile(filename, csv, 'text/csv');
                 return;
             }
-            const blob = new Blob([csv], { type: 'text/csv' });
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -4681,6 +4684,44 @@ const ModuleSystem = {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        },
+        exportRelatorioExcel() {
+            // Exportação Excel via SheetJS (CDN carregado dinamicamente)
+            const currentFilter = this._relatorioCentroCustoFilter != null ? String(this._relatorioCentroCustoFilter) : '';
+            const { rows, totals } = this.getRelatorioCentroCustosData(currentFilter);
+            const toBR = (n) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const doExport = () => {
+                const XLSX = window.XLSX;
+                const wsData = [
+                    ['Centro de Custos','Receitas (C. Receber)','Receitas (Transações)','Despesas (Transações)','Receitas (Total)','Despesas (Total)','Saldo'],
+                    ...rows.map(r => [r.centroCusto, toBR(r.receitasContas), toBR(r.receitasTransacoes), toBR(r.custosTransacoes), toBR(r.receitas), toBR(r.custos), toBR(r.saldo)]),
+                    ['TOTAL', toBR(totals.receitasContas), toBR(totals.receitasTransacoes), toBR(totals.custosTransacoes), toBR(totals.receitas), toBR(totals.custos), toBR(totals.saldo)]
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+                XLSX.writeFile(wb, `relatorio-centro-custos-${new Date().toISOString().slice(0,10)}.xlsx`);
+            };
+            if (window.XLSX) { doExport(); return; }
+            const script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+            script.onload = doExport;
+            script.onerror = () => { if (window.NotificationSystem) window.NotificationSystem.error('Falha ao carregar biblioteca Excel. Verifique sua conexão.'); };
+            document.head.appendChild(script);
+        },
+        exportRelatorioPDF() {
+            // Exportação PDF via janela de impressão com tabela formatada
+            const currentFilter = this._relatorioCentroCustoFilter != null ? String(this._relatorioCentroCustoFilter) : '';
+            const { rows, totals } = this.getRelatorioCentroCustosData(currentFilter);
+            const toBR = (n) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const today = new Date().toLocaleDateString('pt-BR');
+            const rowsHtml = rows.map(r => `<tr><td>${esc(r.centroCusto)}</td><td>${esc(toBR(r.receitasContas))}</td><td>${esc(toBR(r.receitasTransacoes))}</td><td>${esc(toBR(r.custosTransacoes))}</td><td>${esc(toBR(r.receitas))}</td><td>${esc(toBR(r.custos))}</td><td class="${r.saldo >= 0 ? 'pos' : 'neg'}">${esc(toBR(r.saldo))}</td></tr>`).join('');
+            const win = window.open('', '_blank');
+            if (!win) { if (window.NotificationSystem) window.NotificationSystem.error('Pop-up bloqueado. Permita pop-ups para exportar PDF.'); return; }
+            win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Centro de Custos - SAMS Locações</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}h1{font-size:16px;color:#1e3a5f;margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10px}tr:last-child td{font-weight:bold;background:#f3f4f6}td.pos{color:#059669}td.neg{color:#dc2626}@media print{button{display:none}}</style></head><body><h1>Relatório por Centro de Custos</h1><p>SAMS Locações &mdash; Gerado em ${today}</p><table><thead><tr><th>Centro de Custos</th><th>Rec. C.Receber</th><th>Rec. Transações</th><th>Desp. Transações</th><th>Receitas Total</th><th>Despesas Total</th><th>Saldo</th></tr></thead><tbody>${rowsHtml}<tr><td>TOTAL</td><td>${esc(toBR(totals.receitasContas))}</td><td>${esc(toBR(totals.receitasTransacoes))}</td><td>${esc(toBR(totals.custosTransacoes))}</td><td>${esc(toBR(totals.receitas))}</td><td>${esc(toBR(totals.custos))}</td><td class="${totals.saldo >= 0 ? 'pos' : 'neg'}">${esc(toBR(totals.saldo))}</td></tr></tbody></table><br><button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></body></html>`);
+            win.document.close();
+            setTimeout(() => { try { win.print(); } catch {} }, 400);
         },
 
         setRelatorioCentroCustoFilter(value) {
@@ -4731,8 +4772,19 @@ const ModuleSystem = {
                                     ${centros.map(cc => `<option value="${esc(cc)}" ${filterKey && String(cc) === String(filterKey) ? 'selected' : ''}>${esc(cc)}</option>`).join('')}
                                 </select>
                                 <button type="button" onclick="ModuleSystem.financeiro.exportRelatorioCentroCustosCsv()"
-                                        class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition duration-300">
-                                    <i class="fas fa-file-csv mr-2"></i>Exportar CSV
+                                        class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition duration-300"
+                                        title="Exportar como CSV (compatível com Excel)">
+                                    <i class="fas fa-file-csv mr-2"></i>CSV
+                                </button>
+                                <button type="button" onclick="ModuleSystem.financeiro.exportRelatorioExcel()"
+                                        class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg transition duration-300"
+                                        title="Exportar como planilha Excel (.xlsx)">
+                                    <i class="fas fa-file-excel mr-2"></i>Excel
+                                </button>
+                                <button type="button" onclick="ModuleSystem.financeiro.exportRelatorioPDF()"
+                                        class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg transition duration-300"
+                                        title="Exportar como PDF / Imprimir">
+                                    <i class="fas fa-file-pdf mr-2"></i>PDF
                                 </button>
                             </div>
                         </div>
@@ -5223,19 +5275,29 @@ const ModuleSystem = {
                     const maxV = Math.max(...points.map(p => Math.max(p.receitas, p.despesas)), 1);
                     // Limitar a 85% para sempre mostrar fundo cinza (evitar blocos sólidos)
                     const h = (v) => Math.min(85, Math.round((Math.min(Math.max(v, 0), maxV) / maxV) * 85));
+                    // Formatar valor abreviado para caber no label (K/M) com tooltip completo
+                    const toShort = (n) => {
+                        const abs = Math.abs(n);
+                        const sign = n < 0 ? '-' : '';
+                        if (abs >= 1000000) return sign + 'R$' + (abs / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'M';
+                        if (abs >= 1000) return sign + 'R$' + (abs / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'K';
+                        return sign + 'R$' + abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+                    };
                     const bars = points.map(p => {
+                        const saldoFull = toBR(p.saldo);
+                        const saldoShort = toShort(p.saldo);
                         return (
-                            '<div class="flex flex-col items-center w-16">' +
+                            '<div class="flex flex-col items-center" style="min-width:72px;max-width:88px">' +
                                 '<div class="flex items-end gap-1 w-full" style="height:112px">' +
-                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6">' +
+                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6" title="Receitas: ' + toBR(p.receitas) + '">' +
                                         '<div class="w-full bg-green-500" style="height:' + String(h(p.receitas)) + '%;min-height:' + (h(p.receitas) > 0 ? '3' : '0') + 'px"></div>' +
                                     '</div>' +
-                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6">' +
+                                    '<div class="flex-1 rounded overflow-hidden flex items-end" style="height:100%;background:#f3f4f6" title="Despesas: ' + toBR(p.despesas) + '">' +
                                         '<div class="w-full bg-red-500" style="height:' + String(h(p.despesas)) + '%;min-height:' + (h(p.despesas) > 0 ? '3' : '0') + 'px"></div>' +
                                     '</div>' +
                                 '</div>' +
-                                '<div class="mt-2 text-xs text-gray-600">' + escapeHtml(monthLabel(p.ym)) + '</div>' +
-                                '<div class="text-[10px] font-semibold ' + (p.saldo >= 0 ? 'text-green-700' : 'text-red-700') + '">' + toBR(p.saldo) + '</div>' +
+                                '<div class="mt-2 text-xs text-gray-600 text-center">' + escapeHtml(monthLabel(p.ym)) + '</div>' +
+                                '<div class="text-[10px] font-semibold text-center ' + (p.saldo >= 0 ? 'text-green-700' : 'text-red-700') + '" title="Saldo: ' + saldoFull + '" style="white-space:nowrap">' + saldoShort + '</div>' +
                             '</div>'
                         );
                     }).join('');

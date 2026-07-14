@@ -633,7 +633,11 @@ class AuditSystem {
     }
 
     downloadFile(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
+        // Adicionar BOM UTF-8 para CSV abrir corretamente no Excel com acentos
+        const isCSV = typeof mimeType === 'string' && mimeType.includes('csv');
+        const blobContent = isCSV ? ('\uFEFF' + content) : content;
+        const blobType = isCSV ? 'text/csv;charset=utf-8;' : mimeType;
+        const blob = new Blob([blobContent], { type: blobType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

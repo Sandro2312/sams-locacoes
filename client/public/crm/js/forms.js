@@ -4739,6 +4739,19 @@ ENTREGA
                         </div>
                     </div>
                 ` : ''}
+                ${(transacao?.comprovanteUrl || transacao?.comprovante_url) ? `
+                    <div class="mt-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Comprovante</label>
+                        <div class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                            <i class="fas fa-paperclip text-gray-500"></i>
+                            <a href="${transacao.comprovanteUrl || transacao.comprovante_url}" target="_blank" rel="noopener noreferrer"
+                               class="text-blue-600 hover:text-blue-800 underline text-sm truncate" title="Abrir comprovante">
+                                ${transacao.comprovanteNome || 'Ver comprovante'}
+                            </a>
+                            <span class="ml-auto text-xs text-gray-400">Clique para abrir</span>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
             <div class="flex justify-end space-x-4 pt-6 border-t">
                 <button type="button" onclick="FormSystem.closeModal()" 

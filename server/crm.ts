@@ -1685,19 +1685,42 @@ export function registerCrmRoutes(app: any) {
 
   r.post("/despesas", requireCrmAuth, async (req, res) => {
     try {
-      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_qtd } = req.body;
+      const {
+        descricao, tipo, valor, status, centro_custo, data, observacoes,
+        evento_id, cliente_id, recorrencia, recorrencia_qtd,
+        comprovanteName, comprovanteMime, comprovanteDataBase64
+      } = req.body;
       const userId = (req as any).user?.id;
-      
+
       if (!descricao || !tipo || valor === undefined) {
         return res.status(400).json({ error: "Campos obrigatórios: descricao, tipo, valor" });
       }
 
+      // Upload de comprovante (opcional) — mesma lógica de /contas-receber
+      let comprovanteUrl: string | null = null;
+      if (comprovanteDataBase64 && comprovanteName) {
+        try {
+          const buffer = Buffer.from(comprovanteDataBase64, 'base64');
+          const fileName = `despesas/${Date.now()}-${comprovanteName}`;
+          const { url } = await storagePut(fileName, buffer, comprovanteMime || 'application/octet-stream');
+          comprovanteUrl = url;
+        } catch (err) {
+          console.warn('[CRM] Falha ao salvar comprovante de despesa em S3:', err);
+        }
+      }
+
       const result = await db(
-        `INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_qtd)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [descricao, tipo, valor, status || "pendente", centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, userId || null, recorrencia || null, recorrencia_qtd || null]
+        `INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, comprovante_url, evento_id, cliente_id, created_by, recorrencia, recorrencia_qtd)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          descricao, tipo, valor, status || "pendente",
+          centro_custo || null, data || null, observacoes || null,
+          comprovanteUrl,
+          evento_id || null, cliente_id || null, userId || null,
+          recorrencia || null, recorrencia_qtd || null
+        ]
       );
-      
+
       res.status(201).json({ id: (result as any).insertId, message: "Despesa criada com sucesso" });
     } catch (e: any) {
       res.status(500).json({ error: e?.message || "Falha ao criar despesa" });
@@ -1707,11 +1730,15 @@ export function registerCrmRoutes(app: any) {
   r.put("/despesas/:id", requireCrmAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id } = req.body;
-      
-      const updates = [];
-      const params = [];
-      
+      const {
+        descricao, tipo, valor, status, centro_custo, data, observacoes,
+        evento_id, cliente_id,
+        comprovanteName, comprovanteMime, comprovanteDataBase64
+      } = req.body;
+
+      const updates: string[] = [];
+      const params: any[] = [];
+
       if (descricao !== undefined) { updates.push("descricao = ?"); params.push(descricao); }
       if (tipo !== undefined) { updates.push("tipo = ?"); params.push(tipo); }
       if (valor !== undefined) { updates.push("valor = ?"); params.push(valor); }
@@ -1721,14 +1748,27 @@ export function registerCrmRoutes(app: any) {
       if (observacoes !== undefined) { updates.push("observacoes = ?"); params.push(observacoes); }
       if (evento_id !== undefined) { updates.push("evento_id = ?"); params.push(evento_id); }
       if (cliente_id !== undefined) { updates.push("cliente_id = ?"); params.push(cliente_id); }
-      
+
+      // Upload de comprovante — só sobrescreve se um novo arquivo foi enviado
+      if (comprovanteDataBase64 && comprovanteName) {
+        try {
+          const buffer = Buffer.from(comprovanteDataBase64, 'base64');
+          const fileName = `despesas/${Date.now()}-${comprovanteName}`;
+          const { url } = await storagePut(fileName, buffer, comprovanteMime || 'application/octet-stream');
+          updates.push("comprovante_url = ?");
+          params.push(url);
+        } catch (err) {
+          console.warn('[CRM] Falha ao salvar comprovante de despesa em S3:', err);
+        }
+      }
+
       if (updates.length === 0) {
         return res.status(400).json({ error: "Nenhum campo para atualizar" });
       }
-      
+
       params.push(id);
       await db(`UPDATE crm_transacoes SET ${updates.join(", ")} WHERE id = ?`, params);
-      
+
       res.json({ message: "Despesa atualizada com sucesso" });
     } catch (e: any) {
       res.status(500).json({ error: e?.message || "Falha ao atualizar despesa" });
