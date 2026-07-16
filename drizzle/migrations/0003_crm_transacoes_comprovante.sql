@@ -1,0 +1,22 @@
+-- Migração: 0003_crm_transacoes_comprovante.sql
+-- Data: 2026-07-15
+-- Versão: v5.33
+-- Descrição: Registra formalmente a tabela crm_transacoes no controle de migrações
+--            e documenta a adição da coluna comprovante_url.
+--
+-- ATENÇÃO: Esta migração é de REFERÊNCIA apenas.
+-- A tabela crm_transacoes já existia em produção antes desta migração.
+-- A coluna comprovante_url foi adicionada diretamente via webdev_execute_sql em v5.33.
+-- Este arquivo documenta o estado atual para fins de controle de versão.
+--
+-- Para ambientes novos (homologação/staging), executar:
+-- 1. Primeiro o crm-schema.sql completo (que já inclui crm_transacoes com comprovante_url)
+-- 2. OU executar apenas o ALTER abaixo se a tabela já existir sem a coluna:
+
+-- Adicionar coluna comprovante_url se não existir (idempotente):
+-- ALTER TABLE crm_transacoes ADD COLUMN IF NOT EXISTS comprovante_url TEXT NULL;
+
+-- Índices de performance (se não existirem):
+-- CREATE INDEX IF NOT EXISTS idx_crm_transacoes_tipo ON crm_transacoes(tipo);
+-- CREATE INDEX IF NOT EXISTS idx_crm_transacoes_data ON crm_transacoes(data);
+-- CREATE INDEX IF NOT EXISTS idx_crm_transacoes_centro_custo ON crm_transacoes(centro_custo);

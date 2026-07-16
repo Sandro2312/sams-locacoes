@@ -482,3 +482,32 @@ CREATE INDEX IF NOT EXISTS idx_crm_os_status ON crm_ordens_servico(status);
 CREATE INDEX IF NOT EXISTS idx_crm_os_tipo ON crm_ordens_servico(tipo);
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================
+-- Tabela: crm_transacoes (Financeiro — Despesas e Receitas)
+-- Adicionada ao schema versionado em 2026-07-15 (v5.33)
+-- A tabela já existia em produção mas não estava documentada aqui.
+-- A coluna comprovante_url foi adicionada via webdev_execute_sql em v5.33.
+-- =============================================================
+CREATE TABLE IF NOT EXISTS crm_transacoes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  descricao VARCHAR(255) NOT NULL,
+  tipo VARCHAR(50) NOT NULL,
+  valor DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status VARCHAR(50) NULL DEFAULT 'pendente',
+  centro_custo VARCHAR(100) NULL,
+  data DATE NULL,
+  observacoes TEXT NULL,
+  comprovante_url TEXT NULL,
+  evento_id INT NULL,
+  cliente_id INT NULL,
+  created_by INT NULL,
+  recorrencia VARCHAR(20) NULL,
+  recorrencia_grupo_id VARCHAR(50) NULL,
+  recorrencia_indice INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_crm_transacoes_tipo ON crm_transacoes(tipo);
+CREATE INDEX IF NOT EXISTS idx_crm_transacoes_data ON crm_transacoes(data);
+CREATE INDEX IF NOT EXISTS idx_crm_transacoes_centro_custo ON crm_transacoes(centro_custo);

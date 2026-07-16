@@ -237,11 +237,24 @@ export function registerCrmAdminRoutes(app: any) {
   rt.post("/", requireAuth, async (req, res) => {
     try {
       const u = (req as any).crmUser;
-      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_grupo_id, recorrencia_indice } = req.body;
+      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_grupo_id, recorrencia_indice, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
       if (!descricao || !tipo || valor === undefined) return res.status(400).json({ error: "Campos obrigatórios: descricao, tipo, valor" });
+      // Processar upload de comprovante (base64 → S3) se fornecido
+      let comprovanteUrl: string | null = null;
+      if (comprovanteDataBase64 && comprovanteName) {
+        try {
+          const { storagePut } = await import('./storage');
+          const buffer = Buffer.from(comprovanteDataBase64, 'base64');
+          const fileName = `transacoes/${Date.now()}-${comprovanteName}`;
+          const { url } = await storagePut(fileName, buffer, comprovanteMime || 'application/octet-stream');
+          comprovanteUrl = url;
+        } catch (err) {
+          console.warn('[CRM-Admin] Falha ao salvar comprovante em S3:', err);
+        }
+      }
       const [result] = await getPool().execute(
-        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, u.userId, recorrencia || null, recorrencia_grupo_id || null, recorrencia_indice || null]
+        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, comprovante_url, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, comprovanteUrl, evento_id || null, cliente_id || null, u.userId, recorrencia || null, recorrencia_grupo_id || null, recorrencia_indice || null]
       );
       res.json({ id: (result as any).insertId, ok: true });
     } catch (e: any) {
@@ -251,11 +264,25 @@ export function registerCrmAdminRoutes(app: any) {
 
   rt.put("/:id", requireAuth, async (req, res) => {
     try {
-      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id } = req.body;
-      await db(
-        "UPDATE crm_transacoes SET descricao=?, tipo=?, valor=?, status=?, centro_custo=?, data=?, observacoes=?, evento_id=?, cliente_id=? WHERE id=?",
-        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null, req.params.id]
-      );
+      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, comprovanteName: updComprovanteName, comprovanteMime: updComprovanteMime, comprovanteDataBase64: updComprovanteDataBase64 } = req.body;
+      // Processar upload de comprovante (base64 → S3) se fornecido na edição
+      let updComprovanteUrl: string | undefined = undefined; // undefined = não alterar a coluna
+      if (updComprovanteDataBase64 && updComprovanteName) {
+        try {
+          const { storagePut } = await import('./storage');
+          const buffer = Buffer.from(updComprovanteDataBase64, 'base64');
+          const fileName = `transacoes/${Date.now()}-${updComprovanteName}`;
+          const { url } = await storagePut(fileName, buffer, updComprovanteMime || 'application/octet-stream');
+          updComprovanteUrl = url;
+        } catch (err) {
+          console.warn('[CRM-Admin] Falha ao salvar comprovante em S3 (update):', err);
+        }
+      }
+      const updCols = ["descricao=?", "tipo=?", "valor=?", "status=?", "centro_custo=?", "data=?", "observacoes=?", "evento_id=?", "cliente_id=?"];
+      const updVals: any[] = [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null];
+      if (updComprovanteUrl !== undefined) { updCols.push("comprovante_url=?"); updVals.push(updComprovanteUrl); }
+      updVals.push(req.params.id);
+      await db(`UPDATE crm_transacoes SET ${updCols.join(', ')} WHERE id=?`, updVals);
       res.json({ ok: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

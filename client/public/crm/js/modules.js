@@ -4762,9 +4762,9 @@ const ModuleSystem = {
             return `
                 <div class="bg-white rounded-lg shadow" data-fin-relatorio-wrapper="1">
                     <div class="p-6 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
+                        <div class="flex flex-wrap justify-between items-start gap-3">
                             <h3 class="text-lg font-semibold text-gray-800">Relatórios - Centro de Custos</h3>
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <label class="text-sm text-gray-600">Centro:</label>
                                 <select class="px-3 py-2 border border-gray-300 rounded-lg"
                                         onchange="ModuleSystem.financeiro.setRelatorioCentroCustoFilter(this.value)">
