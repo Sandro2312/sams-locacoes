@@ -116,11 +116,32 @@ const FormSystem = {
 
         const buildNames = (query) => {
             const eventos = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.eventos)) ? ModuleSystem.data.eventos : [];
+            const transacoes = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.transacoes)) ? ModuleSystem.data.transacoes : [];
+            const contasReceber = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.contasReceber)) ? ModuleSystem.data.contasReceber : [];
             const q = (query || '').trim().toLowerCase();
-
-            const names = [];
             const seen = new Set();
-
+            const names = [];
+            // 1. CCs já usados em transações (mais relevante — aparecem primeiro)
+            for (const t of transacoes) {
+                const cc = t && t.centroCusto != null ? String(t.centroCusto).trim() : '';
+                if (!cc) continue;
+                if (q && !cc.toLowerCase().includes(q)) continue;
+                const key = cc.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                names.push(cc);
+            }
+            // 2. CCs de contas a receber
+            for (const cr of contasReceber) {
+                const cc = cr && (cr.centroCusto || cr.centro_custo) ? String(cr.centroCusto || cr.centro_custo || '').trim() : '';
+                if (!cc) continue;
+                if (q && !cc.toLowerCase().includes(q)) continue;
+                const key = cc.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                names.push(cc);
+            }
+            // 3. Nomes de eventos (como sugestão de CC)
             for (const ev of eventos) {
                 const nome = ev && ev.nome != null ? String(ev.nome).trim() : '';
                 if (!nome) continue;
@@ -131,9 +152,8 @@ const FormSystem = {
                 names.push(nome);
                 if (names.length >= 40) break;
             }
-
             if (!q) names.sort((a, b) => a.localeCompare(b, 'pt-BR'));
-            return names;
+            return names.slice(0, 40);
         };
 
         const positionDropdown = () => {
@@ -174,7 +194,14 @@ const FormSystem = {
         input.addEventListener('focus', () => {
             if (((input.value || '').trim()).length >= 2) renderDebounced();
         });
-        input.addEventListener('blur', () => setTimeout(hide, 140));
+        input.addEventListener('blur', () => {
+            // Persistir CC digitado manualmente ao sair do campo
+            try {
+                const v = (input.value || '').trim();
+                if (v) localStorage.setItem('sams_last_centro_custo', v);
+            } catch {}
+            setTimeout(hide, 140);
+        });
         dropdown.addEventListener('mousedown', (e) => {
             e.preventDefault();
         });
@@ -186,6 +213,8 @@ const FormSystem = {
             try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
             try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch {}
             try { input.focus(); } catch {}
+            // Persistir último CC selecionado
+            try { if (value) localStorage.setItem('sams_last_centro_custo', value); } catch {}
             hide();
         });
 
@@ -197,6 +226,13 @@ const FormSystem = {
         }, true);
 
         render().catch(() => {});
+        // Pré-preencher com o último CC usado se o campo estiver vazio
+        try {
+            if (!input.value || input.value.trim() === '') {
+                const lastCC = localStorage.getItem('sams_last_centro_custo');
+                if (lastCC) input.value = lastCC;
+            }
+        } catch {}
     },
 
     // Inicializar sistema

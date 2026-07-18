@@ -218,12 +218,9 @@
 
 ## Correções v5.28 — Campo "Centro de Custos" em Contas a Receber
 
-<<<<<<< Updated upstream
 - [x] Bug: Campo "Centro de Custos" preenchido no formulário não era salvo — coluna `centro_custo` não existia na tabela `crm_contas_receber`; adicionada via ALTER TABLE; INSERT e UPDATE do backend restaurados
-- [x] Feature: Persistir último valor de "Centro de Custos" no localStorage (`sams_crm_last_centro_custo`) — ao abrir novo formulário, campo é pré-preenchido com o último valor usado
-=======
-- [ ] Bug: Campo "Centro de Custos" preenchido no formulário não é salvo/exibido na lista
-- [ ] Feature: Persistir último valor de "Centro de Custos" no localStorage para futuros lançamentos
+- [x] Feature: Persistir último valor de "Centro de Custos" no localStorage (`sams_last_centro_custo`) — ao abrir novo formulário, campo é pré-preenchido com o último valor usado
+- [x] Feature: Autocomplete de Centro de Custos agora inclui CCs de transações e contas a receber anteriores (não só nomes de eventos)
 
 ## Correções v5.29 — Bugs ativos e segurança
 
@@ -252,7 +249,37 @@
 
 ## Melhorias v5.31 — Tela de Login
 
-- [ ] Fix: botão olhinho (toggle senha) não funciona
-- [ ] Remover botões "Desbloquear Conta (dev)" e "Login de Teste (dev)"
-- [ ] Corrigir versão exibida na tela de loading (estava v5.22, deve ser v5.30+)
-- [ ] Redesenhar tela de login com layout moderno e interativo
+- [x] Fix: botão olhinho (toggle senha) não funciona — onclick inline adicionado, handler duplicado no auth.js removido
+- [x] Remover botões "Desbloquear Conta (dev)" e "Login de Teste (dev)" — ocultados com display:none
+- [x] Corrigir versão exibida na tela de loading (estava v5.22, deve ser v5.32)
+- [x] Redesenhar tela de login com layout moderno e interativo — painel esquerdo com rotação de mensagens (Salmos, Dicas, Inspiração)
+
+## Melhorias v5.32 — Boas-Vindas, Buscas e Correções de Bugs
+
+- [x] Modal de boas-vindas pós-login enriquecido com mensagem do dia (Salmos/Dicas/Lembretes/Inspiração)
+- [x] Botão de ajuda flutuante `?` com 4 abas: Dicas contextuais, Atalhos rápidos, Lembretes, Inspiração
+- [x] Busca por nome/e-mail/documento/status no módulo de Clientes
+- [x] Busca por nome/projetista/status no módulo de Projetos
+- [x] Bug: Notificações 401 empilhadas — polling para quando sessão expira; deduplicação no NotificationSystem
+- [x] Bug: Campos perdidos na edição de Contas a Receber — race condition corrigida no populateClienteSelect
+- [x] Bug: Datas deslocadas 1 dia — parse manual AAAA-MM-DD em todos os pontos críticos
+- [x] Bug: Conflito Git (<<<<<<< Updated upstream) no index.html removido
+
+## Melhorias v5.33 — Comprovante Despesas, Gráfico Saldo, Exportação
+
+- [x] Coluna comprovante_url adicionada à tabela crm_transacoes (banco + schema + migração formal)
+- [x] Backend POST/PUT /despesas e /api/crm/transacoes atualizados para processar upload de comprovante
+- [x] Visualização de comprovante como link clicável na tela de detalhes da despesa
+- [x] Gráfico de saldo: valores abreviados (K/M) + tooltip com valor completo + colunas ampliadas
+- [x] BOM UTF-8 adicionado ao downloadFile do AuditSystem (CSV sem acentos corrompidos no Excel)
+- [x] Novos botões de exportação: Excel (.xlsx via SheetJS) e PDF (window.print) no relatório por CC
+
+## Varredura de Regressão v5.34
+
+- [x] Migração formal: drizzle/migrations/0003_crm_transacoes_comprovante.sql criada
+- [x] Schema versionado: crm-schema.sql atualizado com CREATE TABLE crm_transacoes
+- [x] Rota duplicada corrigida: crm-admin.ts POST/PUT /api/crm/transacoes agora inclui comprovante_url
+- [x] Testes automatizados: 14/17 passando (3 falhas pré-existentes não relacionadas)
+- [x] Responsividade mobile: botões de exportação com flex-wrap para telas pequenas
+- [x] Autocomplete Centro de Custos: buildNames inclui CCs de transações e contas a receber anteriores
+- [x] Persistência de CC: último valor salvo/restaurado via localStorage
