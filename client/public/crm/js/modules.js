@@ -4668,6 +4668,26 @@ const ModuleSystem = {
                 esc(toBR(totals.saldo))
             ].join(','));
 
+            // Detalhe: quando um CC específico está filtrado, adicionar linhas individuais
+            if (currentFilter && rows.length > 0) {
+                const row = rows[0];
+                if (Array.isArray(row.itensReceitas) && row.itensReceitas.length > 0) {
+                    lines.push('');
+                    lines.push([esc('--- RECEITAS (Contas a Receber) ---'),'','','','','',''].join(','));
+                    lines.push(['Descrição','Valor','Status','Vencimento','','',''].map(esc).join(','));
+                    for (const it of row.itensReceitas) {
+                        lines.push([esc(it.descricao||''),esc(toBR(it.valor)),esc(it.status||''),esc(it.vencimento||''),'','',''].join(','));
+                    }
+                }
+                if (Array.isArray(row.itensTransacoes) && row.itensTransacoes.length > 0) {
+                    lines.push('');
+                    lines.push([esc('--- DESPESAS/RECEITAS (Transações) ---'),'','','','','',''].join(','));
+                    lines.push(['Descrição','Tipo','Valor','Status','Data','',''].map(esc).join(','));
+                    for (const it of row.itensTransacoes) {
+                        lines.push([esc(it.descricao||''),esc(it.tipo||''),esc(toBR(it.valor)),esc(it.status||''),esc(it.data||''),'',''].join(','));
+                    }
+                }
+            }
             const csv = [header, ...lines].join('\n');
             const filename = `relatorio-centro-custos-${new Date().toISOString().slice(0,10)}.csv`;
             // Usar AuditSystem (que já adiciona BOM) ou fallback com BOM manual
@@ -4697,9 +4717,28 @@ const ModuleSystem = {
                     ...rows.map(r => [r.centroCusto, toBR(r.receitasContas), toBR(r.receitasTransacoes), toBR(r.custosTransacoes), toBR(r.receitas), toBR(r.custos), toBR(r.saldo)]),
                     ['TOTAL', toBR(totals.receitasContas), toBR(totals.receitasTransacoes), toBR(totals.custosTransacoes), toBR(totals.receitas), toBR(totals.custos), toBR(totals.saldo)]
                 ];
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Resumo');
+                // Aba de detalhe: quando um CC específico está filtrado
+                if (currentFilter && rows.length > 0) {
+                    const row = rows[0];
+                    const detData = [['Tipo','Descrição','Valor','Status','Data/Vencimento']];
+                    if (Array.isArray(row.itensReceitas)) {
+                        for (const it of row.itensReceitas) {
+                            detData.push(['Receita (C.Receber)', it.descricao||'', toBR(it.valor), it.status||'', it.vencimento||'']);
+                        }
+                    }
+                    if (Array.isArray(row.itensTransacoes)) {
+                        for (const it of row.itensTransacoes) {
+                            detData.push([it.tipo==='receber'?'Receita (Transação)':'Despesa', it.descricao||'', toBR(it.valor), it.status||'', it.data||'']);
+                        }
+                    }
+                    if (detData.length > 1) {
+                        const wsDet = XLSX.utils.aoa_to_sheet(detData);
+                        XLSX.utils.book_append_sheet(wb, wsDet, 'Detalhe');
+                    }
+                }
                 XLSX.writeFile(wb, `relatorio-centro-custos-${new Date().toISOString().slice(0,10)}.xlsx`);
             };
             if (window.XLSX) { doExport(); return; }
@@ -4716,7 +4755,28 @@ const ModuleSystem = {
             const toBR = (n) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
             const today = new Date().toLocaleDateString('pt-BR');
-            const rowsHtml = rows.map(r => `<tr><td>${esc(r.centroCusto)}</td><td>${esc(toBR(r.receitasContas))}</td><td>${esc(toBR(r.receitasTransacoes))}</td><td>${esc(toBR(r.custosTransacoes))}</td><td>${esc(toBR(r.receitas))}</td><td>${esc(toBR(r.custos))}</td><td class="${r.saldo >= 0 ? 'pos' : 'neg'}">${esc(toBR(r.saldo))}</td></tr>`).join('');
+            const rowsHtml = rows.map(r => {
+                let detailHtml = '';
+                if (currentFilter && r.centroCusto === currentFilter) {
+                    const recItems = Array.isArray(r.itensReceitas) ? r.itensReceitas : [];
+                    const trxItems = Array.isArray(r.itensTransacoes) ? r.itensTransacoes : [];
+                    if (recItems.length > 0) {
+                        detailHtml += `<tr class="det-header"><td colspan="7" style="background:#e0f2fe;font-weight:bold;padding:4px 8px;font-size:9px">Receitas — Contas a Receber (${recItems.length} item(s))</td></tr>`;
+                        detailHtml += `<tr class="det-header"><td style="padding-left:16px;font-size:9px;color:#555">Descrição</td><td colspan="2" style="font-size:9px;color:#555">Valor</td><td colspan="2" style="font-size:9px;color:#555">Status</td><td colspan="2" style="font-size:9px;color:#555">Vencimento</td></tr>`;
+                        for (const it of recItems) {
+                            detailHtml += `<tr class="det-row"><td style="padding-left:16px;font-size:9px">${esc(it.descricao||'')}</td><td colspan="2" style="font-size:9px">${esc(toBR(it.valor))}</td><td colspan="2" style="font-size:9px">${esc(it.status||'')}</td><td colspan="2" style="font-size:9px">${esc(it.vencimento||'')}</td></tr>`;
+                        }
+                    }
+                    if (trxItems.length > 0) {
+                        detailHtml += `<tr class="det-header"><td colspan="7" style="background:#fef3c7;font-weight:bold;padding:4px 8px;font-size:9px">Transações (${trxItems.length} item(s))</td></tr>`;
+                        detailHtml += `<tr class="det-header"><td style="padding-left:16px;font-size:9px;color:#555">Descrição</td><td style="font-size:9px;color:#555">Tipo</td><td colspan="2" style="font-size:9px;color:#555">Valor</td><td style="font-size:9px;color:#555">Status</td><td colspan="2" style="font-size:9px;color:#555">Data</td></tr>`;
+                        for (const it of trxItems) {
+                            detailHtml += `<tr class="det-row"><td style="padding-left:16px;font-size:9px">${esc(it.descricao||'')}</td><td style="font-size:9px">${esc(it.tipo||'')}</td><td colspan="2" style="font-size:9px">${esc(toBR(it.valor))}</td><td style="font-size:9px">${esc(it.status||'')}</td><td colspan="2" style="font-size:9px">${esc(it.data||'')}</td></tr>`;
+                        }
+                    }
+                }
+                return `<tr><td>${esc(r.centroCusto)}</td><td>${esc(toBR(r.receitasContas))}</td><td>${esc(toBR(r.receitasTransacoes))}</td><td>${esc(toBR(r.custosTransacoes))}</td><td>${esc(toBR(r.receitas))}</td><td>${esc(toBR(r.custos))}</td><td class="${r.saldo >= 0 ? 'pos' : 'neg'}">${esc(toBR(r.saldo))}</td></tr>${detailHtml}`;
+            }).join('');
             const win = window.open('', '_blank');
             if (!win) { if (window.NotificationSystem) window.NotificationSystem.error('Pop-up bloqueado. Permita pop-ups para exportar PDF.'); return; }
             win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Centro de Custos - SAMS Locações</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}h1{font-size:16px;color:#1e3a5f;margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left;font-size:10px}td{padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10px}tr:last-child td{font-weight:bold;background:#f3f4f6}td.pos{color:#059669}td.neg{color:#dc2626}@media print{button{display:none}}</style></head><body><h1>Relatório por Centro de Custos</h1><p>SAMS Locações &mdash; Gerado em ${today}</p><table><thead><tr><th>Centro de Custos</th><th>Rec. C.Receber</th><th>Rec. Transações</th><th>Desp. Transações</th><th>Receitas Total</th><th>Despesas Total</th><th>Saldo</th></tr></thead><tbody>${rowsHtml}<tr><td>TOTAL</td><td>${esc(toBR(totals.receitasContas))}</td><td>${esc(toBR(totals.receitasTransacoes))}</td><td>${esc(toBR(totals.custosTransacoes))}</td><td>${esc(toBR(totals.receitas))}</td><td>${esc(toBR(totals.custos))}</td><td class="${totals.saldo >= 0 ? 'pos' : 'neg'}">${esc(toBR(totals.saldo))}</td></tr></tbody></table><br><button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></body></html>`);

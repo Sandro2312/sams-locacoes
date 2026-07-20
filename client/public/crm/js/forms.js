@@ -1543,7 +1543,11 @@ const FormSystem = {
                     cliente_id: item.clienteId || item.cliente_id || null,
                     recorrencia: item.recorrencia || 'nenhuma',
                     recorrencia_grupo_id: item.recorrenciaGrupoId || null,
-                    recorrencia_indice: item.recorrenciaIndice || null
+                    recorrencia_indice: item.recorrenciaIndice || null,
+                    // Comprovante: usar comprovanteName (sem acento) conforme esperado pelo backend
+                    comprovanteName: item.comprovanteName || item.comprovanteNome || null,
+                    comprovanteMime: item.comprovanteMime || null,
+                    comprovanteDataBase64: item.comprovanteDataBase64 || null
                 });
 
                 const postTransacao = async (item) => {
@@ -2183,7 +2187,11 @@ const FormSystem = {
                             data: data.data || null,
                             observacoes: data.observacoes || null,
                             evento_id: data.eventoId || data.evento_id || null,
-                            cliente_id: data.clienteId || data.cliente_id || null
+                            cliente_id: data.clienteId || data.cliente_id || null,
+                            // Comprovante: usar comprovanteName (sem acento) conforme esperado pelo backend
+                            comprovanteName: data.comprovanteName || data.comprovanteNome || null,
+                            comprovanteMime: data.comprovanteMime || null,
+                            comprovanteDataBase64: data.comprovanteDataBase64 || null
                         })
                     });
                     if (!resp.ok) {

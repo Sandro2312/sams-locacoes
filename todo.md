@@ -232,11 +232,11 @@
 
 ## Refatoração v5.30 — Extração do módulo Contas a Receber
 
-- [ ] Criar client/public/crm/js/crm-contas-receber.js com código extraído de modules.js e forms.js
-- [ ] Substituir blocos extraídos por chamadas delegadas em modules.js e forms.js
-- [ ] Adicionar script crm-contas-receber.js no index.html após forms.js
-- [ ] Verificar sintaxe com node --check nos 3 arquivos JS modificados
-- [ ] Confirmar que window.FinanceiroModule.loadContasReceber e rerenderContasReceberList continuam acessíveis
+- [x] Criar client/public/crm/js/crm-contas-receber.js com código extraído de modules.js e forms.js (concluído em v5.30)
+- [x] Substituir blocos extraídos por chamadas delegadas em modules.js e forms.js (concluído em v5.30)
+- [x] Adicionar script crm-contas-receber.js no index.html após forms.js (concluído em v5.30)
+- [x] Verificar sintaxe com node --check nos 3 arquivos JS modificados (concluído em v5.30)
+- [x] Confirmar que window.FinanceiroModule.loadContasReceber e rerenderContasReceberList continuam acessíveis (concluído em v5.30)
 
 ## Refatoração v5.30 — Extração do módulo Contas a Receber (CONCLUÍDA)
 
