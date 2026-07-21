@@ -1204,6 +1204,77 @@ const NavigationSystem = {
                 }
             }, 200);
         }
+        // ── Financeiro: Despesas ──────────────────────────────────────────────
+        if (module === 'financeiro' && page === 'custos') {
+            setTimeout(() => {
+                const qEl = document.getElementById('despesas-filter-q');
+                const tbody = document.getElementById('despesas-list-tbody');
+                if (!qEl || !tbody) return;
+                const norm = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const filterFn = () => {
+                    const q = norm(qEl.value);
+                    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+                        const text = norm(row.textContent || '');
+                        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                };
+                if (!qEl.getAttribute('data-fin-desp-bound')) {
+                    qEl.setAttribute('data-fin-desp-bound', '1');
+                    qEl.addEventListener('input', filterFn);
+                }
+            }, 250);
+        }
+        // ── Financeiro: Receitas ──────────────────────────────────────────────
+        if (module === 'financeiro' && page === 'receitas') {
+            setTimeout(() => {
+                const qEl = document.getElementById('receitas-filter-q');
+                const tbody = document.getElementById('contas-receber-list-body');
+                if (!qEl || !tbody) return;
+                const norm = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const filterFn = () => {
+                    const q = norm(qEl.value);
+                    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+                        const text = norm(row.textContent || '');
+                        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                    });
+                };
+                if (!qEl.getAttribute('data-fin-rec-bound')) {
+                    qEl.setAttribute('data-fin-rec-bound', '1');
+                    qEl.addEventListener('input', filterFn);
+                }
+            }, 250);
+        }
+        // ── Financeiro: Comissões ─────────────────────────────────────────────
+        if (module === 'financeiro' && page === 'comissoes') {
+            // O extrato é gerado dinamicamente por renderMy();
+            // usamos MutationObserver para re-bind sempre que o tbody for recriado.
+            setTimeout(() => {
+                const norm = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const bindComissoes = () => {
+                    const qEl = document.getElementById('comissoes-filter-q');
+                    const tbody = document.getElementById('comissoes-extrato-tbody');
+                    if (!qEl || !tbody) return;
+                    const filterFn = () => {
+                        const q = norm(qEl.value);
+                        Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+                            const text = norm(row.textContent || '');
+                            row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                        });
+                    };
+                    if (!qEl.getAttribute('data-fin-com-bound')) {
+                        qEl.setAttribute('data-fin-com-bound', '1');
+                        qEl.addEventListener('input', filterFn);
+                    }
+                };
+                bindComissoes();
+                // Re-bind quando myPanel for atualizado (renderMy recria o tbody)
+                const myPanel = document.getElementById('comissoesMyPanel');
+                if (myPanel) {
+                    const obs = new MutationObserver(() => bindComissoes());
+                    obs.observe(myPanel, { childList: true, subtree: false });
+                }
+            }, 400);
+        }
         // Módulo Acervo Documental
         if (module === 'acervo' && page === 'documentos') {
             const tryInitAcervo = (attempts) => {

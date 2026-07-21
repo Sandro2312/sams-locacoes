@@ -2045,7 +2045,7 @@ const ModuleSystem = {
                         const etapa = col ? col.getAttribute('data-etapa') : '';
                         if (!opId || !etapa) return;
                         try {
-                            await api(`/api/oportunidades/${encodeURIComponent(opId)}/etapa`, { method: 'PATCH', body: JSON.stringify({ etapa }) });
+                            await api(`/api/crm/oportunidades/${encodeURIComponent(opId)}/etapa`, { method: 'PATCH', body: JSON.stringify({ etapa }) });
                             await refresh();
                         } catch {}
                     });
@@ -3929,6 +3929,10 @@ const ModuleSystem = {
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Despesas - Contas a Pagar</h3>
                             <div class="flex items-center gap-2">
+                                <input id="despesas-filter-q" type="text"
+                                       placeholder="Buscar descrição, tipo, status..."
+                                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48"
+                                       autocomplete="off" />
                                 <label class="text-sm text-gray-600">Centro:</label>
                                 <select class="px-3 py-2 border border-gray-300 rounded-lg"
                                         onchange="ModuleSystem.financeiro.setDespesasCentroCustoFilter(this.value)">
@@ -3961,7 +3965,7 @@ const ModuleSystem = {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody id="despesas-list-tbody" class="bg-white divide-y divide-gray-200">
                                 ${filtered.map(transacao => `
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -4097,6 +4101,10 @@ const ModuleSystem = {
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Receitas - Contas a Receber</h3>
                             <div class="flex items-center gap-2">
+                                <input id="receitas-filter-q" type="text"
+                                       placeholder="Buscar cliente, descrição, status..."
+                                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48"
+                                       autocomplete="off" />
                                 <label class="text-sm text-gray-600">Centro:</label>
                                 <select class="px-3 py-2 border border-gray-300 rounded-lg"
                                         onchange="ModuleSystem.financeiro.setReceitasCentroCustoFilter(this.value)">
@@ -4307,8 +4315,8 @@ const ModuleSystem = {
             const renderMy = async () => {
                 const { mes, ano, base } = readFilters();
                 myPanel.innerHTML = `<div class="text-sm text-gray-500">Carregando...</div>`;
-                const perf = await api(`/api/vendedor/performance?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
-                const extrato = await api(`/api/vendedor/comissoes?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
+                const perf = await api(`/api/crm/vendedor/performance?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
+                const extrato = await api(`/api/crm/vendedor/comissoes?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
 
                 const meta = Number(perf.meta_mensal || 0);
                 const vendas = Number(perf.vendas_realizadas || 0);
@@ -4371,7 +4379,13 @@ const ModuleSystem = {
                             <div class="text-lg font-semibold text-gray-800">Extrato de Comissões</div>
                             <div class="text-sm text-gray-600">Total: <span class="font-semibold text-gray-900">${toBR(extrato.total_comissao || 0)}</span></div>
                         </div>
-                        <div class="mt-3 overflow-x-auto border rounded-lg">
+                        <div class="mt-3 mb-2">
+                            <input id="comissoes-filter-q" type="text"
+                                   placeholder="Buscar cliente, descrição, centro, status..."
+                                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full md:w-72"
+                                   autocomplete="off" />
+                        </div>
+                        <div class="overflow-x-auto border rounded-lg">
                             <table class="w-full">
                                 <thead class="bg-gray-50">
                                     <tr>
@@ -4384,7 +4398,7 @@ const ModuleSystem = {
                                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Comissão</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
+                                <tbody id="comissoes-extrato-tbody" class="bg-white divide-y divide-gray-200">
                                     ${rows || `<tr><td colspan="7" class="px-4 py-6 text-sm text-gray-500">Nenhuma venda encontrada para o período.</td></tr>`}
                                 </tbody>
                             </table>
@@ -4399,10 +4413,10 @@ const ModuleSystem = {
                 teamPanel.innerHTML = `<div class="text-sm text-gray-500">Carregando...</div>`;
                 const users = await api('/api/crm/users');
                 const sellers = (users || []).filter(u => u && u.active === 1 && ['vendedor','comercial','vendas'].includes(String(u.role || '').toLowerCase()));
-                const dash = await api(`/api/metas/dashboard?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
+                const dash = await api(`/api/crm/metas/dashboard?mes=${encodeURIComponent(mes)}&ano=${encodeURIComponent(ano)}&base_status=${encodeURIComponent(base)}`);
 
                 const options = sellers.map(u => `<option value="${u.id}">${esc(u.name)} (${esc(u.email || '')})</option>`).join('');
-                const rows = (dash || []).map(r => {
+                const rows = ((dash && Array.isArray(dash.team) ? dash.team : (Array.isArray(dash) ? dash : [])) || []).map(r => {
                     const meta = Number(r.meta_mensal || 0);
                     const vendas = Number(r.vendas_realizadas || 0);
                     const pct = r.atingimento_percent != null ? Number(r.atingimento_percent) : null;
@@ -4410,7 +4424,7 @@ const ModuleSystem = {
                     const barCls = (pct != null && pct >= 100) ? 'bg-green-500' : 'bg-blue-500';
                     return `
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-900">${esc(r.vendedor_nome || '-')}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">${esc(r.vendedor_nome || r.nome || '-')}</td>
                             <td class="px-4 py-3 text-sm text-gray-900 text-right">${toBR(meta)}</td>
                             <td class="px-4 py-3 text-sm text-gray-900 text-right">${toBR(vendas)}</td>
                             <td class="px-4 py-3 text-sm text-gray-900">
