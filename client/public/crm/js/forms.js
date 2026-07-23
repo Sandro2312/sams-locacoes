@@ -7601,10 +7601,17 @@ ENTREGA
                     return;
                 }
 
+                // Loading state
+                const originalHtml = btnCNPJ.innerHTML;
+                btnCNPJ.disabled = true;
+                btnCNPJ.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
                 try {
-                    const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+                    // Proxy server-side: evita bloqueios de CORS/Cloudflare em produção
+                    const resp = await fetch(`/api/crm/cnpj/${raw}`, { credentials: 'include' });
                     const data = await resp.json();
                     if (resp.ok && data) {
+                        // BrasilAPI usa ddd_telefone_1, não 'telefone'
+                        const telefoneRaw = data.ddd_telefone_1 || data.ddd_telefone_2 || data.telefone || '';
                         const mapping = {
                             nome: data.nome_fantasia || data.razao_social || '',
                             cep: data.cep || '',
@@ -7612,28 +7619,53 @@ ENTREGA
                             bairro: data.bairro || '',
                             cidade: data.municipio || data.cidade || '',
                             estado: data.uf || data.estado || '',
-                            telefone: data.telefone || ''
+                            telefone: telefoneRaw
                         };
-
-                        if (window.UnifiedValidator) {
+                        // Sobrescrever campos (não apenas vazios) — busca CNPJ explícita deve preencher tudo
+                        const fillField = (name, value) => {
+                            if (!value) return;
+                            const field = form.querySelector(`[name="${name}"]`);
+                            if (field) { field.value = value; safeDispatch(field); }
+                        };
+                        if (window.UnifiedValidator && typeof window.UnifiedValidator.formatValue === 'function') {
                             if (mapping.cep) mapping.cep = window.UnifiedValidator.formatValue(mapping.cep, 'cep');
-                            window.UnifiedValidator.autoFillFields(form, mapping);
-                            // Formatar documento com o formatador do UnifiedValidator
                             docInput.value = window.UnifiedValidator.formatValue(raw, 'document');
                         } else {
-                            Object.entries(mapping).forEach(([k, v]) => {
-                                const field = form.querySelector(`[name="${k}"]`);
-                                if (field && v && !field.value) { field.value = v; safeDispatch(field); }
-                            });
                             docInput.value = raw;
                         }
+                        Object.entries(mapping).forEach(([k, v]) => fillField(k, v));
                         safeDispatch(docInput);
+                        // Feedback de sucesso
+                        btnCNPJ.innerHTML = '<i class="fas fa-check mr-2"></i>Preenchido!';
+                        btnCNPJ.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                        btnCNPJ.classList.add('bg-green-500');
+                        setTimeout(() => {
+                            btnCNPJ.innerHTML = originalHtml;
+                            btnCNPJ.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                            btnCNPJ.classList.remove('bg-green-500');
+                            btnCNPJ.disabled = false;
+                        }, 2500);
+                        return;
                     } else {
-                        console.warn('[FormSystem] BrasilAPI CNPJ não retornou OK:', data?.message || resp.status);
+                        const errMsg = (data && (data.error || data.message)) || 'CNPJ não encontrado na Receita Federal.';
+                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                            window.NotificationSystem.error('Busca CNPJ: ' + errMsg);
+                        } else {
+                            alert('Busca CNPJ: ' + errMsg);
+                        }
+                        console.warn('[FormSystem] Proxy CNPJ não retornou OK:', errMsg);
                     }
                 } catch (err) {
                     console.warn('[FormSystem] Falha na busca de CNPJ:', err);
+                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                        window.NotificationSystem.error('Falha ao buscar CNPJ. Verifique sua conexão e tente novamente.');
+                    } else {
+                        alert('Falha ao buscar CNPJ. Verifique sua conexão e tente novamente.');
+                    }
                 }
+                // Restaurar botão em caso de erro
+                btnCNPJ.innerHTML = originalHtml;
+                btnCNPJ.disabled = false;
             });
         }
 

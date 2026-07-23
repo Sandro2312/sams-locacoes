@@ -534,6 +534,27 @@ export function registerCrmRoutes(app: any) {
     res.json({ ok: true, success: true });
   });
 
+  // ── Proxy CNPJ (BrasilAPI) ────────────────────────────────────────────────
+  // Proxy server-side para evitar bloqueios de CORS/Cloudflare em produção
+  r.get("/cnpj/:cnpj", requireCrmAuth, async (req, res) => {
+    const raw = (req.params.cnpj || '').replace(/\D/g, '');
+    if (raw.length !== 14) return res.status(400).json({ error: 'CNPJ deve ter 14 dígitos' });
+    try {
+      const upstream = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`, {
+        headers: { 'Accept': 'application/json', 'User-Agent': 'SAMS-CRM/1.0' },
+        signal: AbortSignal.timeout(10000)
+      });
+      const data = await upstream.json();
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ error: (data as any)?.message || 'CNPJ não encontrado' });
+      }
+      res.json(data);
+    } catch (err: any) {
+      console.error('[CRM] Proxy CNPJ erro:', err?.message);
+      res.status(502).json({ error: 'Falha ao consultar BrasilAPI. Tente novamente.' });
+    }
+  });
+
   // ── Briefings ───────────────────────────────────────────────────────────────
   r.get("/briefings", requireCrmAuth, async (req, res) => {
     const { status, limit = 50, offset = 0 } = req.query as any;
