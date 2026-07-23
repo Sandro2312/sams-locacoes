@@ -121,3 +121,4 @@ db.zip
 .xdg-cache/
 .xdg-state/
 .xdg-data/
+.project-config.json

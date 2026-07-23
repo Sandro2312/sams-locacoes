@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ZoomIn, Star, Play } from "lucide-react";
 
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h";
+const CDN2 = "https://d2xsxph8kpxj0f.cloudfront.net/manus-storage";
 
 const projetos = [
   {
@@ -11,10 +12,14 @@ const projetos = [
     cliente: "Calçados Beira Rio",
     evento: "BF Show 1ª Edição — São Paulo/SP",
     categoria: "Personalizado",
-    imagem: null,
+    imagem: `${CDN2}/BeiraRio-BFShow2026-1_22cfe1a9.jpeg`,
     video: null,
-    galeria: [],
-    vip: false,
+    galeria: [
+      `${CDN2}/BeiraRio-BFShow2026-1_22cfe1a9.jpeg`,
+      `${CDN2}/BeiraRio-BFShow2026-2_49674e5f.jpeg`,
+      `${CDN2}/BeiraRio-BFShow2026-3_a8caa0a4.jpeg`,
+    ],
+    vip: true,
     descricao: "Stand personalizado para a Calçados Beira Rio na BF Show — 1ª Edição em maio de 2026. Projeto de alto impacto no Distrito Anhembi, São Paulo/SP, apresentando a coleção de calçados com design moderno e área de atendimento premium.",
   },
   {
@@ -59,9 +64,12 @@ const projetos = [
     cliente: "Siry Global",
     evento: "Feira Hospitalar — São Paulo/SP",
     categoria: "Personalizado",
-    imagem: null,
+    imagem: `${CDN2}/SiryGlobal-Hospitalar2026-1_a4a914a2.jpeg`,
     video: null,
-    galeria: [],
+    galeria: [
+      `${CDN2}/SiryGlobal-Hospitalar2026-1_a4a914a2.jpeg`,
+      `${CDN2}/SiryGlobal-Hospitalar2026-2_26dfeba7.jpeg`,
+    ],
     vip: false,
     descricao: "Stand personalizado para a Siry Global na Feira Hospitalar em maio de 2026. Projeto de alto padrão em São Paulo/SP apresentando soluções hospitalares e equipamentos médicos com design corporativo.",
   },
@@ -69,13 +77,17 @@ const projetos = [
     id: 4,
     titulo: "Stand Neugebauer",
     cliente: "Neugebauer",
-    evento: "ExpoApras 2026 — Pinhais/PR",
+    evento: "Exposuper 2026 — Balneário Camboriú/SC",
     categoria: "Personalizado",
-    imagem: `${CDN}/neugebauer_677b7f41.png`,
+    imagem: `${CDN2}/Neugebauer-Exposuper2026-1_1a362213.webp`,
     video: null,
-    galeria: [`${CDN}/neugebauer_677b7f41.png`],
+    galeria: [
+      `${CDN2}/Neugebauer-Exposuper2026-1_1a362213.webp`,
+      `${CDN2}/Neugebauer-Exposuper2026-2_b7e3c807.webp`,
+      `${CDN2}/Neugebauer-Exposuper2026-3_fbcfe21d.webp`,
+    ],
     vip: true,
-    descricao: "Stand de alto impacto para a Neugebauer na 43ª ExpoApras 2026 — Feira e Convenção Paranaense de Supermercados. Projeto com identidade visual marcante, área de degustação e exposição de produtos no Expotrade Convention Center, Pinhais/PR.",
+    descricao: "Stand de alto impacto para a Neugebauer na Exposuper 2026 em Balneário Camboriú/SC. Projeto com identidade visual laranja e madeira, área de degustação, painéis LED e exposição completa da linha de produtos no Expocentro Balneário Camboriú.",
   },
   {
     id: 5,
@@ -93,13 +105,16 @@ const projetos = [
     id: 6,
     titulo: "Stand Popper",
     cliente: "Popper",
-    evento: "ExpoApras 2026 — Pinhais/PR",
-    categoria: "Modular",
-    imagem: null,
+    evento: "Celebra Show 2026 — São Paulo/SP",
+    categoria: "Personalizado",
+    imagem: `${CDN2}/Popper-CelebraShow2026-1_a8a105e2.jpg`,
     video: null,
-    galeria: [],
+    galeria: [
+      `${CDN2}/Popper-CelebraShow2026-1_a8a105e2.jpg`,
+      `${CDN2}/Popper-CelebraShow2026-2_c020c63b.jpg`,
+    ],
     vip: false,
-    descricao: "Stand modular para a Popper na ExpoApras 2026. Estrutura funcional e atraente para exposição de produtos no Expotrade Convention Center, Pinhais/PR.",
+    descricao: "Stand personalizado para a Popper na Celebra Show 2026 no Expo Center Norte, São Paulo/SP. Estrutura em roxo com identidade visual marcante, gôndolas de exposição de produtos e área de atendimento.",
   },
   {
     id: 7,
@@ -120,7 +135,7 @@ const projetos = [
     evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
     imagem: `${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`,
-    video: `${CDN}/BIQ-FIMEC2026_bf465d42.mp4`,
+    video: null,
     galeria: [
       `${CDN}/BIQ-FIMEC2026(2)_a2069f32.jpeg`,
       `${CDN}/BIQ-FIMEC2026(1)_6568c8ac.jpeg`,
@@ -136,7 +151,7 @@ const projetos = [
     evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
     imagem: `${CDN}/COIM-FIMEC2026_0b7df077.jpeg`,
-    video: `${CDN}/COIM-FIMEC2026_5e571e23.mp4`,
+    video: null,
     galeria: [
       `${CDN}/COIM-FIMEC2026_0b7df077.jpeg`,
     ],
@@ -150,8 +165,7 @@ const projetos = [
     evento: "FIMEC 2026 — Novo Hamburgo/RS",
     categoria: "Personalizado",
     imagem: `${CDN}/Stickfran-FIMEC2026_9ae9b6ef.jpeg`,
-    video: `${CDN}/Stickfran-FIMEC2026_f6dafb06.mp4`,
-    videoExtra: `${CDN}/Stickfran-FIMEC2026(1)_540a2ecf.mp4`,
+    video: null,
     galeria: [
       `${CDN}/Stickfran-FIMEC2026_9ae9b6ef.jpeg`,
       `${CDN}/Stickfran-FIMEC2026(1)_2c6a8956.jpeg`,
