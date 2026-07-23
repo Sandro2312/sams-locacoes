@@ -104,7 +104,8 @@ const NavigationSystem = {
                 configuracoes: { name: 'Configurações', icon: 'fas fa-sliders-h' },
                 comissoes: { name: 'Comissões', icon: 'fas fa-percentage' },
                 logs: { name: 'Logs', icon: 'fas fa-history' },
-                ia: { name: 'Métricas IA', icon: 'fas fa-robot' }
+                ia: { name: 'Métricas IA', icon: 'fas fa-robot' },
+                backup: { name: 'Backup & Restore', icon: 'fas fa-database' }
             }
         },
         acervo: {
@@ -772,6 +773,8 @@ const NavigationSystem = {
                     </div>
                 </div>
             `;
+        } else if (module === 'administracao' && page === 'backup') {
+            pageContent = ModuleSystem?.administracao?.listBackup?.() || '';
         } else if (module === 'acervo' && page === 'documentos') {
             pageContent = '<div id="acervo-container" class="acervo-wrapper"></div>';
         } else if (module === 'kanban' && page === 'board') {
@@ -1162,6 +1165,11 @@ const NavigationSystem = {
                 }
                 load().catch(() => {});
             }, 80);
+        }
+        if (module === 'administracao' && page === 'backup') {
+            setTimeout(() => {
+                try { ModuleSystem?.administracao?.initBackup?.(); } catch {}
+            }, 50);
         }
         // Bind de filtragem: Clientes
         if (module === 'comercial' && page === 'clientes') {

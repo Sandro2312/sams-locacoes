@@ -10,6 +10,14 @@ import { invokeLLM } from "./_core/llm";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { sendEmail, buildPasswordResetEmail } from "./crm-email";
 import { storagePut } from "./storage";
+import { spawn } from "child_process";
+import { createWriteStream, createReadStream, existsSync, mkdirSync,
+         readdirSync, statSync, unlinkSync, writeFileSync, readFileSync } from "fs";
+import { createGzip } from "zlib";
+import { createHash } from "crypto";
+import path from "path";
+
+// ─── Helpers de Backup ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 // Helper para LIMIT/OFFSET seguros — evita SQL injection por interpolação
 function safeInt(val: any, defaultVal: number, min = 0, max = 10000): number {
@@ -1998,6 +2006,172 @@ export function registerCrmRoutes(app: any) {
       res.json({ ok: true });
     } catch (e: any) {
       res.status(500).json({ error: e?.message || 'Falha ao excluir regra' });
+    }
+  });
+
+
+  // ─── Backup e Restore do Banco de Dados (apenas admin) ─────────────────────
+  // GET /api/crm/admin/backup/list — listar backups disponíveis
+  r.get("/admin/backup/list", requireCrmAdmin, async (req, res) => {
+    try {
+      const backupDir = path.join(process.cwd(), 'backups', 'database');
+      if (!existsSync(backupDir)) return res.json({ backups: [] });
+      const files = readdirSync(backupDir)
+        .filter((f: string) => f.endsWith('.sql.gz'))
+        .map((f: string) => {
+          const fp = path.join(backupDir, f);
+          const st = statSync(fp);
+          let mf: any = null;
+          const mfp = fp.replace('.sql.gz', '.json');
+          if (existsSync(mfp)) { try { mf = JSON.parse(readFileSync(mfp, 'utf8')); } catch {} }
+          const size = st.size;
+          const fmtB = (b: number) => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+          return {
+            file: f,
+            size_bytes: size,
+            size_human: fmtB(size),
+            created_at: st.mtime.toISOString(),
+            table_count: mf?.table_count || 0,
+            checksum: mf?.checksum_sha256 ? mf.checksum_sha256.slice(0,16)+'...' : '',
+            duration_human: mf?.duration_human || '',
+            engine: mf?.engine || 'MySQL'
+          };
+        })
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      res.json({ backups: files, total: files.length });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Erro ao listar backups' });
+    }
+  });
+
+  // POST /api/crm/admin/backup/create — criar novo backup
+  r.post("/admin/backup/create", requireCrmAdmin, async (req, res) => {
+    const u = (req as any).crmUser;
+    try {
+      const dbUrl = new URL(process.env.DATABASE_URL || '');
+      const DB_HOST = dbUrl.hostname;
+      const DB_PORT = dbUrl.port || '4000';
+      const DB_USER = decodeURIComponent(dbUrl.username);
+      const DB_PASS = decodeURIComponent(dbUrl.password);
+      const DB_NAME = dbUrl.pathname.replace('/', '');
+
+      const t0 = Date.now();
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupDir = path.join(process.cwd(), 'backups', 'database');
+      const sqlGz = path.join(backupDir, `db-backup-${ts}.sql.gz`);
+      const jsonMf = path.join(backupDir, `db-backup-${ts}.json`);
+
+      mkdirSync(backupDir, { recursive: true });
+
+      const dumpArgs = [
+        `--host=${DB_HOST}`, `--port=${DB_PORT}`,
+        `--user=${DB_USER}`, `--password=${DB_PASS}`,
+        `--ssl-mode=PREFERRED`, `--no-tablespaces`, `--skip-lock-tables`,
+        `--add-drop-table`, `--create-options`, `--extended-insert`,
+        `--complete-insert`, `--hex-blob`, DB_NAME
+      ];
+
+      await new Promise<void>((resolve, reject) => {
+        const dump = spawn('mysqldump', dumpArgs);
+        const gzip = createGzip({ level: 9 });
+        const output = createWriteStream(sqlGz);
+        dump.stdout.pipe(gzip).pipe(output);
+        let stderrBuf = '';
+        dump.stderr.on('data', (d: Buffer) => { stderrBuf += d.toString(); });
+        output.on('finish', resolve);
+        output.on('error', reject);
+        dump.on('error', reject);
+        dump.on('close', (code: number) => {
+          const fatal = stderrBuf.split('\n').filter((l: string) =>
+            l.includes('[ERROR]') && !l.includes('password') && !l.includes('SAVEPOINT')
+          );
+          if (fatal.length > 0) reject(new Error(`mysqldump falhou: ${fatal.join('; ')}`));
+        });
+      });
+
+      const st = statSync(sqlGz);
+      if (st.size === 0) throw new Error('Arquivo de backup vazio');
+
+      // Checksum
+      const hash = createHash('sha256');
+      for await (const chunk of createReadStream(sqlGz) as any) hash.update(chunk);
+      const checksum = hash.digest('hex');
+
+      // Contar tabelas
+      let tableCount = 0;
+      try {
+        const { execSync } = await import('child_process');
+        const r = execSync(`zcat "${sqlGz}" | grep -c "^CREATE TABLE" || true`, { encoding: 'utf8' });
+        tableCount = parseInt(r.trim()) || 0;
+      } catch {}
+
+      const fmtB = (b: number) => b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+      const dur = Date.now() - t0;
+      const manifest = {
+        version: '1.0', created_at: new Date().toISOString(),
+        database: DB_NAME, host: DB_HOST,
+        file: path.basename(sqlGz),
+        size_bytes: st.size, size_human: fmtB(st.size),
+        checksum_sha256: checksum,
+        duration_ms: dur, duration_human: dur < 1000 ? dur+'ms' : (dur/1000).toFixed(1)+'s',
+        table_count: tableCount, compressed: true,
+        format: 'mysqldump+gzip', engine: 'TiDB Serverless',
+        created_by: u.name
+      };
+      writeFileSync(jsonMf, JSON.stringify(manifest, null, 2));
+
+      // Limpar backups com mais de 30 dias
+      const cutoff = Date.now() - (30 * 86400000);
+      for (const f of readdirSync(backupDir).filter((f: string) => f.endsWith('.sql.gz'))) {
+        const fp = path.join(backupDir, f);
+        if (statSync(fp).mtime.getTime() < cutoff) {
+          unlinkSync(fp);
+          const mfp = fp.replace('.sql.gz', '.json');
+          if (existsSync(mfp)) unlinkSync(mfp);
+        }
+      }
+
+      await audit(u.userId, 'backup_create', 'system', null, { file: path.basename(sqlGz), size: st.size, tables: tableCount }, req.ip);
+      res.json({ ok: true, file: path.basename(sqlGz), size_human: fmtB(st.size), table_count: tableCount, duration_human: manifest.duration_human, checksum: checksum.slice(0,16)+'...' });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Falha ao criar backup' });
+    }
+  });
+
+  // GET /api/crm/admin/backup/download/:file — baixar arquivo de backup
+  r.get("/admin/backup/download/:file", requireCrmAdmin, async (req, res) => {
+    try {
+      const filename = req.params.file.replace(/[^a-zA-Z0-9._-]/g, '');
+      if (!filename.endsWith('.sql.gz')) return res.status(400).json({ error: 'Arquivo inválido' });
+      const backupDir = path.join(process.cwd(), 'backups', 'database');
+      const filePath = path.join(backupDir, filename);
+      if (!existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
+      const u = (req as any).crmUser;
+      await audit(u.userId, 'backup_download', 'system', null, { file: filename }, req.ip);
+      res.setHeader('Content-Type', 'application/gzip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      createReadStream(filePath).pipe(res);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Erro ao baixar backup' });
+    }
+  });
+
+  // DELETE /api/crm/admin/backup/:file — excluir um backup
+  r.delete("/admin/backup/:file", requireCrmAdmin, async (req, res) => {
+    try {
+      const filename = req.params.file.replace(/[^a-zA-Z0-9._-]/g, '');
+      if (!filename.endsWith('.sql.gz')) return res.status(400).json({ error: 'Arquivo inválido' });
+      const backupDir = path.join(process.cwd(), 'backups', 'database');
+      const filePath = path.join(backupDir, filename);
+      if (!existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
+      unlinkSync(filePath);
+      const mfp = filePath.replace('.sql.gz', '.json');
+      if (existsSync(mfp)) unlinkSync(mfp);
+      const u = (req as any).crmUser;
+      await audit(u.userId, 'backup_delete', 'system', null, { file: filename }, req.ip);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Erro ao excluir backup' });
     }
   });
 

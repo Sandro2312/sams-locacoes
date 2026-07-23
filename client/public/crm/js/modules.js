@@ -8006,6 +8006,191 @@ const ModuleSystem = {
         }
         ,
         initPermissoes() {},
+        ,
+        listBackup() {
+            return `
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm text-gray-500">Administração</div>
+                            <div class="text-lg font-semibold text-gray-800">Backup &amp; Restore</div>
+                            <div class="text-xs text-gray-500 mt-1">Backups completos do banco de dados — retenção de 30 dias</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="backupCreateBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                                <i class="fas fa-plus mr-2"></i>Criar Backup Agora
+                            </button>
+                            <button id="backupReloadBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg text-sm">
+                                <i class="fas fa-sync-alt mr-2"></i>Atualizar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="backupStatusBar" class="hidden px-6 py-3 bg-blue-50 border-b border-blue-100">
+                        <div class="flex items-center gap-3">
+                            <i id="backupStatusIcon" class="fas fa-spinner fa-spin text-blue-600"></i>
+                            <span id="backupStatusText" class="text-sm text-blue-800 font-medium">Aguarde...</span>
+                        </div>
+                    </div>
+                    <div class="px-6 py-3 bg-amber-50 border-b border-amber-100">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-shield-alt text-amber-600 mt-0.5 text-sm"></i>
+                            <div class="text-xs text-amber-800">
+                                <strong>Segurança dos dados:</strong> Os backups contêm todas as tabelas do sistema (clientes, contratos, financeiro, eventos, usuários).
+                                Faça download regularmente e guarde em local seguro. Backups com mais de 30 dias são removidos automaticamente.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="backupListContainer">
+                            <div class="text-sm text-gray-500 py-4 text-center">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>Carregando backups...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+        initBackup() {
+            const api = async (url, opt = {}) => {
+                const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opt });
+                const j = await r.json().catch(() => null);
+                if (!r.ok) throw new Error((j && j.error) ? j.error : 'Falha na API');
+                return j;
+            };
+            const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const showStatus = (msg, type = 'loading') => {
+                const bar = document.getElementById('backupStatusBar');
+                const icon = document.getElementById('backupStatusIcon');
+                const text = document.getElementById('backupStatusText');
+                if (!bar || !icon || !text) return;
+                bar.className = 'px-6 py-3 border-b';
+                if (type === 'loading') { bar.classList.add('bg-blue-50','border-blue-100'); icon.className = 'fas fa-spinner fa-spin text-blue-600'; text.className = 'text-sm text-blue-800 font-medium'; }
+                else if (type === 'success') { bar.classList.add('bg-green-50','border-green-100'); icon.className = 'fas fa-check-circle text-green-600'; text.className = 'text-sm text-green-800 font-medium'; }
+                else { bar.classList.add('bg-red-50','border-red-100'); icon.className = 'fas fa-exclamation-circle text-red-600'; text.className = 'text-sm text-red-800 font-medium'; }
+                text.textContent = msg;
+                if (type !== 'loading') setTimeout(() => bar.classList.add('hidden'), 6000);
+            };
+            const fmtDate = (iso) => {
+                try { const d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+                catch { return iso || '-'; }
+            };
+            const loadList = async () => {
+                const container = document.getElementById('backupListContainer');
+                if (!container) return;
+                try {
+                    const data = await api('/api/crm/admin/backup/list');
+                    const backups = data.backups || [];
+                    if (!backups.length) {
+                        container.innerHTML = `
+                            <div class="text-center py-12">
+                                <i class="fas fa-database text-gray-300 text-5xl mb-4"></i>
+                                <div class="text-gray-500 font-medium">Nenhum backup encontrado</div>
+                                <div class="text-gray-400 text-sm mt-1">Clique em "Criar Backup Agora" para gerar o primeiro backup.</div>
+                            </div>`;
+                        return;
+                    }
+                    container.innerHTML = `
+                        <div class="text-xs text-gray-500 mb-3">${backups.length} backup(s) — retenção automática de 30 dias</div>
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arquivo</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tabelas</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tamanho</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duração</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${backups.map((b, i) => `
+                                        <tr class="${i === 0 ? 'bg-green-50' : 'hover:bg-gray-50'}">
+                                            <td class="px-4 py-3 text-sm">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    ${i === 0 ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Mais recente</span>' : ''}
+                                                    <span class="font-mono text-xs text-gray-600">${esc(b.file)}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${esc(fmtDate(b.created_at))}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-900">${b.table_count || '-'}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-900">${esc(b.size_human)}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-500">${esc(b.duration_human || '-')}</td>
+                                            <td class="px-4 py-3 text-sm">
+                                                <div class="flex items-center gap-2">
+                                                    <a href="/api/crm/admin/backup/download/${esc(b.file)}"
+                                                       class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium">
+                                                        <i class="fas fa-download mr-1"></i>Download
+                                                    </a>
+                                                    <button type="button"
+                                                            data-backup-delete="${esc(b.file)}"
+                                                            class="inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium">
+                                                        <i class="fas fa-trash mr-1"></i>Excluir
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="text-xs font-semibold text-gray-700 mb-2"><i class="fas fa-info-circle mr-1 text-blue-500"></i>Como restaurar um backup</div>
+                            <ol class="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                                <li>Faça o <strong>Download</strong> do arquivo <code class="bg-gray-200 px-1 rounded">.sql.gz</code> desejado</li>
+                                <li>Descompacte: <code class="bg-gray-200 px-1 rounded">gunzip arquivo.sql.gz</code></li>
+                                <li>Importe: <code class="bg-gray-200 px-1 rounded">mysql -h HOST -u USER -p DATABASE &lt; arquivo.sql</code></li>
+                                <li>Ou use DBeaver, TablePlus, MySQL Workbench ou phpMyAdmin</li>
+                            </ol>
+                        </div>
+                    `;
+                    container.querySelectorAll('[data-backup-delete]').forEach(btn => {
+                        if (btn.getAttribute('data-bound')) return;
+                        btn.setAttribute('data-bound', '1');
+                        btn.addEventListener('click', async () => {
+                            const file = btn.getAttribute('data-backup-delete');
+                            if (!confirm('Excluir o backup "' + file + '"?\n\nEsta ação não pode ser desfeita.')) return;
+                            try {
+                                showStatus('Excluindo backup...', 'loading');
+                                await api('/api/crm/admin/backup/' + encodeURIComponent(file), { method: 'DELETE' });
+                                showStatus('Backup excluído com sucesso.', 'success');
+                                await loadList();
+                            } catch (e) { showStatus(e && e.message ? e.message : 'Erro ao excluir', 'error'); }
+                        });
+                    });
+                } catch (e) {
+                    container.innerHTML = '<div class="text-red-600 text-sm py-4"><i class="fas fa-exclamation-circle mr-2"></i>' + esc(e && e.message ? e.message : 'Erro ao carregar backups') + '</div>';
+                }
+            };
+            const createBtn = document.getElementById('backupCreateBtn');
+            if (createBtn && !createBtn.getAttribute('data-bound')) {
+                createBtn.setAttribute('data-bound', '1');
+                createBtn.addEventListener('click', async () => {
+                    if (!confirm('Criar um novo backup do banco de dados agora?\n\nO processo pode levar alguns segundos.')) return;
+                    createBtn.disabled = true;
+                    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Criando...';
+                    showStatus('Criando backup... Aguarde.', 'loading');
+                    try {
+                        const result = await api('/api/crm/admin/backup/create', { method: 'POST' });
+                        showStatus('Backup criado! ' + (result.table_count || 0) + ' tabelas, ' + (result.size_human || '') + ', duração: ' + (result.duration_human || ''), 'success');
+                        await loadList();
+                    } catch (e) {
+                        showStatus(e && e.message ? e.message : 'Falha ao criar backup', 'error');
+                    } finally {
+                        createBtn.disabled = false;
+                        createBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Criar Backup Agora';
+                    }
+                });
+            }
+            const reloadBtn = document.getElementById('backupReloadBtn');
+            if (reloadBtn && !reloadBtn.getAttribute('data-bound')) {
+                reloadBtn.setAttribute('data-bound', '1');
+                reloadBtn.addEventListener('click', () => loadList());
+            }
+            loadList();
+        }
+
+        ,
         async listPermissoes() {
             // Buscar usuários da API (inclui modules_json e permissions_json do banco)
             let rows = [];
