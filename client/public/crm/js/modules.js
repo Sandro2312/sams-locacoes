@@ -8006,7 +8006,6 @@ const ModuleSystem = {
         }
         ,
         initPermissoes() {},
-        ,
         listBackup() {
             return `
                 <div class="bg-white rounded-lg shadow overflow-hidden">
