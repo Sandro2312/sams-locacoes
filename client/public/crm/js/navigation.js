@@ -1208,19 +1208,32 @@ const NavigationSystem = {
         if (module === 'financeiro' && page === 'custos') {
             setTimeout(() => {
                 const qEl = document.getElementById('despesas-filter-q');
+                const stEl = document.getElementById('despesas-filter-status');
                 const tbody = document.getElementById('despesas-list-tbody');
                 if (!qEl || !tbody) return;
                 const norm = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                 const filterFn = () => {
                     const q = norm(qEl.value);
+                    const st = stEl ? norm(stEl.value) : '';
                     Array.from(tbody.querySelectorAll('tr')).forEach(row => {
                         const text = norm(row.textContent || '');
-                        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                        const matchQ = !q || text.includes(q);
+                        // Status matching: 'pago' matches 'pago' and 'baixado'; 'recebido' matches 'recebido' and 'baixado'
+                        let matchSt = true;
+                        if (st) {
+                            if (st === 'pago') {
+                                matchSt = text.includes('pago') || text.includes('baixado');
+                            } else {
+                                matchSt = text.includes(st);
+                            }
+                        }
+                        row.style.display = (matchQ && matchSt) ? '' : 'none';
                     });
                 };
                 if (!qEl.getAttribute('data-fin-desp-bound')) {
                     qEl.setAttribute('data-fin-desp-bound', '1');
                     qEl.addEventListener('input', filterFn);
+                    if (stEl) stEl.addEventListener('change', filterFn);
                 }
             }, 250);
         }
@@ -1228,19 +1241,32 @@ const NavigationSystem = {
         if (module === 'financeiro' && page === 'receitas') {
             setTimeout(() => {
                 const qEl = document.getElementById('receitas-filter-q');
+                const stEl = document.getElementById('receitas-filter-status');
                 const tbody = document.getElementById('contas-receber-list-body');
                 if (!qEl || !tbody) return;
                 const norm = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                 const filterFn = () => {
                     const q = norm(qEl.value);
+                    const st = stEl ? norm(stEl.value) : '';
                     Array.from(tbody.querySelectorAll('tr')).forEach(row => {
                         const text = norm(row.textContent || '');
-                        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+                        const matchQ = !q || text.includes(q);
+                        // Status matching: 'recebido' matches 'recebido' and 'baixado'
+                        let matchSt = true;
+                        if (st) {
+                            if (st === 'recebido') {
+                                matchSt = text.includes('recebido') || text.includes('baixado');
+                            } else {
+                                matchSt = text.includes(st);
+                            }
+                        }
+                        row.style.display = (matchQ && matchSt) ? '' : 'none';
                     });
                 };
                 if (!qEl.getAttribute('data-fin-rec-bound')) {
                     qEl.setAttribute('data-fin-rec-bound', '1');
                     qEl.addEventListener('input', filterFn);
+                    if (stEl) stEl.addEventListener('change', filterFn);
                 }
             }, 250);
         }

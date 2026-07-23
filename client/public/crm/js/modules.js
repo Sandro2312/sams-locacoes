@@ -3933,6 +3933,13 @@ const ModuleSystem = {
                                        placeholder="Buscar descrição, tipo, status..."
                                        class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48"
                                        autocomplete="off" />
+                                <select id="despesas-filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option value="">Todos os Status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="pago">Pago / Baixado</option>
+                                    <option value="vencido">Vencido</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
                                 <label class="text-sm text-gray-600">Centro:</label>
                                 <select class="px-3 py-2 border border-gray-300 rounded-lg"
                                         onchange="ModuleSystem.financeiro.setDespesasCentroCustoFilter(this.value)">
@@ -4105,6 +4112,13 @@ const ModuleSystem = {
                                        placeholder="Buscar cliente, descrição, status..."
                                        class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48"
                                        autocomplete="off" />
+                                <select id="receitas-filter-status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option value="">Todos os Status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="recebido">Recebido / Baixado</option>
+                                    <option value="vencido">Vencido</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
                                 <label class="text-sm text-gray-600">Centro:</label>
                                 <select class="px-3 py-2 border border-gray-300 rounded-lg"
                                         onchange="ModuleSystem.financeiro.setReceitasCentroCustoFilter(this.value)">

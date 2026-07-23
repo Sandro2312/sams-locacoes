@@ -304,3 +304,4 @@
 - [x] Bug extra: URLs /api/vendedor e /api/oportunidades sem prefixo /api/crm — corrigidas no modules.js
 - [x] Bug extra: metas/dashboard URL sem prefixo /api/crm e parsing errado (dash.team) — corrigidos no modules.js
 - [x] Bug extra: tabela crm_tarefas sem colunas cliente_id, evento_id, created_by — adicionadas via ALTER TABLE
+- [x] Filtro de Status adicionado nas seções Despesas e Receitas do módulo Financeiro (select com opções: Todos, Pendente, Pago/Baixado, Vencido, Cancelado; lógica AND com busca por texto e Centro de Custo)
