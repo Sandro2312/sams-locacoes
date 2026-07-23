@@ -1533,8 +1533,8 @@
     <script src="/crm/js/auth.js?v=1783341600" defer></script>
     <!-- Módulo dedicado de Contas a Receber (deve carregar antes de modules.js e forms.js) -->
     <script src="/crm/js/crm-contas-receber.js?v=1783337181" defer></script>
-    <script src="/crm/js/modules.js?v=1783337181" defer></script>
-    <script src="/crm/js/navigation.js?v=1779800114" defer></script>
+    <script src="/crm/js/modules.js?v=1784765272" defer></script>
+    <script src="/crm/js/navigation.js?v=1784765272" defer></script>
     <script src="/crm/js/acervo.js?v=1779800114" defer></script>
     <script src="/crm/js/validation-system.js?v=1779800114" defer></script>
     <script src="/crm/js/forms.js?v=1783337181" defer></script>
@@ -1562,26 +1562,26 @@
             
             // Scripts auxiliares (não críticos)
             const auxiliaryScripts = [
-                'js/marketing-forms.js?v=1783337181',
-                'js/ux-enhancements.js?v=1779800114'
+                '/crm/js/marketing-forms.js?v=1783337181',
+                '/crm/js/ux-enhancements.js?v=1779800114'
             ];
             
             const featureScripts = [
-                'js/audit-system.js?v=1779800114',
-                'js/briefing.js?v=1779800114',
-                'js/projects.js?v=1779800114',
-                'js/financial.js?v=1779800114',
-                'js/kanban.js?v=1779800114',
-                'js/permissions.js?v=1780588253'
+                '/crm/js/audit-system.js?v=1779800114',
+                '/crm/js/briefing.js?v=1779800114',
+                '/crm/js/projects.js?v=1779800114',
+                '/crm/js/financial.js?v=1779800114',
+                '/crm/js/kanban.js?v=1779800114',
+                '/crm/js/permissions.js?v=1780588253'
             ];
             
             const modernScripts = [
-                'js/security-manager.js?v=1779800114',
-                'js/unified-validator.js?v=1779800114',
-                'js/crud-manager.js?v=1779800114',
-                'js/form-components.js?v=1779800114',
-                'js/notification-system.js?v=1779800114',
-                'js/forms-modernized.js?v=1779800114'
+                '/crm/js/security-manager.js?v=1779800114',
+                '/crm/js/unified-validator.js?v=1779800114',
+                '/crm/js/crud-manager.js?v=1779800114',
+                '/crm/js/form-components.js?v=1779800114',
+                '/crm/js/notification-system.js?v=1779800114',
+                '/crm/js/forms-modernized.js?v=1779800114'
             ];
             
             // Função para carregar scripts em lotes com otimizações
@@ -2634,7 +2634,8 @@
             ? (window.AuthSystem.getCurrentUser() || {})
             : (window.AuthSystem && window.AuthSystem.currentUser) || {};
           const headers = {};
-          if (current && current.id) headers['X-User-Id'] = String(current.id              const r = await fetch(`/api/crm/leads/${id}`, { 
+          if (current && current.id) headers['X-User-Id'] = String(current.id);
+          const r = await fetch(`/api/crm/leads/${id}`, { 
             method:'DELETE', 
             credentials:'include',
             headers
@@ -2987,7 +2988,7 @@
       initForgotPasswordForm();
       initResetPasswordForm();
       // Toggle visibilidade do campo de senha do login
-      togglePwdVisibility('loginPassword', 'togglePassword');
+      // togglePwdVisibility para loginPassword removido — onclick inline no botão já faz a mesma coisa (evitar duplo listener)
       // Verificar token de reset na URL (quando usuário clica no link do email)
       checkResetTokenInUrl();
     }

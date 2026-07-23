@@ -1310,11 +1310,11 @@ const NavigationSystem = {
         }
 
         try {
-            document.querySelectorAll('script[src*="js/kanban.js"]').forEach(s => s.parentNode?.removeChild(s));
+            document.querySelectorAll('script[src*="kanban.js"]').forEach(s => s.parentNode?.removeChild(s));
         } catch {}
 
         const script = document.createElement('script');
-        script.src = `js/kanban.js?v=5.6.9&ts=${Date.now()}`;
+        script.src = `/crm/js/kanban.js?v=5.6.9&ts=${Date.now()}`;
         script.async = false;
         script.onload = () => onReady?.();
         script.onerror = () => {

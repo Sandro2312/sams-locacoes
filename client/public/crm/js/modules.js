@@ -3055,7 +3055,7 @@ const ModuleSystem = {
             if (!root) return;
 
             this.bindHeaderButtons();
-            this.bindAdminTools();
+            // bindAdminTools removido — método não existe (referência morta de refatoração anterior)
             this.bindAgendaEvents(root);
             this.refreshTarefasAdminApi();
 

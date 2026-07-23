@@ -283,3 +283,24 @@
 - [x] Responsividade mobile: botões de exportação com flex-wrap para telas pequenas
 - [x] Autocomplete Centro de Custos: buildNames inclui CCs de transações e contas a receber anteriores
 - [x] Persistência de CC: último valor salvo/restaurado via localStorage
+
+## Correção de Bugs Críticos v5.36 (2026-07-22)
+- [ ] Bug #1: togglePassword duplo — remover addEventListener duplicado em auth.js/index.html
+- [ ] Bug #2: 14 scripts com caminho relativo errado em loadRemainingScripts() — adicionar prefixo /crm/
+- [ ] Bug #2b: navigation.js ensureKanbanSystemReady — corrigir script.src sem /crm/
+- [ ] Bug #2c: busca geral por 'js/ sem prefixo em todo client/public/crm/
+- [ ] Bug #3: testar Eventos e Clientes após correção do bug #2
+- [ ] Bug #4: testar Kanban após correção do bug #2
+- [ ] Bug #5: bindAdminTools is not a function — remover/corrigir chamada em renderAgendaKanban()
+- [ ] Bug #6: sintaxe corrompida em deleteLead (linha ~2637 index.html)
+
+## Correção de Bugs Críticos (Sessão Jul/2026)
+- [x] Bug #1: togglePassword duplo (onclick + addEventListener se cancelavam) — removida chamada togglePwdVisibility do index.html
+- [x] Bug #2: 14 scripts com caminho relativo js/ sem prefixo /crm/ — corrigido em auxiliaryScripts, featureScripts, modernScripts e navigation.js
+- [x] Bug #3: Eventos/Clientes não carregavam — resolvido como consequência do Bug #2 (permissions.js)
+- [x] Bug #4: Kanban falhava ao carregar — resolvido como consequência do Bug #2 (kanban.js)
+- [x] Bug #5: bindAdminTools is not a function quebrando dashboard — referência morta removida do renderAgendaKanban()
+- [x] Bug #6: Sintaxe corrompida em deleteLead (String(current.id sem fechar) — corrigido no index.html
+- [x] Bug extra: URLs /api/vendedor e /api/oportunidades sem prefixo /api/crm — corrigidas no modules.js
+- [x] Bug extra: metas/dashboard URL sem prefixo /api/crm e parsing errado (dash.team) — corrigidos no modules.js
+- [x] Bug extra: tabela crm_tarefas sem colunas cliente_id, evento_id, created_by — adicionadas via ALTER TABLE
