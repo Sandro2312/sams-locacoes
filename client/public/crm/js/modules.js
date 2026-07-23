@@ -5023,9 +5023,18 @@ const ModuleSystem = {
                 return Number.isFinite(n) ? n : 0;
             };
             const ymd = (d) => {
-                try { return new Date(d).toISOString().slice(0, 10); } catch { return ''; }
+                try {
+                    const dt = new Date(d);
+                    // Usar fuso horário local (não UTC) para evitar problema de data errada no Brasil (GMT-3)
+                    const y = dt.getFullYear();
+                    const m = String(dt.getMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
+                } catch { return ''; }
             };
-            const today = ymd(new Date());
+            // today usa fuso horário local do navegador (correto para Brasil GMT-3)
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             const getStoredFocusDate = () => {
                 try {
                     const v = window.ModuleSystem && ModuleSystem.data && ModuleSystem.data.ui ? ModuleSystem.data.ui.financeiroFocusDate : '';
@@ -5674,7 +5683,7 @@ const ModuleSystem = {
             if (dateInput && dateInput.getAttribute('data-bound') !== 'true') {
                 dateInput.setAttribute('data-bound', 'true');
                 try {
-                    const initValue = getStoredFocusDate() || today;
+                    const initValue = today; // Sempre usar data atual ao abrir (não restaurar data de sessões anteriores)
                     dateInput.value = initValue;
                 } catch {}
                 dateInput.addEventListener('change', () => load());
