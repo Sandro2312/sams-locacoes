@@ -7581,6 +7581,25 @@ ENTREGA
         }
 
         // Botão de busca de CNPJ
+        // ── Helper: validar CNPJ matematicamente ───────────────────────────────
+        const isCNPJValido = (cnpj) => {
+            if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+            const w1 = [5,4,3,2,9,8,7,6,5,4,3,2], w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+            let s = 0; for (let i=0;i<12;i++) s += parseInt(cnpj[i])*w1[i];
+            const d1 = (s%11)<2 ? 0 : 11-(s%11);
+            if (d1 !== parseInt(cnpj[12])) return false;
+            s = 0; for (let i=0;i<13;i++) s += parseInt(cnpj[i])*w2[i];
+            const d2 = (s%11)<2 ? 0 : 11-(s%11);
+            return d2 === parseInt(cnpj[13]);
+        };
+        // ── Helper: notificar ────────────────────────────────────────────────────
+        const notifyCNPJ = (msg, type = 'error') => {
+            if (window.NotificationSystem && typeof window.NotificationSystem[type] === 'function') {
+                window.NotificationSystem[type](msg);
+            } else {
+                if (type === 'error') alert(msg);
+            }
+        };
         const btnCNPJ = form.querySelector('[data-form-action="busca-cnpj"]');
         if (btnCNPJ) {
             btnCNPJ.addEventListener('click', async (e) => {
@@ -7589,13 +7608,31 @@ ENTREGA
                 const docInput = form.querySelector('[name="documento"]');
                 if (!docInput) return;
                 const raw = (docInput.value || '').replace(/\D/g, '');
+
+                // Limpar erro visual anterior do campo documento
+                if (window.UnifiedValidator && typeof window.UnifiedValidator.clearFieldValidation === 'function') {
+                    window.UnifiedValidator.clearFieldValidation(docInput);
+                }
+
+                // Validar: deve ter 14 dígitos
                 if (raw.length !== 14) {
+                    notifyCNPJ('Digite um CNPJ completo com 14 dígitos antes de buscar.');
                     if (window.UnifiedValidator && typeof window.UnifiedValidator.displayFieldValidation === 'function') {
                         window.UnifiedValidator.displayFieldValidation(docInput, {
-                            isValid: false,
-                            errors: ['CNPJ inválido'],
-                            sanitized: docInput.value,
-                            formatted: docInput.value
+                            isValid: false, errors: ['CNPJ deve ter 14 dígitos'],
+                            sanitized: docInput.value, formatted: docInput.value
+                        });
+                    }
+                    return;
+                }
+
+                // Validar matematicamente os dígitos verificadores
+                if (!isCNPJValido(raw)) {
+                    notifyCNPJ('CNPJ inválido: os dígitos verificadores não conferem. Verifique o número digitado.');
+                    if (window.UnifiedValidator && typeof window.UnifiedValidator.displayFieldValidation === 'function') {
+                        window.UnifiedValidator.displayFieldValidation(docInput, {
+                            isValid: false, errors: ['Dígitos verificadores inválidos'],
+                            sanitized: docInput.value, formatted: docInput.value
                         });
                     }
                     return;
@@ -7603,6 +7640,7 @@ ENTREGA
 
                 // Loading state
                 const originalHtml = btnCNPJ.innerHTML;
+                const originalClass = btnCNPJ.className;
                 btnCNPJ.disabled = true;
                 btnCNPJ.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
                 try {
@@ -7610,61 +7648,72 @@ ENTREGA
                     const resp = await fetch(`/api/crm/cnpj/${raw}`, { credentials: 'include' });
                     const data = await resp.json();
                     if (resp.ok && data) {
-                        // BrasilAPI usa ddd_telefone_1, não 'telefone'
+                        // Formatar telefone: BrasilAPI retorna ddd_telefone_1 (ex: "1133334444")
                         const telefoneRaw = data.ddd_telefone_1 || data.ddd_telefone_2 || data.telefone || '';
+                        let telefoneFormatado = telefoneRaw;
+                        if (telefoneRaw) {
+                            const t = telefoneRaw.replace(/\D/g,'');
+                            if (t.length === 11) telefoneFormatado = t.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                            else if (t.length === 10) telefoneFormatado = t.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                        }
+                        // Montar endereço completo
+                        const endParts = [data.logradouro, data.numero].filter(Boolean);
+                        if (data.complemento && data.complemento.trim()) endParts.push(data.complemento.trim());
                         const mapping = {
-                            nome: data.nome_fantasia || data.razao_social || '',
-                            cep: data.cep || '',
-                            endereco: [data.logradouro, data.numero, data.complemento].filter(Boolean).join(', '),
-                            bairro: data.bairro || '',
-                            cidade: data.municipio || data.cidade || '',
-                            estado: data.uf || data.estado || '',
-                            telefone: telefoneRaw
+                            nome:     data.nome_fantasia || data.razao_social || '',
+                            email:    data.email || '',
+                            cep:      data.cep || '',
+                            endereco: endParts.join(', '),
+                            bairro:   data.bairro || '',
+                            cidade:   data.municipio || data.cidade || '',
+                            estado:   data.uf || data.estado || '',
+                            telefone: telefoneFormatado
                         };
-                        // Sobrescrever campos (não apenas vazios) — busca CNPJ explícita deve preencher tudo
-                        const fillField = (name, value) => {
-                            if (!value) return;
-                            const field = form.querySelector(`[name="${name}"]`);
-                            if (field) { field.value = value; safeDispatch(field); }
-                        };
+                        // Formatar CEP
+                        if (mapping.cep) {
+                            const cepDigits = mapping.cep.replace(/\D/g,'');
+                            if (cepDigits.length === 8) mapping.cep = cepDigits.replace(/(\d{5})(\d{3})/, '$1-$2');
+                        }
+                        // Formatar documento
                         if (window.UnifiedValidator && typeof window.UnifiedValidator.formatValue === 'function') {
-                            if (mapping.cep) mapping.cep = window.UnifiedValidator.formatValue(mapping.cep, 'cep');
                             docInput.value = window.UnifiedValidator.formatValue(raw, 'document');
                         } else {
-                            docInput.value = raw;
+                            docInput.value = raw.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
                         }
-                        Object.entries(mapping).forEach(([k, v]) => fillField(k, v));
                         safeDispatch(docInput);
+                        // Limpar erro visual do campo documento após sucesso
+                        if (window.UnifiedValidator && typeof window.UnifiedValidator.clearFieldValidation === 'function') {
+                            window.UnifiedValidator.clearFieldValidation(docInput);
+                        }
+                        // Preencher todos os campos (sobrescreve valores existentes)
+                        Object.entries(mapping).forEach(([k, v]) => {
+                            if (!v) return;
+                            const field = form.querySelector(`[name="${k}"]`);
+                            if (field) { field.value = v; safeDispatch(field); }
+                        });
                         // Feedback de sucesso
-                        btnCNPJ.innerHTML = '<i class="fas fa-check mr-2"></i>Preenchido!';
-                        btnCNPJ.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
-                        btnCNPJ.classList.add('bg-green-500');
+                        const filledFields = Object.values(mapping).filter(Boolean).length;
+                        btnCNPJ.innerHTML = `<i class="fas fa-check mr-2"></i>${filledFields} campos preenchidos`;
+                        btnCNPJ.className = btnCNPJ.className.replace(/bg-yellow-\d+/g,'').replace(/hover:bg-yellow-\d+/g,'') + ' bg-green-500';
+                        notifyCNPJ(`CNPJ encontrado! ${filledFields} campos preenchidos automaticamente.`, 'success');
                         setTimeout(() => {
                             btnCNPJ.innerHTML = originalHtml;
-                            btnCNPJ.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
-                            btnCNPJ.classList.remove('bg-green-500');
+                            btnCNPJ.className = originalClass;
                             btnCNPJ.disabled = false;
-                        }, 2500);
+                        }, 3000);
                         return;
                     } else {
-                        const errMsg = (data && (data.error || data.message)) || 'CNPJ não encontrado na Receita Federal.';
-                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                            window.NotificationSystem.error('Busca CNPJ: ' + errMsg);
-                        } else {
-                            alert('Busca CNPJ: ' + errMsg);
-                        }
+                        const errMsg = (data && (data.error || data.message)) || 'CNPJ não encontrado na base da Receita Federal.';
+                        notifyCNPJ('Busca CNPJ: ' + errMsg);
                         console.warn('[FormSystem] Proxy CNPJ não retornou OK:', errMsg);
                     }
                 } catch (err) {
                     console.warn('[FormSystem] Falha na busca de CNPJ:', err);
-                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
-                        window.NotificationSystem.error('Falha ao buscar CNPJ. Verifique sua conexão e tente novamente.');
-                    } else {
-                        alert('Falha ao buscar CNPJ. Verifique sua conexão e tente novamente.');
-                    }
+                    notifyCNPJ('Falha ao buscar CNPJ. Verifique sua conexão e tente novamente.');
                 }
                 // Restaurar botão em caso de erro
                 btnCNPJ.innerHTML = originalHtml;
+                btnCNPJ.className = originalClass;
                 btnCNPJ.disabled = false;
             });
         }
