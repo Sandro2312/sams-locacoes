@@ -2230,7 +2230,7 @@ const ModuleSystem = {
                                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar modelo .xlsx">
                                     <i class="fas fa-download mr-1"></i>Modelo
                                 </button>
-                                <button onclick="window.CrmImport && window.CrmImport.open('clientes', function(n){ ModuleSystem.crm.listClientes && ModuleSystem.crm.listClientes(); })" type="button"
+                                <button onclick="window.CrmImport && window.CrmImport.open('clientes', function(n){ window.NavigationSystem && window.NavigationSystem.reloadCurrentPage(); })" type="button"
                                         class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar via planilha">
                                     <i class="fas fa-file-import mr-1"></i>Importar
                                 </button>
@@ -2317,7 +2317,7 @@ const ModuleSystem = {
                                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar modelo .xlsx">
                                     <i class="fas fa-download mr-1"></i>Modelo
                                 </button>
-                                <button onclick="window.CrmImport && window.CrmImport.open('eventos', function(n){ ModuleSystem.crm.listEventos && ModuleSystem.crm.listEventos(); })" type="button"
+                                <button onclick="window.CrmImport && window.CrmImport.open('eventos', function(n){ window.NavigationSystem && window.NavigationSystem.reloadCurrentPage(); })" type="button"
                                         class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar via planilha">
                                     <i class="fas fa-file-import mr-1"></i>Importar
                                 </button>
@@ -4090,7 +4090,7 @@ const ModuleSystem = {
                                             class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar planilha modelo para importação">
                                         <i class="fas fa-download mr-1"></i>Modelo
                                     </button>
-                                    <button onclick="window.CrmImport && window.CrmImport.open('transacoes', function(n){ ModuleSystem.financeiro.listTransacoes && ModuleSystem.financeiro.listTransacoes(); })" type="button"
+                                    <button onclick="window.CrmImport && window.CrmImport.open('transacoes', function(n){ window.NavigationSystem && window.NavigationSystem.reloadCurrentPage(); })" type="button"
                                             class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar despesas via planilha Excel/CSV">
                                         <i class="fas fa-file-import mr-1"></i>Importar
                                     </button>
@@ -4277,7 +4277,7 @@ const ModuleSystem = {
                                             class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar planilha modelo para importação">
                                         <i class="fas fa-download mr-1"></i>Modelo
                                     </button>
-                                    <button onclick="window.CrmImport && window.CrmImport.open('contas-receber', function(n){ ModuleSystem.financeiro.listContasReceber && ModuleSystem.financeiro.listContasReceber(); })" type="button"
+                                    <button onclick="window.CrmImport && window.CrmImport.open('contas-receber', function(n){ window.NavigationSystem && window.NavigationSystem.reloadCurrentPage(); })" type="button"
                                             class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar contas a receber via planilha Excel/CSV">
                                         <i class="fas fa-file-import mr-1"></i>Importar
                                     </button>
