@@ -1616,7 +1616,7 @@ const ModuleSystem = {
                                 try {
                                     if (window.ModuleSystem && window.ModuleSystem.financeiro &&
                                         typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
-                                        window.ModuleSystem.financeiro.initDashboardHome();
+                                        (window.ModuleSystem.financeiro._reloadDashboardData ? window.ModuleSystem.financeiro._reloadDashboardData() : window.ModuleSystem.financeiro.initDashboardHome());
                                     }
                                 } catch(ex) {}
                             })
@@ -1632,7 +1632,7 @@ const ModuleSystem = {
                 try {
                     if (window.ModuleSystem && window.ModuleSystem.financeiro &&
                         typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
-                        window.ModuleSystem.financeiro.initDashboardHome();
+                        (window.ModuleSystem.financeiro._reloadDashboardData ? window.ModuleSystem.financeiro._reloadDashboardData() : window.ModuleSystem.financeiro.initDashboardHome());
                     }
                 } catch(e) { console.warn('[Pendencias] Erro ao re-renderizar:', e); }
             };
@@ -1680,7 +1680,7 @@ const ModuleSystem = {
                     try {
                         if (window.ModuleSystem && window.ModuleSystem.financeiro &&
                             typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
-                            window.ModuleSystem.financeiro.initDashboardHome();
+                            (window.ModuleSystem.financeiro._reloadDashboardData ? window.ModuleSystem.financeiro._reloadDashboardData() : window.ModuleSystem.financeiro.initDashboardHome());
                         } else if (window.NavigationSystem && typeof window.NavigationSystem.reloadCurrentPage === 'function') {
                             window.NavigationSystem.reloadCurrentPage();
                         }
@@ -5997,6 +5997,8 @@ const ModuleSystem = {
                 dateInput.addEventListener('change', () => load());
             }
 
+            // Expõe load() para uso externo sem bater na trava data-init
+            this._reloadDashboardData = load;
             load();
             try {
                 setInterval(() => {
