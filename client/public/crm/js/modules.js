@@ -5666,7 +5666,7 @@ const ModuleSystem = {
                             const valorFmt  = toBR(toMoney(item.valor));
                             if (tipo === 'cred') {
                                 return (
-                                    '<tr class="' + rowBg + '">' +
+                                    '<tr class="' + rowBg + ' cursor-pointer hover:opacity-80" title="Clique para abrir o lançamento" onclick="if(window.FormSystem&&typeof FormSystem.showUpdateForm===\'function\'){FormSystem.showUpdateForm(\'contasReceber\',\'' + String(item.id) + '\')}">' +
                                         '<td class="px-3 py-2 text-sm text-gray-900 max-w-xs truncate" title="' + descEsc + '">' + alertIcon + descEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm text-gray-700 max-w-xs truncate" title="' + clienteEsc + '">' + clienteEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
@@ -5676,7 +5676,7 @@ const ModuleSystem = {
                                 );
                             } else {
                                 return (
-                                    '<tr class="' + rowBg + '">' +
+                                    '<tr class="' + rowBg + ' cursor-pointer hover:opacity-80" title="Clique para abrir o lançamento" onclick="if(window.FormSystem&&typeof FormSystem.showUpdateForm===\'function\'){FormSystem.showUpdateForm(\'transacoes\',\'' + String(item.id) + '\')}">' +
                                         '<td class="px-3 py-2 text-sm text-gray-900 max-w-xs truncate" title="' + descEsc + '">' + alertIcon + descEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
                                         '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
