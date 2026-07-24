@@ -5745,6 +5745,9 @@ const ModuleSystem = {
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
                                         '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm text-green-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
+                                    '<td class="px-2 py-2 text-center" onclick="event.stopPropagation()">' +
+                                        '<button type="button" title="Marcar como Recebido" onclick="event.stopPropagation();if(!confirm(\'Confirmar recebimento?\'))return;fetch(\'/api/crm/contas-receber/' + String(item.id) + '\',{method:\'PATCH\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({status:\'recebido\'})}).then(function(r){return r.json()}).then(function(){try{if(window.ModuleSystem&&window.ModuleSystem.financeiro&&typeof window.ModuleSystem.financeiro.initDashboardHome===\'function\'){window.ModuleSystem.financeiro.initDashboardHome();}}catch(e){}}).catch(function(e){alert(\'Erro: \'+e.message)})" style="background:#16a34a;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
+                                    '</td>' +
                                     '</tr>'
                                 );
                             } else {
@@ -5754,12 +5757,15 @@ const ModuleSystem = {
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
                                         '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm text-red-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
+                                    '<td class="px-2 py-2 text-center" onclick="event.stopPropagation()">' +
+                                        '<button type="button" title="Marcar como Pago" onclick="event.stopPropagation();if(!confirm(\'Confirmar pagamento?\'))return;fetch(\'/api/crm/transacoes/' + String(item.id) + '\',{method:\'PATCH\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({status:\'pago\'})}).then(function(r){return r.json()}).then(function(){try{if(window.ModuleSystem&&window.ModuleSystem.financeiro&&typeof window.ModuleSystem.financeiro.initDashboardHome===\'function\'){window.ModuleSystem.financeiro.initDashboardHome();}}catch(e){}}).catch(function(e){alert(\'Erro: \'+e.message)})" style="background:#dc2626;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
+                                    '</td>' +
                                     '</tr>'
                                 );
                             }
                         }).join('');
                         const extraRow = extra > 0
-                            ? '<tr><td colspan="' + (tipo === 'cred' ? '5' : '4') + '" class="px-3 py-2 text-xs text-gray-500 text-center italic">+ ' + String(extra) + ' item(s) n\u00e3o exibido(s) \u2014 use a aba Contas a ' + (tipo === 'cred' ? 'Receber' : 'Pagar') + ' para ver todos</td></tr>'
+                            ? '<tr><td colspan="' + (tipo === 'cred' ? '6' : '5') + '" class="px-3 py-2 text-xs text-gray-500 text-center italic">+ ' + String(extra) + ' item(s) n\u00e3o exibido(s) \u2014 use a aba Contas a ' + (tipo === 'cred' ? 'Receber' : 'Pagar') + ' para ver todos</td></tr>'
                             : '';
                         return rows + extraRow;
                     };
@@ -5775,9 +5781,10 @@ const ModuleSystem = {
                                         '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Vencimento</th>' +
                                         '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Status</th>' +
                                         '<th class="px-3 py-2 text-right text-xs font-medium text-green-700 uppercase">Valor</th>' +
+                                    '<th class="px-2 py-2"></th>' +
                                     '</tr>' +
                                 '</thead>' +
-                                '<tbody class="bg-white divide-y divide-green-100">' + (credRows || '<tr><td colspan="5" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum cr\u00e9dito pendente</td></tr>') + '</tbody>' +
+                                '<tbody class="bg-white divide-y divide-green-100">' + (credRows || '<tr><td colspan="6" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum cr\u00e9dito pendente</td></tr>') + '</tbody>' +
                             '</table>' +
                         '</div>'
                     );
@@ -5790,9 +5797,10 @@ const ModuleSystem = {
                                         '<th class="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Vencimento</th>' +
                                         '<th class="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Status</th>' +
                                         '<th class="px-3 py-2 text-right text-xs font-medium text-red-700 uppercase">Valor</th>' +
+                                    '<th class="px-2 py-2"></th>' +
                                     '</tr>' +
                                 '</thead>' +
-                                '<tbody class="bg-white divide-y divide-red-100">' + (debRows || '<tr><td colspan="4" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum d\u00e9bito pendente</td></tr>') + '</tbody>' +
+                                '<tbody class="bg-white divide-y divide-red-100">' + (debRows || '<tr><td colspan="5" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum d\u00e9bito pendente</td></tr>') + '</tbody>' +
                             '</table>' +
                         '</div>'
                     );
