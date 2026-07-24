@@ -5210,7 +5210,37 @@ const ModuleSystem = {
                     .sort(sortByVenc)
                     .slice(0, 6);
 
-                return { receitasAbertas, receitasVencidas, receitasPagas, despesas, ccRows, ccTotals, proximas, focusDate: focus, debitosDia, creditosDiaContasPagas, creditosDiaContasVencem, creditosDiaTransacoes, totalsDia };
+                // Pendências a Regularizar: todos os créditos e débitos ainda não pagos (sem filtro de data)
+                const pendenciasCreditos = contas
+                    .filter(cr => cr && !isPaid(cr.status))
+                    .map(cr => ({
+                        id: cr.id,
+                        cliente: resolveClienteNome(cr),
+                        descricao: cr.descricao || '-',
+                        valor: toMoney(cr.valor),
+                        status: cr.status || 'Pendente',
+                        vencimento: ymdOf(cr.vencimento)
+                    }))
+                    .sort((a, b) => {
+                        const av = a.vencimento || '9999-12-31';
+                        const bv = b.vencimento || '9999-12-31';
+                        return av.localeCompare(bv);
+                    });
+                const pendenciasDebitos = transacoes
+                    .filter(t => t && isDespesaTx(t) && !isPaid(t.status))
+                    .map(t => ({
+                        id: t.id,
+                        descricao: t.descricao || '-',
+                        valor: toMoney(t.valor),
+                        status: t.status || 'Pendente',
+                        vencimento: ymdOf(t.data || t.data_vencimento || t.created_at || t.createdAt)
+                    }))
+                    .sort((a, b) => {
+                        const av = a.vencimento || '9999-12-31';
+                        const bv = b.vencimento || '9999-12-31';
+                        return av.localeCompare(bv);
+                    });
+                return { receitasAbertas, receitasVencidas, receitasPagas, despesas, ccRows, ccTotals, proximas, focusDate: focus, debitosDia, creditosDiaContasPagas, creditosDiaContasVencem, creditosDiaTransacoes, totalsDia, pendenciasCreditos, pendenciasDebitos };
             };
 
             const render = (data) => {
@@ -5602,8 +5632,135 @@ const ModuleSystem = {
                     );
                 })();
 
+                const LIMIT_PEND = 20;
+                const pendenciasHtml = (() => {
+                    const creds = Array.isArray(data.pendenciasCreditos) ? data.pendenciasCreditos : [];
+                    const debs  = Array.isArray(data.pendenciasDebitos)  ? data.pendenciasDebitos  : [];
+                    const totalCredVal = creds.reduce((s, x) => s + toMoney(x.valor), 0);
+                    const totalDebVal  = debs.reduce((s, x)  => s + toMoney(x.valor), 0);
+                    const totalItens   = creds.length + debs.length;
+                    const totalGeral   = totalCredVal + totalDebVal;
+                    if (!totalItens) return '';
+                    const fmtVenc = (v) => {
+                        if (!v) return '-';
+                        const s = String(v).slice(0, 10);
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                            const [y, m, d] = s.split('-');
+                            return d + '/' + m + '/' + y;
+                        }
+                        return s;
+                    };
+                    const isVencido = (v) => v && String(v).slice(0, 10) < today;
+                    const buildRows = (items, tipo) => {
+                        const shown = items.slice(0, LIMIT_PEND);
+                        const extra = items.length - shown.length;
+                        const rows = shown.map(item => {
+                            const venc = item.vencimento || '';
+                            const vencido = isVencido(venc);
+                            const rowBg = vencido ? (tipo === 'cred' ? 'bg-green-100' : 'bg-red-100') : '';
+                            const alertIcon = vencido ? '<span title="Vencido" class="mr-1 text-amber-600"><i class="fas fa-exclamation-triangle text-xs"></i></span>' : '';
+                            const statusEsc = escapeHtml(item.status);
+                            const descEsc   = escapeHtml(item.descricao);
+                            const clienteEsc = tipo === 'cred' ? escapeHtml(item.cliente || '-') : '';
+                            const vencBr    = escapeHtml(fmtVenc(venc));
+                            const valorFmt  = toBR(toMoney(item.valor));
+                            if (tipo === 'cred') {
+                                return (
+                                    '<tr class="' + rowBg + '">' +
+                                        '<td class="px-3 py-2 text-sm text-gray-900 max-w-xs truncate" title="' + descEsc + '">' + alertIcon + descEsc + '</td>' +
+                                        '<td class="px-3 py-2 text-sm text-gray-700 max-w-xs truncate" title="' + clienteEsc + '">' + clienteEsc + '</td>' +
+                                        '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
+                                        '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
+                                        '<td class="px-3 py-2 text-sm text-green-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
+                                    '</tr>'
+                                );
+                            } else {
+                                return (
+                                    '<tr class="' + rowBg + '">' +
+                                        '<td class="px-3 py-2 text-sm text-gray-900 max-w-xs truncate" title="' + descEsc + '">' + alertIcon + descEsc + '</td>' +
+                                        '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
+                                        '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
+                                        '<td class="px-3 py-2 text-sm text-red-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
+                                    '</tr>'
+                                );
+                            }
+                        }).join('');
+                        const extraRow = extra > 0
+                            ? '<tr><td colspan="' + (tipo === 'cred' ? '5' : '4') + '" class="px-3 py-2 text-xs text-gray-500 text-center italic">+ ' + String(extra) + ' item(s) n\u00e3o exibido(s) \u2014 use a aba Contas a ' + (tipo === 'cred' ? 'Receber' : 'Pagar') + ' para ver todos</td></tr>'
+                            : '';
+                        return rows + extraRow;
+                    };
+                    const credRows = buildRows(creds, 'cred');
+                    const debRows  = buildRows(debs,  'deb');
+                    const credTable = (
+                        '<div class="overflow-x-auto border border-green-200 rounded-lg">' +
+                            '<table class="w-full">' +
+                                '<thead class="bg-green-50">' +
+                                    '<tr>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Descri\u00e7\u00e3o</th>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Cliente</th>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Vencimento</th>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Status</th>' +
+                                        '<th class="px-3 py-2 text-right text-xs font-medium text-green-700 uppercase">Valor</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody class="bg-white divide-y divide-green-100">' + (credRows || '<tr><td colspan="5" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum cr\u00e9dito pendente</td></tr>') + '</tbody>' +
+                            '</table>' +
+                        '</div>'
+                    );
+                    const debTable = (
+                        '<div class="overflow-x-auto border border-red-200 rounded-lg">' +
+                            '<table class="w-full">' +
+                                '<thead class="bg-red-50">' +
+                                    '<tr>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Descri\u00e7\u00e3o</th>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Vencimento</th>' +
+                                        '<th class="px-3 py-2 text-left text-xs font-medium text-red-700 uppercase">Status</th>' +
+                                        '<th class="px-3 py-2 text-right text-xs font-medium text-red-700 uppercase">Valor</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody class="bg-white divide-y divide-red-100">' + (debRows || '<tr><td colspan="4" class="px-3 py-4 text-sm text-gray-400 text-center">Nenhum d\u00e9bito pendente</td></tr>') + '</tbody>' +
+                            '</table>' +
+                        '</div>'
+                    );
+                    return (
+                        '<div class="mt-4 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">' +
+                            '<div class="flex flex-wrap items-center justify-between gap-2 mb-3">' +
+                                '<div>' +
+                                    '<div class="font-semibold text-amber-900 flex items-center gap-2">' +
+                                        '<i class="fas fa-exclamation-circle text-amber-600"></i>' +
+                                        'Pend\u00eancias a Regularizar' +
+                                    '</div>' +
+                                    '<div class="text-xs text-amber-700 mt-0.5">' +
+                                        String(totalItens) + ' pend\u00eancia(s) \u2014 Total: ' + toBR(totalGeral) +
+                                        ' &nbsp;|&nbsp; <i class="fas fa-exclamation-triangle text-amber-600 text-xs"></i> = vencido' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="flex gap-4 text-xs">' +
+                                    '<span class="text-green-700 font-semibold">' + String(creds.length) + ' cr\u00e9dito(s): ' + toBR(totalCredVal) + '</span>' +
+                                    '<span class="text-red-700 font-semibold">' + String(debs.length) + ' d\u00e9bito(s): ' + toBR(totalDebVal) + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">' +
+                                '<div>' +
+                                    '<div class="text-xs font-semibold text-green-800 mb-1 flex items-center gap-1">' +
+                                        '<i class="fas fa-arrow-down text-green-600"></i> Cr\u00e9ditos Pendentes (Contas a Receber)' +
+                                    '</div>' +
+                                    credTable +
+                                '</div>' +
+                                '<div>' +
+                                    '<div class="text-xs font-semibold text-red-800 mb-1 flex items-center gap-1">' +
+                                        '<i class="fas fa-arrow-up text-red-600"></i> D\u00e9bitos Pendentes (Contas a Pagar)' +
+                                    '</div>' +
+                                    debTable +
+                                '</div>' +
+                            '</div>' +
+                        '</div>'
+                    );
+                })();
                 root.innerHTML = (
                     dayHtml +
+                    pendenciasHtml +
                     '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">' +
                         '<div class="bg-green-50 border border-green-200 rounded-lg p-4">' +
                             '<div class="text-sm text-green-700">Receitas</div>' +
