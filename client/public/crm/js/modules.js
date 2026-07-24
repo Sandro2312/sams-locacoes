@@ -1577,7 +1577,57 @@ const ModuleSystem = {
         // ── Funções globais para pendências ──────────────────────────────────────
     _initPendenciasGlobals() {
         if (!window._samsPendFilter) {
-            window._samsPendFilter = function(val) {
+                           // ── Listener global para botões de pagamento rápido (data-attributes, sem inline) ──
+                    if (!window._samsQuickPayListenerAdded) {
+                        window._samsQuickPayListenerAdded = true;
+                        document.addEventListener('click', function(evt) {
+                            var btn = evt.target;
+                            // Subir até o botão com a classe correta
+                            while (btn && btn !== document) {
+                                if (btn.classList && btn.classList.contains('sams-quick-pay-btn')) break;
+                                btn = btn.parentNode;
+                            }
+                            if (!btn || !btn.classList || !btn.classList.contains('sams-quick-pay-btn')) return;
+                            evt.stopPropagation();
+                            evt.preventDefault();
+                            var tipo   = btn.getAttribute('data-pend-tipo');
+                            var id     = btn.getAttribute('data-pend-id');
+                            var desc   = btn.getAttribute('data-pend-desc') || '';
+                            var label  = tipo === 'cred' ? 'recebimento' : 'pagamento';
+                            var status = tipo === 'cred' ? 'recebido' : 'pago';
+                            var url    = tipo === 'cred'
+                                ? '/api/crm/contas-receber/' + id
+                                : '/api/crm/transacoes/' + id;
+                            if (!confirm('Confirmar ' + label + ' de "' + desc + '"?')) return;
+                            btn.disabled = true;
+                            btn.textContent = '...';
+                            fetch(url, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ status: status })
+                            })
+                            .then(function(r) {
+                                if (!r.ok) throw new Error('HTTP ' + r.status);
+                                return r.json();
+                            })
+                            .then(function(data) {
+                                if (data && data.error) throw new Error(data.error);
+                                try {
+                                    if (window.ModuleSystem && window.ModuleSystem.financeiro &&
+                                        typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
+                                        window.ModuleSystem.financeiro.initDashboardHome();
+                                    }
+                                } catch(ex) {}
+                            })
+                            .catch(function(err) {
+                                btn.disabled = false;
+                                btn.textContent = '\u2713';
+                                alert('Erro ao registrar ' + label + ': ' + (err.message || String(err)));
+                            });
+                        }, true);
+                    }
+                         window._samsPendFilter = function(val) {
                 try { localStorage.setItem('sams_pend_filter', val); } catch {}
                 try {
                     if (window.ModuleSystem && window.ModuleSystem.financeiro &&
@@ -5745,8 +5795,8 @@ const ModuleSystem = {
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
                                         '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm text-green-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
-                                    '<td class="px-2 py-2 text-center" onclick="event.stopPropagation()">' +
-                                        '<button type="button" title="Marcar como Recebido" onclick="event.stopPropagation();if(!confirm(\'Confirmar recebimento?\'))return;fetch(\'/api/crm/contas-receber/' + String(item.id) + '\',{method:\'PATCH\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({status:\'recebido\'})}).then(function(r){return r.json()}).then(function(){try{if(window.ModuleSystem&&window.ModuleSystem.financeiro&&typeof window.ModuleSystem.financeiro.initDashboardHome===\'function\'){window.ModuleSystem.financeiro.initDashboardHome();}}catch(e){}}).catch(function(e){alert(\'Erro: \'+e.message)})" style="background:#16a34a;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
+                                    '<td class="px-2 py-2 text-center sams-pend-action-cell">' +
+                                        '<button type="button" title="Marcar como Recebido" class="sams-quick-pay-btn" data-pend-tipo="cred" data-pend-id="' + String(item.id) + '" data-pend-desc="' + escapeHtml(item.descricao) + '" style="background:#16a34a;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
                                     '</td>' +
                                     '</tr>'
                                 );
@@ -5757,8 +5807,8 @@ const ModuleSystem = {
                                         '<td class="px-3 py-2 text-sm ' + (vencido ? 'font-semibold text-red-700' : 'text-gray-700') + ' whitespace-nowrap">' + vencBr + '</td>' +
                                         '<td class="px-3 py-2 text-xs text-gray-500">' + statusEsc + '</td>' +
                                         '<td class="px-3 py-2 text-sm text-red-800 font-semibold text-right whitespace-nowrap">' + valorFmt + '</td>' +
-                                    '<td class="px-2 py-2 text-center" onclick="event.stopPropagation()">' +
-                                        '<button type="button" title="Marcar como Pago" onclick="event.stopPropagation();if(!confirm(\'Confirmar pagamento?\'))return;fetch(\'/api/crm/transacoes/' + String(item.id) + '\',{method:\'PATCH\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({status:\'pago\'})}).then(function(r){return r.json()}).then(function(){try{if(window.ModuleSystem&&window.ModuleSystem.financeiro&&typeof window.ModuleSystem.financeiro.initDashboardHome===\'function\'){window.ModuleSystem.financeiro.initDashboardHome();}}catch(e){}}).catch(function(e){alert(\'Erro: \'+e.message)})" style="background:#dc2626;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
+                                    '<td class="px-2 py-2 text-center sams-pend-action-cell">' +
+                                        '<button type="button" title="Marcar como Pago" class="sams-quick-pay-btn" data-pend-tipo="deb" data-pend-id="' + String(item.id) + '" data-pend-desc="' + escapeHtml(item.descricao) + '" style="background:#dc2626;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">&#10003;</button>' +
                                     '</td>' +
                                     '</tr>'
                                 );
