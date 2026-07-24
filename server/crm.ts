@@ -1,6 +1,7 @@
 // SAMS Locações CRM/ERP — Rotas Express
 // Autenticação própria via cookie crm_session (separada do OAuth do site)
 import { Router, Request, Response, NextFunction } from "express";
+import { registerImportRoutes } from "./crm-import";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -2207,6 +2208,9 @@ export function registerCrmRoutes(app: any) {
       res.status(500).json({ error: e?.message || 'Erro ao excluir backup' });
     }
   });
+
+  // Registrar rotas de importação em lote
+  registerImportRoutes(r);
 
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);

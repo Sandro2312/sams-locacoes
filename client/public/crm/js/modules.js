@@ -2226,6 +2226,14 @@ const ModuleSystem = {
                                 <button id="clientes-filter-clear" type="button" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                                     <i class="fas fa-times mr-1"></i>Limpar
                                 </button>
+                                <button onclick="window.CrmImport && window.CrmImport.downloadModelo('clientes')" type="button"
+                                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar modelo .xlsx">
+                                    <i class="fas fa-download mr-1"></i>Modelo
+                                </button>
+                                <button onclick="window.CrmImport && window.CrmImport.open('clientes', function(n){ ModuleSystem.crm.listClientes && ModuleSystem.crm.listClientes(); })" type="button"
+                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar via planilha">
+                                    <i class="fas fa-file-import mr-1"></i>Importar
+                                </button>
                                 <button data-action="create" data-module="clientes" 
                                         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300 text-sm">
                                     <i class="fas fa-plus mr-2"></i>Novo Cliente
@@ -2304,6 +2312,14 @@ const ModuleSystem = {
                                 <button data-action="import" data-module="eventos"
                                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-300">
                                     <i class="fas fa-globe mr-2"></i>Importar de URL
+                                </button>
+                                <button onclick="window.CrmImport && window.CrmImport.downloadModelo('eventos')" type="button"
+                                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar modelo .xlsx">
+                                    <i class="fas fa-download mr-1"></i>Modelo
+                                </button>
+                                <button onclick="window.CrmImport && window.CrmImport.open('eventos', function(n){ ModuleSystem.crm.listEventos && ModuleSystem.crm.listEventos(); })" type="button"
+                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar via planilha">
+                                    <i class="fas fa-file-import mr-1"></i>Importar
                                 </button>
                                 <button data-action="create" data-module="eventos" 
                                         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
@@ -4070,6 +4086,14 @@ const ModuleSystem = {
                                     }).join('')}
                                 </select>
                                 ${canCreate ? `
+                                    <button onclick="window.CrmImport && window.CrmImport.downloadModelo('transacoes')" type="button"
+                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar planilha modelo para importação">
+                                        <i class="fas fa-download mr-1"></i>Modelo
+                                    </button>
+                                    <button onclick="window.CrmImport && window.CrmImport.open('transacoes', function(n){ ModuleSystem.financeiro.listTransacoes && ModuleSystem.financeiro.listTransacoes(); })" type="button"
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar despesas via planilha Excel/CSV">
+                                        <i class="fas fa-file-import mr-1"></i>Importar
+                                    </button>
                                     <button data-action="create" data-module="transacoes" 
                                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-300">
                                         <i class="fas fa-plus mr-2"></i>Nova Despesa
@@ -4249,6 +4273,14 @@ const ModuleSystem = {
                                     }).join('')}
                                 </select>
                                 ${canCreate ? `
+                                    <button onclick="window.CrmImport && window.CrmImport.downloadModelo('contas-receber')" type="button"
+                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition duration-300 text-sm border border-gray-300" title="Baixar planilha modelo para importação">
+                                        <i class="fas fa-download mr-1"></i>Modelo
+                                    </button>
+                                    <button onclick="window.CrmImport && window.CrmImport.open('contas-receber', function(n){ ModuleSystem.financeiro.listContasReceber && ModuleSystem.financeiro.listContasReceber(); })" type="button"
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar contas a receber via planilha Excel/CSV">
+                                        <i class="fas fa-file-import mr-1"></i>Importar
+                                    </button>
                                     <button data-action="create" data-module="contasReceber" 
                                             class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300">
                                         <i class="fas fa-plus mr-2"></i>Nova Conta a Receber
