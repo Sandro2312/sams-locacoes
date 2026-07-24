@@ -1804,6 +1804,39 @@ export function registerCrmRoutes(app: any) {
     }
   });
 
+  // PATCH rápido: marcar transação/despesa como Pago sem abrir formulário completo
+  r.patch("/transacoes/:id", requireCrmAuth, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+      const { status } = req.body;
+      if (!status) return res.status(400).json({ error: "status obrigatório" });
+      await db("UPDATE crm_transacoes SET status=? WHERE id=?", [status, id]);
+      await audit(u.userId, "quick_pay", "crm_transacoes", id, { status }, req.ip);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao atualizar status" });
+    }
+  });
+
+  // PATCH rápido: marcar conta a receber como Recebido sem abrir formulário completo
+  r.patch("/contas-receber/:id", requireCrmAuth, async (req, res) => {
+    try {
+      const u = (req as any).crmUser;
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
+      const { status, dataPagamento } = req.body;
+      if (!status) return res.status(400).json({ error: "status obrigatório" });
+      const dp = dataPagamento || new Date().toISOString().split("T")[0];
+      await db("UPDATE crm_contas_receber SET status=?, data_pagamento=? WHERE id=?", [status, dp, id]);
+      await audit(u.userId, "quick_pay", "crm_contas_receber", id, { status, dataPagamento: dp }, req.ip);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "Falha ao atualizar status" });
+    }
+  });
+
   r.delete("/despesas/:id", requireCrmAuth, async (req, res) => {
     try {
       const { id } = req.params;

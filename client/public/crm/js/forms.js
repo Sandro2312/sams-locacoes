@@ -677,6 +677,20 @@ const FormSystem = {
                 this._ccDatalistIds.clear();
             }
         } catch {}
+        // Hook: re-renderizar dashboard financeiro ao fechar modal
+        try {
+            if (window.NavigationSystem && window.NavigationSystem.currentModule === 'financeiro' &&
+                window.NavigationSystem.currentPage === 'dashboard') {
+                setTimeout(function() {
+                    try {
+                        if (window.ModuleSystem && window.ModuleSystem.financeiro &&
+                            typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
+                            window.ModuleSystem.financeiro.initDashboardHome();
+                        }
+                    } catch {}
+                }, 350);
+            }
+        } catch {}
     },
 
     getCurrentUserId() {

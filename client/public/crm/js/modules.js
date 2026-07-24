@@ -1574,7 +1574,76 @@ const ModuleSystem = {
                 </div>
             `;
         },
-        initDashboardHome() {
+        // ── Funções globais para pendências ──────────────────────────────────────
+    _initPendenciasGlobals() {
+        if (!window._samsPendFilter) {
+            window._samsPendFilter = function(val) {
+                try { localStorage.setItem('sams_pend_filter', val); } catch {}
+                try {
+                    if (window.ModuleSystem && window.ModuleSystem.financeiro &&
+                        typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
+                        window.ModuleSystem.financeiro.initDashboardHome();
+                    }
+                } catch(e) { console.warn('[Pendencias] Erro ao re-renderizar:', e); }
+            };
+        }
+        if (!window._samsQuickPay) {
+            window._samsQuickPay = async function(modulo, id) {
+                const novoStatus = modulo === 'contasReceber' ? 'Recebido' : 'Pago';
+                if (!window.confirm('Marcar como ' + novoStatus + '?')) return;
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                const dataPagamento = yyyy + '-' + mm + '-' + dd;
+                try {
+                    const endpoint = modulo === 'contasReceber'
+                        ? '/api/crm/contas-receber/' + encodeURIComponent(id)
+                        : '/api/crm/transacoes/' + encodeURIComponent(id);
+                    const body = modulo === 'contasReceber'
+                        ? { status: novoStatus, dataPagamento: dataPagamento }
+                        : { status: novoStatus };
+                    const resp = await fetch(endpoint, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(body)
+                    });
+                    if (!resp.ok) {
+                        // Fallback: atualizar via FormSystem.updateItem
+                        const allItems = modulo === 'contasReceber'
+                            ? ((window.ModuleSystem && window.ModuleSystem.data && window.ModuleSystem.data.contasReceber) || [])
+                            : ((window.ModuleSystem && window.ModuleSystem.data && window.ModuleSystem.data.transacoes) || []);
+                        const item = allItems.find(function(x) { return String(x.id) === String(id); });
+                        if (item && window.FormSystem && typeof window.FormSystem.updateItem === 'function') {
+                            await window.FormSystem.updateItem(modulo, id, Object.assign({}, item, { status: novoStatus, dataPagamento: dataPagamento }));
+                        } else {
+                            alert('Erro ao atualizar. Abra o lançamento e salve manualmente.');
+                            return;
+                        }
+                    }
+                    // Atualizar no ModuleSystem local
+                    if (window.ModuleSystem && typeof window.ModuleSystem.updateItem === 'function') {
+                        window.ModuleSystem.updateItem(modulo, id, { status: novoStatus, dataPagamento: dataPagamento });
+                    }
+                    // Re-renderizar o dashboard
+                    try {
+                        if (window.ModuleSystem && window.ModuleSystem.financeiro &&
+                            typeof window.ModuleSystem.financeiro.initDashboardHome === 'function') {
+                            window.ModuleSystem.financeiro.initDashboardHome();
+                        } else if (window.NavigationSystem && typeof window.NavigationSystem.reloadCurrentPage === 'function') {
+                            window.NavigationSystem.reloadCurrentPage();
+                        }
+                    } catch {}
+                } catch(err) {
+                    console.error('[QuickPay] Erro:', err);
+                    alert('Erro ao processar pagamento. Tente novamente.');
+                }
+            };
+        }
+    },
+    initDashboardHome() {
+        try { this._initPendenciasGlobals(); } catch {}
             const body = document.getElementById('comercialDashBodyHome');
             const btn = document.getElementById('comercialDashRefreshHome');
             if (!body) return;
@@ -5651,6 +5720,10 @@ const ModuleSystem = {
                         return s;
                     };
                     const isVencido = (v) => v && String(v).slice(0, 10) < today;
+                    // Filtro rápido: 'todas' ou 'vencidas'
+                    const pendFiltro = (function() { try { return localStorage.getItem('sams_pend_filter') || 'todas'; } catch { return 'todas'; } })();
+                    const filteredCreds = pendFiltro === 'vencidas' ? creds.filter(x => isVencido(x.vencimento)) : creds;
+                    const filteredDebs  = pendFiltro === 'vencidas' ? debs.filter(x => isVencido(x.vencimento))  : debs;
                     const buildRows = (items, tipo) => {
                         const shown = items.slice(0, LIMIT_PEND);
                         const extra = items.length - shown.length;
@@ -5690,8 +5763,8 @@ const ModuleSystem = {
                             : '';
                         return rows + extraRow;
                     };
-                    const credRows = buildRows(creds, 'cred');
-                    const debRows  = buildRows(debs,  'deb');
+                    const credRows = buildRows(filteredCreds, 'cred');
+                    const debRows  = buildRows(filteredDebs,  'deb');
                     const credTable = (
                         '<div class="overflow-x-auto border border-green-200 rounded-lg">' +
                             '<table class="w-full">' +
@@ -5736,9 +5809,15 @@ const ModuleSystem = {
                                         ' &nbsp;|&nbsp; <i class="fas fa-exclamation-triangle text-amber-600 text-xs"></i> = vencido' +
                                     '</div>' +
                                 '</div>' +
-                                '<div class="flex gap-4 text-xs">' +
-                                    '<span class="text-green-700 font-semibold">' + String(creds.length) + ' cr\u00e9dito(s): ' + toBR(totalCredVal) + '</span>' +
-                                    '<span class="text-red-700 font-semibold">' + String(debs.length) + ' d\u00e9bito(s): ' + toBR(totalDebVal) + '</span>' +
+                                '<div class="flex flex-wrap items-center gap-3">' +
+                                    '<div class="flex gap-4 text-xs">' +
+                                        '<span class="text-green-700 font-semibold">' + String(creds.length) + ' cr\u00e9dito(s): ' + toBR(totalCredVal) + '</span>' +
+                                        '<span class="text-red-700 font-semibold">' + String(debs.length) + ' d\u00e9bito(s): ' + toBR(totalDebVal) + '</span>' +
+                                    '</div>' +
+                                    '<div class="flex rounded-lg overflow-hidden border border-amber-300 text-xs">' +
+                                        '<button type="button" onclick="window._samsPendFilter(\'todas\')" class="' + (pendFiltro === 'todas' ? 'px-3 py-1 bg-amber-500 text-white font-semibold' : 'px-3 py-1 bg-white text-amber-700') + '" style="border:none;outline:none;cursor:pointer;">Todas</button>' +
+                                        '<button type="button" onclick="window._samsPendFilter(\'vencidas\')" class="' + (pendFiltro === 'vencidas' ? 'px-3 py-1 bg-amber-500 text-white font-semibold' : 'px-3 py-1 bg-white text-amber-700') + '" style="border:none;outline:none;cursor:pointer;">Vencidas</button>' +
+                                    '</div>' +
                                 '</div>' +
                             '</div>' +
                             '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">' +
