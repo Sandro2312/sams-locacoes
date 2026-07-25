@@ -325,3 +325,12 @@
 - [x] TypeScript: tsc --noEmit sem erros
 - [x] Login testado: /api/crm/login retorna 400 (não 401) — não bloqueado por auth
 - [x] Endpoint Veruska: /api/crm/assistente/perguntar retorna 401 sem auth (correto)
+
+## Correção downloads autenticados (Jul/2026)
+- [x] downloadModelo em crm-import.js: trocado <a href> por fetch() com credentials:'include' + blob URL
+- [x] Link de backup em modules.js: trocado <a href> por <button data-backup-download> com fetch() + blob URL + spinner
+- [x] requireCrmAuth em crm-import.ts: corrigido para usar getSessionFromCrm do crm.ts (não apenas verificar req.crmUser)
+- [x] TypeScript: tsc --noEmit sem erros
+- [x] node --check: crm-import.js e modules.js sem erros de sintaxe
+- [x] Testado: 4 modelos .xlsx retornam HTTP 200, 16-17KB, magic bytes 504b0304 (ZIP/XLSX válido)
+- [x] Testado: sem cookie retorna 401 (auth exigida corretamente)

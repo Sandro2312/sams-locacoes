@@ -488,13 +488,22 @@
     },
   };
 
-  function downloadModelo(tabela) {
-    const a = document.createElement('a');
-    a.href = '/api/crm/importar/modelo/' + tabela;
-    a.download = 'modelo_' + tabela + '.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  async function downloadModelo(tabela) {
+    try {
+      const r = await fetch('/api/crm/importar/modelo/' + tabela, { credentials: 'include' });
+      if (!r.ok) throw new Error('Falha ao baixar modelo (' + r.status + ')');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modelo_' + tabela + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Não foi possível baixar o modelo: ' + (e.message || 'erro desconhecido'));
+    }
   }
 
 })();

@@ -8445,10 +8445,11 @@ const ModuleSystem = {
                                             <td class="px-4 py-3 text-sm text-gray-500">${esc(b.duration_human || '-')}</td>
                                             <td class="px-4 py-3 text-sm">
                                                 <div class="flex items-center gap-2">
-                                                    <a href="/api/crm/admin/backup/download/${esc(b.file)}"
-                                                       class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium">
+                                                    <button type="button"
+                                                            data-backup-download="${esc(b.file)}"
+                                                            class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium">
                                                         <i class="fas fa-download mr-1"></i>Download
-                                                    </a>
+                                                    </button>
                                                     <button type="button"
                                                             data-backup-delete="${esc(b.file)}"
                                                             class="inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium">
@@ -8483,6 +8484,34 @@ const ModuleSystem = {
                                 showStatus('Backup excluído com sucesso.', 'success');
                                 await loadList();
                             } catch (e) { showStatus(e && e.message ? e.message : 'Erro ao excluir', 'error'); }
+                        });
+                    });
+                    // Download de backup via fetch (credentials: include) — evita 401 do Chrome
+                    container.querySelectorAll('[data-backup-download]').forEach(btn => {
+                        if (btn.getAttribute('data-bound')) return;
+                        btn.setAttribute('data-bound', '1');
+                        btn.addEventListener('click', async () => {
+                            const file = btn.getAttribute('data-backup-download');
+                            try {
+                                btn.disabled = true;
+                                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Baixando...';
+                                const r = await fetch('/api/crm/admin/backup/download/' + encodeURIComponent(file), { credentials: 'include' });
+                                if (!r.ok) throw new Error('Falha ao baixar backup (' + r.status + ')');
+                                const blob = await r.blob();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = file;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                                URL.revokeObjectURL(url);
+                            } catch (e) {
+                                alert('Não foi possível baixar o backup: ' + (e.message || 'erro desconhecido'));
+                            } finally {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-download mr-1"></i>Download';
+                            }
                         });
                     });
                 } catch (e) {

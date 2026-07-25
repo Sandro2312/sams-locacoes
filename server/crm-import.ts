@@ -14,6 +14,7 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 import mysql from "mysql2/promise";
 import { ENV } from "./_core/env";
+import { getSessionFromCrm } from "./crm";
 
 let _importPool: mysql.Pool | null = null;
 function getPool() {
@@ -94,8 +95,27 @@ async function audit(userId: number | null, action: string, table: string, recor
 
 // ─── Middleware de auth ───────────────────────────────────────────────────────
 function requireCrmAuth(req: any, res: any, next: any) {
-  if (!(req as any).crmUser) return res.status(401).json({ error: "Não autenticado" });
-  next();
+  // Se já foi populado por middleware anterior, apenas prosseguir
+  if ((req as any).crmUser) return next();
+  // Tentar cookie crm_session
+  let token: string | undefined;
+  const cookieHeader = req.headers.cookie || "";
+  const m = cookieHeader.match(/crm_session=([^;]+)/);
+  if (m) token = m[1];
+  // Fallback: Authorization Bearer ou X-CRM-Token
+  if (!token) {
+    const authHeader = req.headers["authorization"] || req.headers["x-crm-token"];
+    if (authHeader) {
+      const parts = String(authHeader).split(" ");
+      token = parts.length === 2 && parts[0].toLowerCase() === "bearer" ? parts[1] : parts[0];
+    }
+  }
+  if (!token) return res.status(401).json({ error: "Não autenticado" });
+  getSessionFromCrm(token).then(session => {
+    if (!session) return res.status(401).json({ error: "Sessão expirada" });
+    (req as any).crmUser = session;
+    next();
+  }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
 // ─── Modelos de planilha ─────────────────────────────────────────────────────
