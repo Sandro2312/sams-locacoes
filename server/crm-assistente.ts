@@ -1,29 +1,51 @@
 /**
  * crm-assistente.ts — Veruska, assistente virtual do CRM da SAMS Locações
  * Endpoint: POST /api/crm/assistente/perguntar
- * - Tool use (function calling) com Anthropic Claude
- * - Permissões por role (mesma lógica da UI)
- * - Limite diário configurável por usuário
- * - Auditoria em crm_auditoria
+ *
+ * CORREÇÕES v2:
+ * - P1: Middleware usa getSessionFromCrm (padrão crm-acervo.ts) — não bloqueia /login
+ * - P2: Queries SQL corrigidas (vencimento, tipo pagar, crm_tarefas em vez de crm_kanban)
+ * - P3: Permissões adicionadas em consultar_eventos, consultar_cliente e consultar_kanban
  */
-
 import { Router, Request, Response } from "express";
 import mysql from "mysql2/promise";
-import * as ENV from "./_core/env";
+import { parse as parseCookieHeader } from "cookie";
+import { ENV } from "./_core/env";
+import { getSessionFromCrm } from "./crm";
 
-// ─── DB helper (mesmo padrão do crm.ts) ──────────────────────────────────────
+// ─── DB helper ────────────────────────────────────────────────────────────────
 let _pool: mysql.Pool | null = null;
 function getPool() {
-  if (!_pool) _pool = mysql.createPool((ENV as any).databaseUrl ?? process.env.DATABASE_URL!);
+  if (!_pool) _pool = mysql.createPool(ENV.databaseUrl);
   return _pool;
 }
 async function db<T = any>(sql: string, params: any[] = []): Promise<T[]> {
   const [rows] = await getPool().execute(sql, params);
   return rows as T[];
 }
-async function dbOne<T = any>(sql: string, params: any[] = []): Promise<T | null> {
-  const rows = await db<T>(sql, params);
-  return rows[0] ?? null;
+
+// ─── Auth middleware — padrão crm-acervo.ts (não interfere com /login) ────────
+function getCookie(req: Request, name: string): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  return parseCookieHeader(header)[name];
+}
+
+function requireCrmAuth(req: Request, res: Response, next: Function) {
+  let token = getCookie(req, "crm_session");
+  if (!token) {
+    const authHeader = req.headers["authorization"] || req.headers["x-crm-token"];
+    if (authHeader) {
+      const parts = String(authHeader).split(" ");
+      token = parts.length === 2 && parts[0].toLowerCase() === "bearer" ? parts[1] : parts[0];
+    }
+  }
+  if (!token) return res.status(401).json({ error: "Não autenticado" });
+  getSessionFromCrm(token).then(session => {
+    if (!session) return res.status(401).json({ error: "Sessão expirada" });
+    (req as any).crmUser = session;
+    next();
+  }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
 // ─── Auditoria ────────────────────────────────────────────────────────────────
@@ -39,14 +61,12 @@ async function audit(userId: number | null, action: string, table: string, recor
 // ─── Limite diário por usuário ────────────────────────────────────────────────
 const DAILY_LIMIT = parseInt(process.env.VERUSKA_DAILY_LIMIT ?? "50", 10);
 const _dailyBuckets = new Map<string, { count: number; resetAt: number }>();
-
 function checkDailyLimit(userId: number): { ok: boolean; remaining: number; resetAt: number } {
   const key = `veruska:${userId}`;
   const now = Date.now();
   const startOfTomorrow = new Date();
   startOfTomorrow.setHours(24, 0, 0, 0);
   const resetAt = startOfTomorrow.getTime();
-
   const cur = _dailyBuckets.get(key);
   if (!cur || now >= cur.resetAt) {
     _dailyBuckets.set(key, { count: 1, resetAt });
@@ -58,30 +78,34 @@ function checkDailyLimit(userId: number): { ok: boolean; remaining: number; rese
   return { ok: true, remaining: DAILY_LIMIT - cur.count, resetAt: cur.resetAt };
 }
 
-// ─── Permissões por role ──────────────────────────────────────────────────────
+// ─── Permissões (mesma lógica do crm.ts) ─────────────────────────────────────
 const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
 function isAdmin(role: string) { return ADMIN_ROLES.includes(role?.toLowerCase()); }
 function canAccessFinanceiro(role: string) {
   return ["admin", "manager", "administrador", "gerente", "gerencia", "financeiro"].includes(role?.toLowerCase());
 }
+// Eventos, Clientes, Tarefas: qualquer usuário autenticado (mesma lógica dos GETs no crm.ts)
+function canAccessEventos(_role: string) { return true; }
+function canAccessClientes(_role: string) { return true; }
+function canAccessTarefas(_role: string) { return true; }
 
 // ─── Ferramentas (tool use) ───────────────────────────────────────────────────
 const TOOLS = [
   {
     name: "consultar_pendencias_financeiras",
-    description: "Consulta contas a receber e contas a pagar em aberto (não pagas). Retorna lista com descrição, valor, vencimento e status.",
+    description: "Consulta contas a receber e contas a pagar em aberto. Retorna lista com descrição, valor, vencimento e status.",
     input_schema: {
       type: "object",
       properties: {
-        tipo: { type: "string", enum: ["receber", "pagar", "ambos"], description: "Tipo de pendência" },
-        limite: { type: "number", description: "Máximo de registros (padrão 20)" },
+        tipo: { type: "string", description: "Filtrar por tipo: 'receber', 'pagar' ou 'ambos' (padrão: 'ambos')" },
+        limite: { type: "number", description: "Máximo de registros por tipo (padrão 20, máximo 50)" },
       },
       required: [],
     },
   },
   {
     name: "consultar_eventos",
-    description: "Consulta eventos cadastrados no sistema, com filtros opcionais por status ou período.",
+    description: "Consulta eventos/feiras cadastrados no sistema, com filtros opcionais por status ou período.",
     input_schema: {
       type: "object",
       properties: {
@@ -118,7 +142,7 @@ const TOOLS = [
   },
   {
     name: "consultar_kanban",
-    description: "Consulta tarefas administrativas do Kanban, com filtros opcionais por status ou prioridade.",
+    description: "Consulta tarefas administrativas do Kanban/Tarefas, com filtros opcionais por status ou prioridade.",
     input_schema: {
       type: "object",
       properties: {
@@ -140,21 +164,26 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
       const limite = Math.min(parseInt(input.limite ?? "20", 10), 50);
       const result: any = {};
       if (tipo === "receber" || tipo === "ambos") {
+        // P2: coluna 'vencimento' (não data_vencimento); JOIN para cliente_nome
         const rows = await db(
-          `SELECT id, descricao, valor, data_vencimento, status, cliente_nome
-           FROM crm_contas_receber
-           WHERE status NOT IN ('Pago','Baixado','Cancelado')
-           ORDER BY data_vencimento ASC LIMIT ?`,
+          `SELECT cr.id, cr.descricao, cr.valor, cr.vencimento, cr.status,
+                  COALESCE(c.nome, '') as cliente_nome
+           FROM crm_contas_receber cr
+           LEFT JOIN crm_clientes c ON cr.cliente_id = c.id
+           WHERE cr.status NOT IN ('pago','Pago','baixado','Baixado','cancelado','Cancelado')
+           ORDER BY cr.vencimento ASC LIMIT ?`,
           [limite]
         );
         result.contas_receber = rows;
       }
       if (tipo === "pagar" || tipo === "ambos") {
+        // P2: tipo='pagar' (não 'despesa'); coluna 'data' (não data_vencimento)
         const rows = await db(
-          `SELECT id, descricao, valor, data_vencimento, status, categoria
+          `SELECT id, descricao, valor, data as vencimento, status, centro_custo
            FROM crm_transacoes
-           WHERE tipo = 'despesa' AND status NOT IN ('Pago','Baixado','Cancelado')
-           ORDER BY data_vencimento ASC LIMIT ?`,
+           WHERE (tipo = 'pagar' OR tipo LIKE '%despesa%' OR tipo LIKE '%pagar%')
+             AND status NOT IN ('pago','Pago','baixado','Baixado','cancelado','Cancelado')
+           ORDER BY data ASC LIMIT ?`,
           [limite]
         );
         result.contas_pagar = rows;
@@ -163,6 +192,8 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
     }
 
     if (name === "consultar_eventos") {
+      // P3: permissão adicionada
+      if (!canAccessEventos(role)) return JSON.stringify({ erro: "Sem permissão para acessar eventos." });
       const limite = Math.min(parseInt(input.limite ?? "10", 10), 30);
       let sql = "SELECT id, nome, local, data_inicio, data_fim, status FROM crm_eventos WHERE 1=1";
       const params: any[] = [];
@@ -176,6 +207,8 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
     }
 
     if (name === "consultar_cliente") {
+      // P3: permissão adicionada
+      if (!canAccessClientes(role)) return JSON.stringify({ erro: "Sem permissão para acessar clientes." });
       const busca = `%${input.busca}%`;
       const rows = await db(
         `SELECT id, nome, documento, email, telefone, cidade, estado, segmento
@@ -192,14 +225,18 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
       const hoje = new Date().toISOString().split("T")[0];
       const inicio = input.data_inicio ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
       const fim = input.data_fim ?? hoje;
+      // P2: coluna 'vencimento' em crm_contas_receber
       const [receitas] = await db<{ total: number }>(
         `SELECT COALESCE(SUM(valor),0) as total FROM crm_contas_receber
-         WHERE status IN ('Pago','Baixado') AND data_vencimento BETWEEN ? AND ?`,
+         WHERE status IN ('pago','Pago','baixado','Baixado') AND vencimento BETWEEN ? AND ?`,
         [inicio, fim]
       );
+      // P2: tipo='pagar'/'despesa' e coluna 'data' em crm_transacoes
       const [despesas] = await db<{ total: number }>(
         `SELECT COALESCE(SUM(valor),0) as total FROM crm_transacoes
-         WHERE tipo = 'despesa' AND status IN ('Pago','Baixado') AND data_vencimento BETWEEN ? AND ?`,
+         WHERE (tipo = 'pagar' OR tipo LIKE '%despesa%')
+           AND status IN ('pago','Pago','baixado','Baixado')
+           AND data BETWEEN ? AND ?`,
         [inicio, fim]
       );
       const rec = Number(receitas?.total ?? 0);
@@ -214,12 +251,20 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
     }
 
     if (name === "consultar_kanban") {
+      // P3: permissão adicionada
+      if (!canAccessTarefas(role)) return JSON.stringify({ erro: "Sem permissão para acessar tarefas." });
       const limite = Math.min(parseInt(input.limite ?? "10", 10), 30);
-      let sql = "SELECT id, titulo, descricao, status, prioridade, responsavel, data_prazo FROM crm_kanban WHERE 1=1";
+      // P2: usar crm_tarefas (não crm_kanban que não existe)
+      // Colunas: id, titulo, descricao, status, prioridade, responsavel_id, data_vencimento, created_by
+      let sql = `SELECT t.id, t.titulo, t.descricao, t.status, t.prioridade,
+                        t.data_vencimento, u.name as responsavel_nome
+                 FROM crm_tarefas t
+                 LEFT JOIN crm_users u ON t.responsavel_id = u.id
+                 WHERE 1=1`;
       const params: any[] = [];
-      if (input.status) { sql += " AND status = ?"; params.push(input.status); }
-      if (input.prioridade) { sql += " AND prioridade = ?"; params.push(input.prioridade); }
-      sql += " ORDER BY FIELD(prioridade,'critica','alta','media','baixa'), data_prazo ASC LIMIT ?";
+      if (input.status) { sql += " AND t.status = ?"; params.push(input.status); }
+      if (input.prioridade) { sql += " AND t.prioridade = ?"; params.push(input.prioridade); }
+      sql += " ORDER BY FIELD(t.prioridade,'critica','alta','media','baixa'), t.data_vencimento ASC LIMIT ?";
       params.push(limite);
       const rows = await db(sql, params);
       return JSON.stringify({ tarefas: rows, total: rows.length });
@@ -235,9 +280,7 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
 async function callAnthropic(messages: any[], role: string): Promise<{ text: string; toolsUsed: string[] }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ASSISTENTE_NAO_CONFIGURADA");
-
   const systemPrompt = `Você é Veruska, assistente virtual do CRM da SAMS Locações — empresa especializada em montagem de stands para feiras e eventos corporativos com mais de 15 anos de experiência.
-
 Seu papel:
 - Responder perguntas sobre dados do sistema usando as ferramentas disponíveis
 - Tom direto, cordial, sem enrolação
@@ -245,15 +288,10 @@ Seu papel:
 - NUNCA inventar dados que não vieram de uma ferramenta — se não souber, dizer claramente
 - NUNCA burlar nem sugerir burlar permissões do sistema
 - RECUSAR educadamente qualquer pedido de ação de escrita (criar, editar, apagar registros), orientando onde fazer manualmente na interface
-
 Se o usuário pedir para criar/editar/apagar algo, responda: "Posso apenas consultar informações. Para [ação], acesse [módulo correspondente] no menu lateral."
-
 Responda sempre em português brasileiro.`;
-
   const anthropicMessages = [...messages];
   const toolsUsed: string[] = [];
-
-  // Agentic loop com tool use
   for (let iteration = 0; iteration < 5; iteration++) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -270,63 +308,43 @@ Responda sempre em português brasileiro.`;
         messages: anthropicMessages,
       }),
     });
-
     if (!response.ok) {
       const err = await response.text();
       throw new Error(`Anthropic API error ${response.status}: ${err}`);
     }
-
     const data = await response.json() as any;
-
     if (data.stop_reason === "end_turn") {
       const textBlock = data.content?.find((b: any) => b.type === "text");
       return { text: textBlock?.text ?? "Não consegui gerar uma resposta.", toolsUsed };
     }
-
     if (data.stop_reason === "tool_use") {
-      // Adicionar resposta do assistente ao histórico
       anthropicMessages.push({ role: "assistant", content: data.content });
-
-      // Executar cada ferramenta solicitada
       const toolResults: any[] = [];
       for (const block of data.content) {
         if (block.type === "tool_use") {
           toolsUsed.push(block.name);
           const result = await executeTool(block.name, block.input, role);
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: block.id,
-            content: result,
-          });
+          toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
         }
       }
-
-      // Adicionar resultados das ferramentas ao histórico
       anthropicMessages.push({ role: "user", content: toolResults });
       continue;
     }
-
-    // stop_reason inesperado
     const textBlock = data.content?.find((b: any) => b.type === "text");
     return { text: textBlock?.text ?? "Resposta incompleta.", toolsUsed };
   }
-
   return { text: "Não consegui completar a consulta após múltiplas tentativas.", toolsUsed };
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
+// ─── Router — padrão crm-acervo.ts (sub-rota, não app.use de nível global) ────
 export function registerAssistenteRoutes(app: any) {
   const r = Router();
 
-  // POST /api/crm/assistente/perguntar
-  r.post("/assistente/perguntar", async (req: Request, res: Response) => {
+  // POST /api/crm/assistente/perguntar — requireCrmAuth aplicado na rota, não globalmente
+  r.post("/perguntar", requireCrmAuth, async (req: Request, res: Response) => {
     const user = (req as any).crmUser;
-    if (!user) return res.status(401).json({ error: "Não autenticado" });
-
     const { pergunta, historico } = req.body as { pergunta: string; historico?: { role: string; content: string }[] };
     if (!pergunta?.trim()) return res.status(400).json({ error: "Pergunta não pode ser vazia" });
-
-    // Verificar limite diário
     const limit = checkDailyLimit(user.userId);
     if (!limit.ok) {
       const resetDate = new Date(limit.resetAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -336,44 +354,29 @@ export function registerAssistenteRoutes(app: any) {
         resetAt: limit.resetAt,
       });
     }
-
-    // Verificar se a API está configurada
     if (!process.env.ANTHROPIC_API_KEY) {
       return res.status(503).json({
         error: "A assistente Veruska não está configurada. Entre em contato com o administrador do sistema.",
         code: "ASSISTENTE_NAO_CONFIGURADA",
       });
     }
-
     try {
-      // Montar histórico de mensagens
       const messages: any[] = [];
       if (historico?.length) {
-        for (const msg of historico.slice(-8)) { // máximo 8 mensagens anteriores
+        for (const msg of historico.slice(-8)) {
           if (msg.role === "user" || msg.role === "assistant") {
             messages.push({ role: msg.role, content: msg.content });
           }
         }
       }
       messages.push({ role: "user", content: pergunta });
-
       const { text, toolsUsed } = await callAnthropic(messages, user.role);
-
-      // Auditoria
       await audit(
-        user.userId,
-        "veruska_pergunta",
-        "assistente",
-        null,
+        user.userId, "veruska_pergunta", "assistente", null,
         { pergunta: pergunta.substring(0, 500), tools_used: toolsUsed, remaining: limit.remaining },
         req.ip
       );
-
-      return res.json({
-        resposta: text,
-        toolsUsed,
-        remaining: limit.remaining,
-      });
+      return res.json({ resposta: text, toolsUsed, remaining: limit.remaining });
     } catch (e: any) {
       if (e.message === "ASSISTENTE_NAO_CONFIGURADA") {
         return res.status(503).json({ error: "A assistente Veruska não está configurada.", code: "ASSISTENTE_NAO_CONFIGURADA" });
@@ -384,32 +387,6 @@ export function registerAssistenteRoutes(app: any) {
     }
   });
 
-  app.use("/api/crm", (req: Request, res: Response, next: any) => {
-    // Reutilizar requireCrmAuth do crm.ts via middleware inline
-    const token = (() => {
-      const header = req.headers.cookie;
-      if (header) {
-        const match = header.match(/crm_session=([^;]+)/);
-        if (match) return match[1];
-      }
-      const auth = req.headers["authorization"] || req.headers["x-crm-token"];
-      if (auth) {
-        const parts = String(auth).split(" ");
-        return parts.length === 2 ? parts[1] : parts[0];
-      }
-      return null;
-    })();
-
-    if (!token) return res.status(401).json({ error: "Não autenticado" });
-
-    // Buscar sessão diretamente
-    db<{ user_id: number; role: string; name: string; expires_at: number }>(
-      "SELECT user_id, role, name, expires_at FROM crm_sessions WHERE token = ? AND expires_at > ?",
-      [token, Date.now()]
-    ).then(rows => {
-      if (!rows[0]) return res.status(401).json({ error: "Sessão expirada" });
-      (req as any).crmUser = { userId: rows[0].user_id, role: rows[0].role, name: rows[0].name };
-      next();
-    }).catch(() => res.status(500).json({ error: "Erro interno" }));
-  }, r);
+  // Montar como sub-rota de /api/crm/assistente (padrão crm-acervo.ts — não interfere com /login)
+  app.use("/api/crm/assistente", r);
 }

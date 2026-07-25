@@ -313,3 +313,15 @@
 - [x] client/public/crm/index.html: crm-help-button.js substituído por crm-veruska.js (cache-buster atualizado)
 - [x] TypeScript sem erros, todos os 6 arquivos JS críticos validados com node --check
 - [ ] ANTHROPIC_API_KEY: não configurada (chat com IA desabilitado, aba Dicas funciona normalmente)
+
+## Correções Veruska v2 (Sessão Jul/2026 — bug fixes)
+- [x] P1: Middleware de auth reescrito com getSessionFromCrm (padrão crm-acervo.ts) — não bloqueia /api/crm/login
+- [x] P2: consultar_pendencias_financeiras: coluna 'vencimento' (não data_vencimento), JOIN para cliente_nome, tipo='pagar' (não 'despesa'), coluna 'data' em crm_transacoes
+- [x] P2: consultar_resumo_financeiro: mesmas correções de colunas
+- [x] P2: consultar_kanban: usa crm_tarefas (não crm_kanban inexistente), JOIN com crm_users para responsavel_nome
+- [x] P3: canAccessEventos() adicionado em consultar_eventos
+- [x] P3: canAccessClientes() adicionado em consultar_cliente
+- [x] P3: canAccessTarefas() adicionado em consultar_kanban
+- [x] TypeScript: tsc --noEmit sem erros
+- [x] Login testado: /api/crm/login retorna 400 (não 401) — não bloqueado por auth
+- [x] Endpoint Veruska: /api/crm/assistente/perguntar retorna 401 sem auth (correto)
