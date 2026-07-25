@@ -2,6 +2,7 @@
 // Autenticação própria via cookie crm_session (separada do OAuth do site)
 import { Router, Request, Response, NextFunction } from "express";
 import { registerImportRoutes } from "./crm-import";
+import { registerAssistenteRoutes } from "./crm-assistente";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -2211,7 +2212,8 @@ export function registerCrmRoutes(app: any) {
 
   // Registrar rotas de importação em lote
   registerImportRoutes(r);
-
+  // Registrar rotas da assistente virtual Veruska
+  registerAssistenteRoutes(app);
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);
 }

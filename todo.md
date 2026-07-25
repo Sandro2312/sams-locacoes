@@ -305,3 +305,11 @@
 - [x] Bug extra: metas/dashboard URL sem prefixo /api/crm e parsing errado (dash.team) — corrigidos no modules.js
 - [x] Bug extra: tabela crm_tarefas sem colunas cliente_id, evento_id, created_by — adicionadas via ALTER TABLE
 - [x] Filtro de Status adicionado nas seções Despesas e Receitas do módulo Financeiro (select com opções: Todos, Pendente, Pago/Baixado, Vencido, Cancelado; lógica AND com busca por texto e Centro de Custo)
+
+## Assistente Virtual Veruska v1.0 (Sessão Jul/2026)
+- [x] server/crm-assistente.ts criado: endpoint POST /api/crm/assistente/perguntar com tool use Anthropic, limite diário (50/dia), auditoria em crm_auditoria
+- [x] client/public/crm/js/crm-veruska.js criado: avatar flutuante SVG (rosto ilustrado), janela de chat com abas Conversar/Dicas, saudação automática, atalhos rápidos, dicas por módulo, salmos e inspirações
+- [x] server/crm.ts: import e chamada de registerAssistenteRoutes(app) adicionados
+- [x] client/public/crm/index.html: crm-help-button.js substituído por crm-veruska.js (cache-buster atualizado)
+- [x] TypeScript sem erros, todos os 6 arquivos JS críticos validados com node --check
+- [ ] ANTHROPIC_API_KEY: não configurada (chat com IA desabilitado, aba Dicas funciona normalmente)
