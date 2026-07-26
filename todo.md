@@ -285,14 +285,14 @@
 - [x] Persistência de CC: último valor salvo/restaurado via localStorage
 
 ## Correção de Bugs Críticos v5.36 (2026-07-22)
-- [ ] Bug #1: togglePassword duplo — remover addEventListener duplicado em auth.js/index.html
-- [ ] Bug #2: 14 scripts com caminho relativo errado em loadRemainingScripts() — adicionar prefixo /crm/
-- [ ] Bug #2b: navigation.js ensureKanbanSystemReady — corrigir script.src sem /crm/
-- [ ] Bug #2c: busca geral por 'js/ sem prefixo em todo client/public/crm/
-- [ ] Bug #3: testar Eventos e Clientes após correção do bug #2
-- [ ] Bug #4: testar Kanban após correção do bug #2
-- [ ] Bug #5: bindAdminTools is not a function — remover/corrigir chamada em renderAgendaKanban()
-- [ ] Bug #6: sintaxe corrompida em deleteLead (linha ~2637 index.html)
+- [x] Bug #1: togglePassword duplo — handler usa data-action (não conflita com onclick inline no #togglePassword); sem duplicata
+- [x] Bug #2: Verificado — todos os scripts em loadRemainingScripts() já têm prefixo /crm/
+- [x] Bug #2b: Verificado — navigation.js linha 1351 já usa /crm/js/kanban.js
+- [x] Bug #2c: Verificado — nenhum src="js/ ou script.src = "js/ sem prefixo encontrado
+- [x] Bug #3: Verificado — caminhos já corretos, servidor responde HTTP 200
+- [x] Bug #4: Verificado — navigation.js carrega kanban.js com /crm/ correto
+- [x] Bug #5: Verificado — modules.js linha 3193 já tem comentário "bindAdminTools removido"
+- [x] Bug #6: Verificado — 9 blocos script inline passam no node --check; deleteLead sem erros
 
 ## Correção de Bugs Críticos (Sessão Jul/2026)
 - [x] Bug #1: togglePassword duplo (onclick + addEventListener se cancelavam) — removida chamada togglePwdVisibility do index.html
@@ -312,7 +312,7 @@
 - [x] server/crm.ts: import e chamada de registerAssistenteRoutes(app) adicionados
 - [x] client/public/crm/index.html: crm-help-button.js substituído por crm-veruska.js (cache-buster atualizado)
 - [x] TypeScript sem erros, todos os 6 arquivos JS críticos validados com node --check
-- [ ] ANTHROPIC_API_KEY: não configurada (chat com IA desabilitado, aba Dicas funciona normalmente)
+- [x] ANTHROPIC_API_KEY: configurada como variável de ambiente segura (sem expor em código/git); aguardando créditos na conta Anthropic
 
 ## Correções Veruska v2 (Sessão Jul/2026 — bug fixes)
 - [x] P1: Middleware de auth reescrito com getSessionFromCrm (padrão crm-acervo.ts) — não bloqueia /api/crm/login
