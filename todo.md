@@ -334,3 +334,11 @@
 - [x] node --check: crm-import.js e modules.js sem erros de sintaxe
 - [x] Testado: 4 modelos .xlsx retornam HTTP 200, 16-17KB, magic bytes 504b0304 (ZIP/XLSX válido)
 - [x] Testado: sem cookie retorna 401 (auth exigida corretamente)
+
+## Correção paginação de clientes (Jul/2026)
+- [x] syncClientesFromBackend(): loop de paginação em blocos de 500 até total
+- [x] loadClientes(): loop de paginação em blocos de 500 até total
+- [x] loadClientes(): fix Array.isArray — agora trata { data: [...], total: N } corretamente
+- [x] node --check modules.js: sem erros de sintaxe
+- [x] Testado: 3 blocos × 500 = 1460 clientes buscados (= total no banco)
+- [x] Testado: clientes offset=1400 retornam nomes V (VICCINI, VICENZA, etc.) — fora dos primeiros 50

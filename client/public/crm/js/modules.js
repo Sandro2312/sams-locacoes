@@ -230,11 +230,6 @@ const ModuleSystem = {
     // Sincronizar clientes do backend (garante cross-browser)
     async syncClientesFromBackend() {
         try {
-            const response = await fetch('/api/crm/clientes', { credentials: 'include' });
-            if (!response.ok) return;
-            const json = await response.json().catch(() => ({}));
-            const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
-            if (!rows.length) return;
             const normalize = (r) => ({
                 ...r,
                 id: r.id,
@@ -245,17 +240,32 @@ const ModuleSystem = {
                 status: r.status || 'Ativo',
                 segmento: r.segmento || r.categoria || r.setor || null
             });
+            // Paginação em loop: blocos de 500 até buscar todos os registros
+            const BLOCK = 500;
+            let offset = 0;
+            let total = null;
+            const allRows = [];
+            do {
+                const resp = await fetch(`/api/crm/clientes?limit=${BLOCK}&offset=${offset}`, { credentials: 'include' });
+                if (!resp.ok) break;
+                const json = await resp.json().catch(() => ({}));
+                const rows = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+                if (total === null) total = (json && json.total != null) ? Number(json.total) : rows.length;
+                allRows.push(...rows);
+                offset += rows.length;
+                if (!rows.length) break; // segurança contra loop infinito
+            } while (offset < total);
+            if (!allRows.length) return;
             const byId = new Map();
             for (const c of (Array.isArray(this.data.clientes) ? this.data.clientes : [])) {
-                if (c && c.id != null && !/^\d+$/.test(String(c.id)) === false) continue;
                 if (c && c.id != null) byId.set(String(c.id), c);
             }
-            for (const c of rows) {
+            for (const c of allRows) {
                 if (c && c.id != null) byId.set(String(c.id), normalize(c));
             }
             this.data.clientes = Array.from(byId.values());
             this.saveData();
-            console.log(`✅ [ModuleSystem] Clientes sincronizados da API: ${rows.length} registros`);
+            console.log(`✅ [ModuleSystem] Clientes sincronizados da API: ${allRows.length}/${total} registros`);
         } catch (e) {
             console.warn('[ModuleSystem] Falha ao sincronizar clientes:', e);
         }
@@ -9948,9 +9958,21 @@ window.ComercialModule.loadClientes = async function() {
     const localClientes = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.clientes)) ? [...ModuleSystem.data.clientes] : [];
     let apiClientes = [];
     try {
-      const response = await fetch('/api/crm/clientes', { credentials: 'include' });
-      const data = await response.json().catch(() => []);
-      if (response.ok && Array.isArray(data)) apiClientes = data;
+      // Paginação em loop: blocos de 500 até buscar todos os registros
+      const BLOCK = 500;
+      let offset = 0;
+      let total = null;
+      do {
+        const response = await fetch(`/api/crm/clientes?limit=${BLOCK}&offset=${offset}`, { credentials: 'include' });
+        if (!response.ok) break;
+        const data = await response.json().catch(() => ({}));
+        // Backend retorna { data: [...], total: N } — não um array direto
+        const rows = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        if (total === null) total = (data && data.total != null) ? Number(data.total) : rows.length;
+        apiClientes.push(...rows);
+        offset += rows.length;
+        if (!rows.length) break; // segurança contra loop infinito
+      } while (offset < total);
     } catch {}
 
     const normalize = (c) => ({
