@@ -342,3 +342,9 @@
 - [x] node --check modules.js: sem erros de sintaxe
 - [x] Testado: 3 blocos × 500 = 1460 clientes buscados (= total no banco)
 - [x] Testado: clientes offset=1400 retornam nomes V (VICCINI, VICENZA, etc.) — fora dos primeiros 50
+
+## UX paginação clientes + verificação Eventos/Contas (Jul/2026)
+- [x] Indicador de progresso visual durante carregamento paginado de clientes
+- [x] Paginação visual (25/página) na tabela de clientes
+- [x] Verificar/corrigir paginação em loadEventos() — 0 registros, fix Array.isArray aplicado
+- [x] Verificar/corrigir paginação em loadContasReceber() — 28 registros, sem necessidade de loop

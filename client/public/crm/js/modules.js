@@ -2302,6 +2302,26 @@ const ModuleSystem = {
                             </tbody>
                         </table>
                     </div>
+                    <!-- Barra de progresso de carregamento (oculta por padrão) -->
+                    <div id="clientes-progress-bar" style="display:none" class="px-6 py-3 border-t border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div id="clientes-progress-fill" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+                            </div>
+                            <span id="clientes-progress-text" class="text-xs text-gray-500 whitespace-nowrap">Carregando...</span>
+                        </div>
+                    </div>
+                    <!-- Controles de paginação visual -->
+                    <div id="clientes-pagination" style="display:none" class="px-6 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                        <span id="clientes-pagination-info" class="text-sm text-gray-500"></span>
+                        <div class="flex items-center gap-1">
+                            <button id="clientes-page-first" type="button" class="px-2 py-1 rounded border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40" title="Primeira página">&#171;</button>
+                            <button id="clientes-page-prev" type="button" class="px-2 py-1 rounded border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40" title="Página anterior">&#8249;</button>
+                            <span id="clientes-page-numbers" class="flex items-center gap-1"></span>
+                            <button id="clientes-page-next" type="button" class="px-2 py-1 rounded border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40" title="Próxima página">&#8250;</button>
+                            <button id="clientes-page-last" type="button" class="px-2 py-1 rounded border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40" title="Última página">&#187;</button>
+                        </div>
+                    </div>
                 </div>
             `;
         },
@@ -9957,11 +9977,24 @@ window.ComercialModule.loadClientes = async function() {
 
     const localClientes = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.clientes)) ? [...ModuleSystem.data.clientes] : [];
     let apiClientes = [];
+    // Mostrar barra de progresso
+    const progressBar = document.getElementById('clientes-progress-bar');
+    const progressFill = document.getElementById('clientes-progress-fill');
+    const progressText = document.getElementById('clientes-progress-text');
+    const showProgress = (loaded, total) => {
+      if (!progressBar) return;
+      progressBar.style.display = 'block';
+      const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+      if (progressFill) progressFill.style.width = pct + '%';
+      if (progressText) progressText.textContent = total > 0 ? `${loaded.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} clientes` : 'Carregando...';
+    };
+    const hideProgress = () => { if (progressBar) progressBar.style.display = 'none'; };
     try {
       // Paginação em loop: blocos de 500 até buscar todos os registros
       const BLOCK = 500;
       let offset = 0;
       let total = null;
+      showProgress(0, 0);
       do {
         const response = await fetch(`/api/crm/clientes?limit=${BLOCK}&offset=${offset}`, { credentials: 'include' });
         if (!response.ok) break;
@@ -9971,9 +10004,11 @@ window.ComercialModule.loadClientes = async function() {
         if (total === null) total = (data && data.total != null) ? Number(data.total) : rows.length;
         apiClientes.push(...rows);
         offset += rows.length;
+        showProgress(offset, total);
         if (!rows.length) break; // segurança contra loop infinito
       } while (offset < total);
     } catch {}
+    hideProgress();
 
     const normalize = (c) => ({
       ...c,
@@ -10038,10 +10073,58 @@ window.ComercialModule.loadClientes = async function() {
         }
         return true;
       });
-      renderRows(filtered);
+      renderPage(filtered, 1);
     };
 
-    renderRows(merged);
+    // ── Paginação visual (25 por página) ─────────────────────────────────
+    const PAGE_SIZE = 25;
+    let currentPage = 1;
+    let currentList = [];
+
+    const paginationEl = document.getElementById('clientes-pagination');
+    const paginationInfo = document.getElementById('clientes-pagination-info');
+    const pageNumbers = document.getElementById('clientes-page-numbers');
+    const btnFirst = document.getElementById('clientes-page-first');
+    const btnPrev = document.getElementById('clientes-page-prev');
+    const btnNext = document.getElementById('clientes-page-next');
+    const btnLast = document.getElementById('clientes-page-last');
+
+    const renderPage = (list, page) => {
+      currentList = list;
+      const total = list.length;
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      currentPage = Math.min(Math.max(1, page), totalPages);
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const end = Math.min(start + PAGE_SIZE, total);
+      renderRows(list.slice(start, end));
+      if (paginationEl) paginationEl.style.display = total > PAGE_SIZE ? 'flex' : 'none';
+      if (paginationInfo) {
+        paginationInfo.textContent = total > 0
+          ? `${(start + 1).toLocaleString('pt-BR')}–${end.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} clientes`
+          : 'Nenhum cliente encontrado';
+      }
+      if (btnFirst) btnFirst.disabled = currentPage <= 1;
+      if (btnPrev) btnPrev.disabled = currentPage <= 1;
+      if (btnNext) btnNext.disabled = currentPage >= totalPages;
+      if (btnLast) btnLast.disabled = currentPage >= totalPages;
+      if (pageNumbers) {
+        const winSize = 5;
+        let sp = Math.max(1, currentPage - Math.floor(winSize / 2));
+        let ep = Math.min(totalPages, sp + winSize - 1);
+        if (ep - sp < winSize - 1) sp = Math.max(1, ep - winSize + 1);
+        let html = '';
+        for (let p = sp; p <= ep; p++) {
+          const active = p === currentPage;
+          html += `<button type="button" data-page="${p}" class="px-2 py-1 rounded border text-sm ${active ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}">${p}</button>`;
+        }
+        pageNumbers.innerHTML = html;
+        pageNumbers.querySelectorAll('[data-page]').forEach(btn => {
+          btn.addEventListener('click', () => renderPage(currentList, parseInt(btn.dataset.page)));
+        });
+      }
+    };
+
+    renderPage(merged, 1);
 
     if (!container.getAttribute('data-filters-bound')) {
       container.setAttribute('data-filters-bound', '1');
@@ -10052,6 +10135,10 @@ window.ComercialModule.loadClientes = async function() {
         if (statusEl) statusEl.value = '';
         applyFilters();
       });
+      if (btnFirst) btnFirst.addEventListener('click', () => renderPage(currentList, 1));
+      if (btnPrev) btnPrev.addEventListener('click', () => renderPage(currentList, currentPage - 1));
+      if (btnNext) btnNext.addEventListener('click', () => renderPage(currentList, currentPage + 1));
+      if (btnLast) btnLast.addEventListener('click', () => renderPage(currentList, Math.ceil(currentList.length / PAGE_SIZE)));
     }
   } finally {
     const container = document.getElementById('clientes-list-container');
@@ -10073,10 +10160,11 @@ window.ComercialModule.loadEventos = async function() {
     let apiOk = false;
     try {
       const response = await fetch('/api/crm/eventos', { credentials: 'include' });
-      const data = await response.json().catch(() => []);
-      if (response.ok && Array.isArray(data)) {
-        apiEventos = data;
-        apiOk = true;
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        // Backend pode retornar { data: [...], total: N } ou array direto
+        apiEventos = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        apiOk = apiEventos.length > 0 || (response.ok && data != null);
       }
     } catch {}
 
