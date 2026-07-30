@@ -10164,7 +10164,10 @@ window.ComercialModule.loadEventos = async function() {
       if (response.ok) {
         // Backend pode retornar { data: [...], total: N } ou array direto
         apiEventos = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
-        apiOk = apiEventos.length > 0 || (response.ok && data != null);
+        // apiOk = true APENAS quando ha dados reais da API.
+        // Se a API retornar array vazio (0 eventos no banco), mantemos os dados locais
+        // para nao apagar eventos salvos no localStorage/cache.
+        apiOk = apiEventos.length > 0;
       }
     } catch {}
 
