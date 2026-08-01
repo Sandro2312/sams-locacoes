@@ -348,3 +348,8 @@
 - [x] Paginação visual (25/página) na tabela de clientes
 - [x] Verificar/corrigir paginação em loadEventos() — 0 registros, fix Array.isArray aplicado
 - [x] Verificar/corrigir paginação em loadContasReceber() — 28 registros, sem necessidade de loop
+
+## Correções cirúrgicas 3 itens (pasted_content_9)
+- [x] Item 1: Busca de eventos — substituir data-filters-bound por AbortController em loadEventos()
+- [x] Item 2: listComissoes() — investigado: não é duplicata real (financeiro vs administracao)
+- [x] Item 3: rerenderContasReceberList — sobrescrita removida de modules.js, usa crm-contas-receber.js

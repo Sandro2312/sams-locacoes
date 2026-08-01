@@ -10361,24 +10361,31 @@ window.ComercialModule.loadEventos = async function() {
     ensureSelectOptions();
     rerenderFromCache();
 
-    if (!container.getAttribute('data-filters-bound')) {
-      container.setAttribute('data-filters-bound', '1');
-      const onChange = () => rerenderFromCache();
-      if (qEl) qEl.addEventListener('input', onChange);
-      if (fromEl) fromEl.addEventListener('change', onChange);
-      if (toEl) toEl.addEventListener('change', onChange);
-      if (ufEl) ufEl.addEventListener('change', onChange);
-      if (statusEl) statusEl.addEventListener('change', onChange);
-      if (clearEl) {
-        clearEl.addEventListener('click', () => {
-          if (qEl) qEl.value = '';
-          if (fromEl) fromEl.value = '';
-          if (toEl) toEl.value = '';
-          if (ufEl) ufEl.value = '';
-          if (statusEl) statusEl.value = '';
-          rerenderFromCache();
-        });
-      }
+    // Sempre religar os listeners a cada carga (o DOM é recriado pelo innerHTML a cada navegação,
+    // então data-filters-bound não persiste — e pode causar falha silenciosa se o container
+    // sobreviver de alguma forma sem o atributo ser resetado).
+    // AbortController garante que listeners anteriores sejam removidos antes de ligar novos.
+    if (window.ComercialModule._eventosFilterAbort) {
+      try { window.ComercialModule._eventosFilterAbort.abort(); } catch {}
+    }
+    const _evAc = new AbortController();
+    window.ComercialModule._eventosFilterAbort = _evAc;
+    const _evSig = { signal: _evAc.signal };
+    const onChange = () => rerenderFromCache();
+    if (qEl) qEl.addEventListener('input', onChange, _evSig);
+    if (fromEl) fromEl.addEventListener('change', onChange, _evSig);
+    if (toEl) toEl.addEventListener('change', onChange, _evSig);
+    if (ufEl) ufEl.addEventListener('change', onChange, _evSig);
+    if (statusEl) statusEl.addEventListener('change', onChange, _evSig);
+    if (clearEl) {
+      clearEl.addEventListener('click', () => {
+        if (qEl) qEl.value = '';
+        if (fromEl) fromEl.value = '';
+        if (toEl) toEl.value = '';
+        if (ufEl) ufEl.value = '';
+        if (statusEl) statusEl.value = '';
+        rerenderFromCache();
+      }, _evSig);
     }
   } finally {
     const container = document.getElementById('eventos-list-container');
@@ -10629,14 +10636,9 @@ window.FinanceiroModule.loadContasReceber = async function() {
     `).join('') || `<tr><td colspan="8" class="px-6 py-4 text-sm text-gray-500">Nenhuma conta a receber encontrada.</td></tr>`;
   };
 
-  window.FinanceiroModule.rerenderContasReceberList = function() {
-    try {
-      const tbody = document.getElementById('contas-receber-list-body');
-      if (!tbody) return;
-      const list = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.contasReceber)) ? ModuleSystem.data.contasReceber : [];
-      renderRows(list, tbody);
-    } catch {}
-  };
+  // rerenderContasReceberList é definido em crm-contas-receber.js (carregado antes)
+  // e delega para ContasReceberModule.rerender() — não sobrescrever aqui.
+  // window.FinanceiroModule.rerenderContasReceberList já está configurado corretamente.
 
   try {
     const container = document.getElementById('contas-receber-list-container');
