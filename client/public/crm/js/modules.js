@@ -10360,32 +10360,23 @@ window.ComercialModule.loadEventos = async function() {
 
     ensureSelectOptions();
     rerenderFromCache();
-
-    // Sempre religar os listeners a cada carga (o DOM é recriado pelo innerHTML a cada navegação,
-    // então data-filters-bound não persiste — e pode causar falha silenciosa se o container
-    // sobreviver de alguma forma sem o atributo ser resetado).
-    // AbortController garante que listeners anteriores sejam removidos antes de ligar novos.
-    if (window.ComercialModule._eventosFilterAbort) {
-      try { window.ComercialModule._eventosFilterAbort.abort(); } catch {}
-    }
-    const _evAc = new AbortController();
-    window.ComercialModule._eventosFilterAbort = _evAc;
-    const _evSig = { signal: _evAc.signal };
-    const onChange = () => rerenderFromCache();
-    if (qEl) qEl.addEventListener('input', onChange, _evSig);
-    if (fromEl) fromEl.addEventListener('change', onChange, _evSig);
-    if (toEl) toEl.addEventListener('change', onChange, _evSig);
-    if (ufEl) ufEl.addEventListener('change', onChange, _evSig);
-    if (statusEl) statusEl.addEventListener('change', onChange, _evSig);
+    // Atribuição direta de oninput/onchange — sobrescreve qualquer handler anterior
+    // sem depender de AbortController ou closures externas. Como o DOM é recriado
+    // a cada navegação, não há risco de listeners duplicados.
+    if (qEl) qEl.oninput = () => rerenderFromCache();
+    if (fromEl) fromEl.onchange = () => rerenderFromCache();
+    if (toEl) toEl.onchange = () => rerenderFromCache();
+    if (ufEl) ufEl.onchange = () => rerenderFromCache();
+    if (statusEl) statusEl.onchange = () => rerenderFromCache();
     if (clearEl) {
-      clearEl.addEventListener('click', () => {
+      clearEl.onclick = () => {
         if (qEl) qEl.value = '';
         if (fromEl) fromEl.value = '';
         if (toEl) toEl.value = '';
         if (ufEl) ufEl.value = '';
         if (statusEl) statusEl.value = '';
         rerenderFromCache();
-      }, _evSig);
+      };
     }
   } finally {
     const container = document.getElementById('eventos-list-container');
