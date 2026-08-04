@@ -10360,23 +10360,26 @@ window.ComercialModule.loadEventos = async function() {
 
     ensureSelectOptions();
     rerenderFromCache();
-    // Atribuição direta de oninput/onchange — sobrescreve qualquer handler anterior
-    // sem depender de AbortController ou closures externas. Como o DOM é recriado
-    // a cada navegação, não há risco de listeners duplicados.
-    if (qEl) qEl.oninput = () => rerenderFromCache();
-    if (fromEl) fromEl.onchange = () => rerenderFromCache();
-    if (toEl) toEl.onchange = () => rerenderFromCache();
-    if (ufEl) ufEl.onchange = () => rerenderFromCache();
-    if (statusEl) statusEl.onchange = () => rerenderFromCache();
-    if (clearEl) {
-      clearEl.onclick = () => {
-        if (qEl) qEl.value = '';
-        if (fromEl) fromEl.value = '';
-        if (toEl) toEl.value = '';
-        if (ufEl) ufEl.value = '';
-        if (statusEl) statusEl.value = '';
-        rerenderFromCache();
-      };
+    // Padrão idêntico ao de clientes: data-filters-bound + addEventListener
+    // O DOM é recriado a cada navegação (innerHTML no navigation.js),
+    // então o container novo nunca tem data-filters-bound — listeners sempre ligados.
+    if (!container.getAttribute('data-filters-bound')) {
+      container.setAttribute('data-filters-bound', '1');
+      if (qEl) qEl.addEventListener('input', () => rerenderFromCache());
+      if (fromEl) fromEl.addEventListener('change', () => rerenderFromCache());
+      if (toEl) toEl.addEventListener('change', () => rerenderFromCache());
+      if (ufEl) ufEl.addEventListener('change', () => rerenderFromCache());
+      if (statusEl) statusEl.addEventListener('change', () => rerenderFromCache());
+      if (clearEl) {
+        clearEl.addEventListener('click', () => {
+          if (qEl) qEl.value = '';
+          if (fromEl) fromEl.value = '';
+          if (toEl) toEl.value = '';
+          if (ufEl) ufEl.value = '';
+          if (statusEl) statusEl.value = '';
+          rerenderFromCache();
+        });
+      }
     }
   } finally {
     const container = document.getElementById('eventos-list-container');
