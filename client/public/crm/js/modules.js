@@ -10032,7 +10032,9 @@ window.ComercialModule.loadClientes = async function() {
     const normalizeText = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
     const renderRows = (list) => {
-      tbody.innerHTML = (list || []).map(cliente => `
+      const tb = tbody2 || document.getElementById('eventos-list-body');
+      if (!tb) return;
+      tb.innerHTML = (list || []).map(cliente => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm font-medium text-gray-900">${cliente.nome || ''}</div>
@@ -10126,8 +10128,8 @@ window.ComercialModule.loadClientes = async function() {
 
     renderPage(merged, 1);
 
-    if (!container.getAttribute('data-filters-bound')) {
-      container.setAttribute('data-filters-bound', '1');
+    if (container2 && !container2.getAttribute('data-filters-bound')) {
+      container2.setAttribute('data-filters-bound', '1');
       if (qEl) qEl.addEventListener('input', applyFilters);
       if (statusEl) statusEl.addEventListener('change', applyFilters);
       if (clearEl) clearEl.addEventListener('click', () => {
@@ -10251,7 +10253,9 @@ window.ComercialModule.loadEventos = async function() {
       return 'bg-yellow-100 text-yellow-800';
     };
     const renderRows = (list) => {
-      tbody.innerHTML = (list || []).map(evento => `
+      const _tb = tbody2 || document.getElementById("eventos-list-body");
+      if (!_tb) return;
+      _tb.innerHTML = (list || []).map(evento => `
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm font-medium text-gray-900">${evento.nome || ''}</div>
@@ -10282,6 +10286,11 @@ window.ComercialModule.loadEventos = async function() {
       `).join('') || `<tr><td colspan="5" class="px-6 py-4 text-sm text-gray-500">Nenhum evento encontrado.</td></tr>`;
     };
 
+    // Recapturar container e tbody DEPOIS do await — o DOM pode ter sido
+    // substituído durante o fetch, então a referência capturada antes pode
+    // estar desconectada. qEl e demais elementos também são recapturados aqui.
+    const container2 = document.getElementById('eventos-list-container');
+    const tbody2 = document.getElementById('eventos-list-body');
     const qEl = document.getElementById('eventos-filter-q');
     const fromEl = document.getElementById('eventos-filter-from');
     const toEl = document.getElementById('eventos-filter-to');
@@ -10363,8 +10372,8 @@ window.ComercialModule.loadEventos = async function() {
     // Padrão idêntico ao de clientes: data-filters-bound + addEventListener
     // O DOM é recriado a cada navegação (innerHTML no navigation.js),
     // então o container novo nunca tem data-filters-bound — listeners sempre ligados.
-    if (!container.getAttribute('data-filters-bound')) {
-      container.setAttribute('data-filters-bound', '1');
+    if (!container2.getAttribute('data-filters-bound')) {
+      container2.setAttribute('data-filters-bound', '1');
       if (qEl) qEl.addEventListener('input', () => rerenderFromCache());
       if (fromEl) fromEl.addEventListener('change', () => rerenderFromCache());
       if (toEl) toEl.addEventListener('change', () => rerenderFromCache());
