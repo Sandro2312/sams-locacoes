@@ -10032,7 +10032,7 @@ window.ComercialModule.loadClientes = async function() {
     const normalizeText = (v) => (v == null ? '' : String(v)).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
     const renderRows = (list) => {
-      const tb = tbody2 || document.getElementById('eventos-list-body');
+      const tb = document.getElementById('clientes-list-body') || tbody;
       if (!tb) return;
       tb.innerHTML = (list || []).map(cliente => `
         <tr class="hover:bg-gray-50">
@@ -10128,6 +10128,7 @@ window.ComercialModule.loadClientes = async function() {
 
     renderPage(merged, 1);
 
+    const container2 = document.getElementById('clientes-list-container');
     if (container2 && !container2.getAttribute('data-filters-bound')) {
       container2.setAttribute('data-filters-bound', '1');
       if (qEl) qEl.addEventListener('input', applyFilters);
