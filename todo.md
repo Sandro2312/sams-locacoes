@@ -353,3 +353,12 @@
 - [x] Item 1: Busca de eventos — substituir data-filters-bound por AbortController em loadEventos()
 - [x] Item 2: listComissoes() — investigado: não é duplicata real (financeiro vs administracao)
 - [x] Item 3: rerenderContasReceberList — sobrescrita removida de modules.js, usa crm-contas-receber.js
+
+## Roadmap — Conciliação Bancária (Item 4 — NÃO implementar ainda)
+- [ ] [ROADMAP] Upload de extrato bancário (OFX/CSV) para conciliação automática
+  - Parser OFX (padrão bancos brasileiros) e CSV como alternativa
+  - Extração de: data, descrição, valor, tipo (crédito/débito) por lançamento
+  - Lógica de conciliação sugerida: match por valor + data aproximada vs crm_transacoes
+  - Sinalizar: (a) lançamentos que batem, (b) no extrato mas não no sistema, (c) no sistema mas não no extrato
+  - Tela de revisão manual antes de confirmar conciliação em lote
+  - Registrado em: 2026-08-08 — aguardando priorização

@@ -1702,7 +1702,15 @@ export function registerCrmRoutes(app: any) {
 
 
 
-  // ─── Despesas (Transações) ────────────────────────────────────────────────────────────────
+  // ─── Despesas (Transações) — ROTA LEGADA / DEPRECIADA ────────────────────────────────────
+  // ⚠️  ATENÇÃO: Esta rota (/api/crm/despesas) está DEPRECIADA desde 2026-08.
+  //     A rota oficial para operações de Despesa/Transação é /api/crm/transacoes
+  //     definida em server/crm-admin.ts (com paginação real, upload de comprovante via S3,
+  //     suporte a recorrência e filtros avançados).
+  //     O frontend (financial.js) que usava esta rota é código legado inativo —
+  //     FinancialSystem.init() nunca é chamado. A interface ativa usa modules.js + /api/crm/transacoes.
+  //     NÃO aplicar correções aqui — aplicar em server/crm-admin.ts.
+  //     Mantida apenas para não quebrar integrações externas eventuais. Remover em versão futura.
   r.get("/despesas", requireCrmAuth, async (req, res) => {
     try {
       const rows = await db(

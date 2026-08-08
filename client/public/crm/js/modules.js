@@ -149,27 +149,38 @@ const ModuleSystem = {
     },
 
     async loadTransacoes() {
+        // Paginação em blocos de 200 (mesmo padrão de loadClientes)
+        const BLOCK = 200;
+        const mapRow = r => ({
+            ...r,
+            centroCusto: r.centro_custo || r.centroCusto || null,
+            eventoId: r.evento_id || r.eventoId || null,
+            clienteId: r.cliente_id || r.clienteId || null,
+            clienteNome: r.cliente_nome || r.clienteNome || null,
+            eventoNome: r.evento_nome || r.eventoNome || null,
+            recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,
+            recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null,
+            comprovanteUrl: r.comprovante_url || r.comprovanteUrl || null,
+            comprovanteNome: r.comprovante_url ? (r.comprovante_url.split('/').pop() || 'comprovante') : (r.comprovanteNome || r.comprovante_nome || null)
+        });
         try {
-            const response = await fetch('/api/crm/transacoes', { credentials: 'include' });
-            if (!response.ok) return;
-            const rawRows = await response.json().catch(() => []);
-            if (Array.isArray(rawRows)) {
-                // Mapear snake_case da API para camelCase usado pelo frontend
-                const rows = rawRows.map(r => ({
-                    ...r,
-                    centroCusto: r.centro_custo || r.centroCusto || null,
-                    eventoId: r.evento_id || r.eventoId || null,
-                    clienteId: r.cliente_id || r.clienteId || null,
-                    clienteNome: r.cliente_nome || r.clienteNome || null,
-                    eventoNome: r.evento_nome || r.eventoNome || null,
-                    recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,
-                    recorrenciaIndice: r.recorrencia_indice || r.recorrenciaIndice || null,
-                    comprovanteUrl: r.comprovante_url || r.comprovanteUrl || null,
-                    comprovanteNome: r.comprovante_url ? (r.comprovante_url.split('/').pop() || 'comprovante') : (r.comprovanteNome || r.comprovante_nome || null)
-                }));
-                this.data.transacoes = rows;
+            let allRows = [];
+            let offset = 0;
+            let total = null;
+            do {
+                const resp = await fetch(`/api/crm/transacoes?limit=${BLOCK}&offset=${offset}`, { credentials: 'include' });
+                if (!resp.ok) break;
+                const json = await resp.json().catch(() => ({}));
+                const block = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+                if (total === null) total = json.total || block.length;
+                allRows = allRows.concat(block);
+                offset += BLOCK;
+            } while (allRows.length < total && total > 0);
+
+            if (allRows.length > 0) {
+                this.data.transacoes = allRows.map(mapRow);
                 this.saveData();
-                console.log(`✅ [ModuleSystem] Transações carregadas da API: ${rows.length} registros`);
+                console.log(`✅ [ModuleSystem] Transações carregadas da API: ${allRows.length} registros`);
 
                 // Re-renderizar automaticamente se o módulo financeiro estiver aberto
                 try {
@@ -178,10 +189,8 @@ const ModuleSystem = {
                         const curPage = window.NavigationSystem.currentPage;
                         if (curMod === 'financeiro') {
                             if (curPage) {
-                                // Está em uma página específica (ex: despesas) - re-navegar
                                 window.NavigationSystem.navigateToPage(curMod, curPage);
                             } else {
-                                // Está no overview do módulo financeiro - re-renderizar dashboard
                                 if (this.financeiro && typeof this.financeiro.initDashboardHome === 'function') {
                                     this.financeiro.initDashboardHome();
                                 } else {
@@ -5188,6 +5197,7 @@ const ModuleSystem = {
                             </button>
                         </div>
                     </div>
+                    <div id="financeiro-alertas-banner" class="px-6 pt-2"></div>
                     <div id="financeiroDashBody" class="p-6">
                         <div class="text-sm text-gray-500">Carregando...</div>
                     </div>
@@ -6031,6 +6041,55 @@ const ModuleSystem = {
                     setStoredFocusDate(focus);
                     const d = compute(contas, focus);
                     render(d);
+                    // Alertas dinâmicos de vencimento (Item 3)
+                    try {
+                        const alertasBanner = document.getElementById('financeiro-alertas-banner');
+                        if (alertasBanner) {
+                            const ar = await fetch('/api/crm/financeiro/alertas?dias=7', { credentials: 'include' });
+                            if (ar.ok) {
+                                const al = await ar.json().catch(() => null);
+                                if (al) {
+                                    const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                    const parts = [];
+                                    const crVenc = al.creditos && al.creditos.vencidas;
+                                    const crAVenc = al.creditos && al.creditos.aVencer;
+                                    const dbVenc = al.debitos && al.debitos.vencidas;
+                                    const dbAVenc = al.debitos && al.debitos.aVencer;
+                                    if (crVenc && crVenc.quantidade > 0) {
+                                        parts.push('<span class="inline-flex items-center gap-1 bg-red-100 text-red-800 border border-red-200 rounded px-2 py-1 text-xs font-medium">' +
+                                            '<i class="fas fa-exclamation-circle"></i> ' + crVenc.quantidade + ' recebimento' + (crVenc.quantidade > 1 ? 's' : '') + ' vencido' + (crVenc.quantidade > 1 ? 's' : '') +
+                                            ' — ' + fmtBRL(crVenc.total) +
+                                            '</span>');
+                                    }
+                                    if (crAVenc && crAVenc.quantidade > 0) {
+                                        parts.push('<span class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded px-2 py-1 text-xs font-medium">' +
+                                            '<i class="fas fa-clock"></i> ' + crAVenc.quantidade + ' recebimento' + (crAVenc.quantidade > 1 ? 's' : '') + ' vence' + (crAVenc.quantidade > 1 ? 'm' : '') + ' em 7 dias' +
+                                            ' — ' + fmtBRL(crAVenc.total) +
+                                            '</span>');
+                                    }
+                                    if (dbVenc && dbVenc.quantidade > 0) {
+                                        parts.push('<span class="inline-flex items-center gap-1 bg-red-100 text-red-800 border border-red-200 rounded px-2 py-1 text-xs font-medium">' +
+                                            '<i class="fas fa-exclamation-triangle"></i> ' + dbVenc.quantidade + ' despesa' + (dbVenc.quantidade > 1 ? 's' : '') + ' vencida' + (dbVenc.quantidade > 1 ? 's' : '') +
+                                            ' — ' + fmtBRL(dbVenc.total) +
+                                            '</span>');
+                                    }
+                                    if (dbAVenc && dbAVenc.quantidade > 0) {
+                                        parts.push('<span class="inline-flex items-center gap-1 bg-orange-100 text-orange-800 border border-orange-200 rounded px-2 py-1 text-xs font-medium">' +
+                                            '<i class="fas fa-calendar-alt"></i> ' + dbAVenc.quantidade + ' despesa' + (dbAVenc.quantidade > 1 ? 's' : '') + ' vence' + (dbAVenc.quantidade > 1 ? 'm' : '') + ' em 7 dias' +
+                                            ' — ' + fmtBRL(dbAVenc.total) +
+                                            '</span>');
+                                    }
+                                    if (parts.length > 0) {
+                                        alertasBanner.innerHTML = '<div class="flex flex-wrap gap-2 mb-3 pb-3 border-b border-gray-100">' + parts.join('') + '</div>';
+                                    } else {
+                                        alertasBanner.innerHTML = '<div class="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 text-xs text-green-700"><i class="fas fa-check-circle"></i> Sem vencimentos pendentes nos próximos 7 dias.</div>';
+                                    }
+                                }
+                            }
+                        }
+                    } catch (alertaErr) {
+                        // Silencioso — alertas são complementares, não críticos
+                    }
                     try {
                         if (relRoot && window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.listRelatorios === 'function') {
                             relRoot.innerHTML = ModuleSystem.financeiro.listRelatorios();

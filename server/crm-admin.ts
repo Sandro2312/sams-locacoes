@@ -218,17 +218,24 @@ export function registerCrmAdminRoutes(app: any) {
   rt.use(express.json({ limit: "10mb" }));
 
   rt.get("/", requireAuth, async (req, res) => {
-    try {
-      const { tipo, status, ano, mes } = req.query as any;
+  try {
+      const { tipo, status, ano, mes, limit: limitQ, offset: offsetQ } = req.query as any;
+      const safeLimit = Math.min(Math.max(parseInt(limitQ) || 200, 1), 500);
+      const safeOffset = Math.max(parseInt(offsetQ) || 0, 0);
       let sql = "SELECT t.*, c.nome as cliente_nome, e.nome as evento_nome FROM crm_transacoes t LEFT JOIN crm_clientes c ON t.cliente_id = c.id LEFT JOIN crm_eventos e ON t.evento_id = e.id WHERE 1=1";
       const params: any[] = [];
       if (tipo) { sql += " AND t.tipo=?"; params.push(tipo); }
       if (status) { sql += " AND t.status=?"; params.push(status); }
       if (ano) { sql += " AND YEAR(t.data)=?"; params.push(parseInt(ano)); }
       if (mes) { sql += " AND MONTH(t.data)=?"; params.push(parseInt(mes)); }
-      sql += " ORDER BY t.data DESC, t.created_at DESC LIMIT 500";
+      // Contar total para paginação
+      const countSql = sql.replace("SELECT t.*, c.nome as cliente_nome, e.nome as evento_nome FROM crm_transacoes t LEFT JOIN crm_clientes c ON t.cliente_id = c.id LEFT JOIN crm_eventos e ON t.evento_id = e.id", "SELECT COUNT(*) as total FROM crm_transacoes t LEFT JOIN crm_clientes c ON t.cliente_id = c.id LEFT JOIN crm_eventos e ON t.evento_id = e.id");
+      const [countRows] = await db(countSql, params) as any[];
+      const total = countRows?.total || 0;
+      sql += " ORDER BY t.data DESC, t.created_at DESC LIMIT ? OFFSET ?";
+      params.push(safeLimit, safeOffset);
       const rows = await db(sql, params);
-      res.json(rows);
+      res.json({ data: rows, total, limit: safeLimit, offset: safeOffset });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -305,15 +312,22 @@ export function registerCrmAdminRoutes(app: any) {
   rtarefas.use(express.json({ limit: "10mb" }));
 
   rtarefas.get("/", requireAuth, async (req, res) => {
-    try {
-      const { status, responsavel_id } = req.query as any;
+  try {
+      const { status, responsavel_id, limit: limitQ, offset: offsetQ } = req.query as any;
+      const safeLimit = Math.min(Math.max(parseInt(limitQ) || 200, 1), 500);
+      const safeOffset = Math.max(parseInt(offsetQ) || 0, 0);
       let sql = "SELECT t.*, u.name as responsavel_nome, c.nome as cliente_nome FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id WHERE 1=1";
       const params: any[] = [];
       if (status) { sql += " AND t.status=?"; params.push(status); }
       if (responsavel_id) { sql += " AND t.responsavel_id=?"; params.push(responsavel_id); }
-      sql += " ORDER BY t.data_vencimento ASC, t.created_at DESC LIMIT 200";
+      // Contar total para paginação
+      const countSql = sql.replace("SELECT t.*, u.name as responsavel_nome, c.nome as cliente_nome FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id", "SELECT COUNT(*) as total FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id");
+      const [countRows] = await db(countSql, params) as any[];
+      const total = countRows?.total || 0;
+      sql += " ORDER BY t.data_vencimento ASC, t.created_at DESC LIMIT ? OFFSET ?";
+      params.push(safeLimit, safeOffset);
       const rows = await db(sql, params);
-      res.json(rows);
+      res.json({ data: rows, total, limit: safeLimit, offset: safeOffset });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -717,6 +731,59 @@ export function registerCrmAdminRoutes(app: any) {
         <p><strong>Data:</strong> ${cr.data_vencimento || '-'}</p>
       </body></html>`;
       res.json({ html });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── CRM: Alertas Financeiros (vencimentos dinâmicos) ─────────────────────────
+  // Retorna contas vencidas e a vencer nos próximos N dias (padrão 7)
+  // Usado pelo banner de alertas no dashboard financeiro
+  app.get("/api/crm/financeiro/alertas", requireAuth, async (req: any, res: any) => {
+    try {
+      const dias = Math.min(Math.max(parseInt((req.query as any).dias) || 7, 1), 30);
+      const hoje = new Date();
+      const limite = new Date(hoje);
+      limite.setDate(limite.getDate() + dias);
+      const toISO = (d: Date) => d.toISOString().slice(0, 10);
+
+      // Contas a receber: vencidas (não pagas) e a vencer nos próximos N dias
+      const [crVencidas, crAVencer] = await Promise.all([
+        db(
+          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE status NOT IN ('pago','recebido','baixado','cancelado') AND vencimento < ? ORDER BY vencimento ASC LIMIT 50",
+          [toISO(hoje)]
+        ),
+        db(
+          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE status NOT IN ('pago','recebido','baixado','cancelado') AND vencimento >= ? AND vencimento <= ? ORDER BY vencimento ASC LIMIT 50",
+          [toISO(hoje), toISO(limite)]
+        ),
+      ]);
+
+      // Contas a pagar (transações): vencidas e a vencer
+      const [txVencidas, txAVencer] = await Promise.all([
+        db(
+          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND status NOT IN ('pago','baixado','cancelado') AND data < ? ORDER BY data ASC LIMIT 50",
+          [toISO(hoje)]
+        ),
+        db(
+          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND status NOT IN ('pago','baixado','cancelado') AND data >= ? AND data <= ? ORDER BY data ASC LIMIT 50",
+          [toISO(hoje), toISO(limite)]
+        ),
+      ]);
+
+      const soma = (arr: any[]) => (arr as any[]).reduce((s: number, r: any) => s + parseFloat(r.valor || 0), 0);
+
+      res.json({
+        dias,
+        creditos: {
+          vencidas: { itens: crVencidas, total: soma(crVencidas as any[]), quantidade: (crVencidas as any[]).length },
+          aVencer: { itens: crAVencer, total: soma(crAVencer as any[]), quantidade: (crAVencer as any[]).length },
+        },
+        debitos: {
+          vencidas: { itens: txVencidas, total: soma(txVencidas as any[]), quantidade: (txVencidas as any[]).length },
+          aVencer: { itens: txAVencer, total: soma(txAVencer as any[]), quantidade: (txAVencer as any[]).length },
+        },
+      });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

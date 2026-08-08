@@ -42,10 +42,12 @@ const FinancialSystem = {
 
     async syncDespesasFromBackend() {
         try {
-            const resp = await fetch('/api/crm/despesas', { credentials: 'include' });
+            // MIGRADO: /api/crm/despesas → /api/crm/transacoes (rota oficial, crm-admin.ts)
+            const resp = await fetch('/api/crm/transacoes?tipo=despesa&limit=500', { credentials: 'include' });
             if (!resp.ok) return;
-            const despesas = await resp.json().catch(() => []);
-            if (Array.isArray(despesas) && ModuleSystem.data && ModuleSystem.data.financeiro) {
+            const json = await resp.json().catch(() => ({}));
+            const despesas = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+            if (despesas.length > 0 && ModuleSystem.data && ModuleSystem.data.financeiro) {
                 ModuleSystem.data.financeiro.despesas = despesas;
                 ModuleSystem.saveData();
             }
@@ -58,7 +60,8 @@ const FinancialSystem = {
         try {
             const isNew = !despesa.id || despesa.id.toString().startsWith('local_');
             const method = isNew ? 'POST' : 'PUT';
-            const url = isNew ? '/api/crm/despesas' : `/api/crm/despesas/${despesa.id}`;
+            // MIGRADO: /api/crm/despesas → /api/crm/transacoes (rota oficial, crm-admin.ts)
+            const url = isNew ? '/api/crm/transacoes' : `/api/crm/transacoes/${despesa.id}`;
             
             const resp = await fetch(url, {
                 method,
