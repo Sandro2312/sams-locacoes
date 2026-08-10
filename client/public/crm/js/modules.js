@@ -4925,6 +4925,14 @@ const ModuleSystem = {
         },
         exportRelatorioExcel() {
             // Exportação Excel via SheetJS (CDN carregado dinamicamente)
+            // SEGURANÇA — xlsx (SheetJS) v0.20.3 tem vulnerabilidades conhecidas SEM correção disponível:
+            //   - Prototype Pollution (GHSA-4r6h-8v6p-xvw6)
+            //   - ReDoS (GHSA-5pgg-2g8v-p4x9)
+            // Decisão (2026-08-10): MANTER xlsx por ora. Justificativa:
+            //   (a) Roda client-side no navegador do usuário autenticado — não server-side.
+            //   (b) Input processado são dados internos do sistema (não conteúdo de terceiros).
+            //   (c) Não há alternativa drop-in mantida ativamente com API compatível.
+            // Revisitar se: SheetJS lançar patch, ou exceljs for avaliado como substituto.
             const currentFilter = this._relatorioCentroCustoFilter != null ? String(this._relatorioCentroCustoFilter) : '';
             const { rows, totals } = this.getRelatorioCentroCustosData(currentFilter);
             const toBR = (n) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

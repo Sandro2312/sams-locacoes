@@ -1,3 +1,9 @@
+// @builder.io/vite-plugin-jsx-loc — plugin de debug dev-only (adiciona atributos data-loc nos elementos JSX)
+// NOTA DE MANUTENÇÃO (2026-08-10): conflito de peer dependency — exige vite@"^4.0.0 || ^5.0.0",
+// mas o projeto usa vite@7. pnpm resolve automaticamente com --legacy-peer-deps implícito.
+// Se usar npm install diretamente, adicionar a flag --legacy-peer-deps.
+// NÃO remover: usado ativamente na linha `plugins` abaixo para debugging visual em desenvolvimento.
+// Avaliar substituição se vite-plugin-jsx-loc não for atualizado para suportar vite@7 futuramente.
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
