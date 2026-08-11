@@ -1638,7 +1638,10 @@ const FormSystem = {
                         const result = await postTransacao(item);
                         if (result && result.ok) {
                             parcelasOk++;
-                            if (i === 0) createdId = result.id;
+                            // Em criação parcial, a primeira parcela pode falhar e uma
+                            // posterior ser salva. Preserve o primeiro ID real disponível
+                            // para que a interface consiga atualizar a lista corretamente.
+                            if (createdId == null) createdId = result.id;
                         } else {
                             parcelasFalha++;
                             errosParcelas.push('Parcela ' + (i + 1) + ': ' + (result && result.erro ? result.erro : 'erro desconhecido'));

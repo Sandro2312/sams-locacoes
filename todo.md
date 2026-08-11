@@ -370,3 +370,4 @@
 - [x] Testar o endpoint com 3 parcelas válidas (HTTP 200) e com dados obrigatórios inválidos (HTTP 400)
 - [x] Limpar lançamentos e sessões temporárias usados exclusivamente na validação
 - [x] Criar teste de regressão para impedir o retorno do fallback local silencioso em transações
+- [x] Garantir retorno do primeiro ID salvo quando a criação recorrente for parcial

@@ -22,6 +22,7 @@ describe("FormSystem — persistência de transações", () => {
     expect(transactionBlock).toContain("let parcelasOk = 0");
     expect(transactionBlock).toContain("let parcelasFalha = 0");
     expect(transactionBlock).toContain("else if (parcelasOk === 0)");
+    expect(transactionBlock).toContain("if (createdId == null) createdId = result.id;");
     expect(transactionBlock).toContain("return null; // NÃO fechar o modal");
     expect(transactionBlock).toContain("Verifique e relance as parcelas faltantes.");
   });
