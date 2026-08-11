@@ -1565,6 +1565,8 @@ const FormSystem = {
                 });
 
                 const postTransacao = async (item) => {
+                    // Retorna { id, ok: true } em caso de sucesso real no backend
+                    // Retorna { id, ok: false, localOnly: true, erro } em caso de falha
                     try {
                         const resp = await fetch('/api/crm/transacoes', {
                             method: 'POST',
@@ -1574,26 +1576,33 @@ const FormSystem = {
                         });
                         const json = await resp.json().catch(() => ({}));
                         if (resp.ok && json && json.id != null) {
-                            return json.id;
+                            return { id: json.id, ok: true };
                         } else {
+                            const erroMsg = json && json.error ? json.error : `HTTP ${resp.status}`;
                             console.warn('[FormSystem] POST /api/crm/transacoes não OK:', json);
-                            // Fallback local
-                            if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                                return ModuleSystem.addItem('transacoes', { ...item, _localOnly: true });
-                            }
+                            return { id: null, ok: false, localOnly: false, erro: erroMsg };
                         }
                     } catch (err) {
-                        console.warn('[FormSystem] Falha ao criar transação no backend, usando fallback local:', err);
-                        if (window.ModuleSystem && typeof ModuleSystem.addItem === 'function') {
-                            return ModuleSystem.addItem('transacoes', { ...item, _localOnly: true });
-                        }
+                        console.warn('[FormSystem] Falha ao criar transação no backend:', err);
+                        return { id: null, ok: false, localOnly: false, erro: String(err.message || err) };
                     }
-                    return null;
                 };
 
                 if (!isRecorrente) {
                     const payload = normalizeItem({ ...data, recorrenciaQtd: 1 });
-                    createdId = await postTransacao(payload);
+                    const result = await postTransacao(payload);
+                    if (result && result.ok) {
+                        createdId = result.id;
+                    } else {
+                        // Falha real no backend — exibir erro e NÃO fechar o modal
+                        const erroMsg = (result && result.erro) ? result.erro : 'Erro desconhecido';
+                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                            window.NotificationSystem.error('Falha ao salvar despesa: ' + erroMsg + '. Verifique os dados e tente novamente.');
+                        } else {
+                            alert('Falha ao salvar despesa: ' + erroMsg);
+                        }
+                        return null; // NÃO fechar o modal — deixar o usuário corrigir
+                    }
                 } else {
                     const groupId = `rec_${Date.now()}`;
                     const getDueDate = (index) => {
@@ -1610,6 +1619,9 @@ const FormSystem = {
                         }
                     };
 
+                    let parcelasOk = 0;
+                    let parcelasFalha = 0;
+                    const errosParcelas = [];
                     for (let i = 0; i < recorrenciaQtd; i++) {
                         const dt = getDueDate(i);
                         const item = normalizeItem({
@@ -1623,8 +1635,39 @@ const FormSystem = {
                             delete item.dataPagamento;
                             delete item.formaPagamento;
                         }
-                        const newId = await postTransacao(item);
-                        if (i === 0) createdId = newId;
+                        const result = await postTransacao(item);
+                        if (result && result.ok) {
+                            parcelasOk++;
+                            if (i === 0) createdId = result.id;
+                        } else {
+                            parcelasFalha++;
+                            errosParcelas.push('Parcela ' + (i + 1) + ': ' + (result && result.erro ? result.erro : 'erro desconhecido'));
+                        }
+                    }
+                    // Feedback de resultado das parcelas
+                    if (parcelasFalha === 0) {
+                        // Todas criadas com sucesso
+                        if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
+                            window.NotificationSystem.success(parcelasOk + ' parcela' + (parcelasOk > 1 ? 's' : '') + ' criada' + (parcelasOk > 1 ? 's' : '') + ' com sucesso.');
+                        }
+                    } else if (parcelasOk === 0) {
+                        // Nenhuma parcela criada — erro e NÃO fechar modal
+                        const msg = 'Falha ao criar as ' + recorrenciaQtd + ' parcelas. Nenhuma foi salva. Erro: ' + errosParcelas.slice(0, 2).join('; ');
+                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                            window.NotificationSystem.error(msg);
+                        } else {
+                            alert(msg);
+                        }
+                        return null; // NÃO fechar o modal
+                    } else {
+                        // Parcial — algumas criadas, algumas falharam
+                        const msg = parcelasOk + ' de ' + recorrenciaQtd + ' parcelas criadas com sucesso. ' + parcelasFalha + ' falharam: ' + errosParcelas.slice(0, 2).join('; ') + '. Verifique e relance as parcelas faltantes.';
+                        if (window.NotificationSystem && typeof window.NotificationSystem.warning === 'function') {
+                            window.NotificationSystem.warning(msg);
+                        } else {
+                            alert(msg);
+                        }
+                        // Fechar o modal pois algumas parcelas foram salvas
                     }
                 }
             } else if (module === 'clientes') {

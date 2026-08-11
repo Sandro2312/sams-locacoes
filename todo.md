@@ -362,3 +362,11 @@
   - Sinalizar: (a) lançamentos que batem, (b) no extrato mas não no sistema, (c) no sistema mas não no extrato
   - Tela de revisão manual antes de confirmar conciliação em lote
   - Registrado em: 2026-08-08 — aguardando priorização
+
+## Correção — Despesas recorrentes e feedback de persistência (Ago/2026)
+- [x] Remover o fallback local silencioso de `postTransacao()` que simulava sucesso quando o POST ao backend falhava
+- [x] Manter o formulário aberto e exibir mensagem de erro quando nenhuma despesa/parcela puder ser salva
+- [x] Exibir confirmação de sucesso para todas as parcelas criadas e alerta claro para criação parcial
+- [x] Testar o endpoint com 3 parcelas válidas (HTTP 200) e com dados obrigatórios inválidos (HTTP 400)
+- [x] Limpar lançamentos e sessões temporárias usados exclusivamente na validação
+- [x] Criar teste de regressão para impedir o retorno do fallback local silencioso em transações
