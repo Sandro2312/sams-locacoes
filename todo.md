@@ -371,3 +371,9 @@
 - [x] Limpar lançamentos e sessões temporárias usados exclusivamente na validação
 - [x] Criar teste de regressão para impedir o retorno do fallback local silencioso em transações
 - [x] Garantir retorno do primeiro ID salvo quando a criação recorrente for parcial
+
+## Investigação — Relatório por Centro de Custos (Ago/2026)
+- [x] Auditar fonte de dados e agregação do relatório por Centro de Custos após a paginação de transações
+- [x] Corrigir receitas zeradas e totais incorretos preservando os demais relatórios financeiros
+- [x] Validar os totais do relatório contra o banco de dados e criar teste de regressão
+- [x] Criar teste de regressão para a compatibilidade TiDB de LIMIT/OFFSET paginados

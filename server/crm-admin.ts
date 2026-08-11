@@ -232,8 +232,10 @@ export function registerCrmAdminRoutes(app: any) {
       const countSql = sql.replace("SELECT t.*, c.nome as cliente_nome, e.nome as evento_nome FROM crm_transacoes t LEFT JOIN crm_clientes c ON t.cliente_id = c.id LEFT JOIN crm_eventos e ON t.evento_id = e.id", "SELECT COUNT(*) as total FROM crm_transacoes t LEFT JOIN crm_clientes c ON t.cliente_id = c.id LEFT JOIN crm_eventos e ON t.evento_id = e.id");
       const [countRows] = await db(countSql, params) as any[];
       const total = countRows?.total || 0;
-      sql += " ORDER BY t.data DESC, t.created_at DESC LIMIT ? OFFSET ?";
-      params.push(safeLimit, safeOffset);
+      // TiDB rejeita LIMIT/OFFSET parametrizados nesta rota. Os dois valores são
+      // inteiros validados e limitados acima; interpolá-los preserva segurança
+      // sem afetar os filtros, que continuam parametrizados.
+      sql += ` ORDER BY t.data DESC, t.created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
       const rows = await db(sql, params);
       res.json({ data: rows, total, limit: safeLimit, offset: safeOffset });
     } catch (e: any) {
@@ -324,8 +326,9 @@ export function registerCrmAdminRoutes(app: any) {
       const countSql = sql.replace("SELECT t.*, u.name as responsavel_nome, c.nome as cliente_nome FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id", "SELECT COUNT(*) as total FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id");
       const [countRows] = await db(countSql, params) as any[];
       const total = countRows?.total || 0;
-      sql += " ORDER BY t.data_vencimento ASC, t.created_at DESC LIMIT ? OFFSET ?";
-      params.push(safeLimit, safeOffset);
+      // Mesma compatibilidade TiDB da listagem de transações: somente inteiros
+      // previamente validados são interpolados; filtros continuam com parâmetros.
+      sql += ` ORDER BY t.data_vencimento ASC, t.created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
       const rows = await db(sql, params);
       res.json({ data: rows, total, limit: safeLimit, offset: safeOffset });
     } catch (e: any) {
