@@ -421,3 +421,8 @@
 - [x] Atualizar o portfólio com o projeto de montagem de stand da Perto S.A.
 - [x] Validar conteúdo, responsividade e testes antes do checkpoint
 - [x] Criar teste de regressão para os fatos e a imagem contextual do projeto LAT.BUS
+
+## Correção — Referências sem mídia no Portfólio (Ago/2026)
+- [x] Auditar projetos sem foto/vídeo e referências de mídia indisponíveis
+- [x] Exibir somente cliente e feira em projetos sem mídia, sem ícone de reprodução
+- [x] Validar layout mobile e criar teste de regressão

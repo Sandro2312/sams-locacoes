@@ -12,12 +12,10 @@ const projetos = [
     cliente: "Perto S.A.",
     evento: "LAT.BUS 2026 — São Paulo Expo, São Paulo/SP",
     categoria: "Personalizado",
-    imagem: "/manus-storage/latbus-2026-identidade-visual_65ae3a1b.webp",
+    imagem: null,
     video: null,
-    galeria: ["/manus-storage/latbus-2026-identidade-visual_65ae3a1b.webp"],
+    galeria: [],
     vip: false,
-    fonteEvento: "https://www.latbus2026.com.br/",
-    notaImagem: "Imagem de apoio da identidade visual pública da LAT.BUS 2026; a foto autorizada do stand da Perto S.A. será incluída assim que for disponibilizada.",
     descricao: "A SAMS Locações realizou a montagem do stand da Perto S.A. na LAT.BUS 2026, feira latino-americana de mobilidade por ônibus realizada de 11 a 13 de agosto no São Paulo Expo. O projeto apresentou a marca em um ambiente alinhado às suas soluções de autoatendimento, recarga, venda de passagens e gestão para transporte público.",
   },
   {
@@ -193,8 +191,6 @@ const categorias = ["Todos", "Personalizado", "Modular", "Híbrido", "Cenografia
 
 type Projeto = typeof projetos[number] & {
   videoExtra?: string;
-  fonteEvento?: string;
-  notaImagem?: string;
 };
 
 export default function PortfolioSection() {
@@ -305,7 +301,10 @@ export default function PortfolioSection() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <AnimatePresence>
-            {filtrados.map((projeto, i) => (
+            {filtrados.map((projeto, i) => {
+              const temMidia = Boolean(projeto.imagem || projeto.video || projeto.galeria.length > 0);
+
+              return (
               <motion.div
                 key={projeto.id}
                 layout
@@ -313,8 +312,8 @@ export default function PortfolioSection() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.4, delay: 0.05 * i }}
-                className="group relative rounded-sm overflow-hidden cursor-pointer card-elegant bg-[oklch(0.97_0.003_240)]"
-                onClick={() => abrirProjeto(projeto)}
+                className={`group relative rounded-sm overflow-hidden card-elegant bg-[oklch(0.97_0.003_240)] ${temMidia ? "cursor-pointer" : "cursor-default"}`}
+                onClick={temMidia ? () => abrirProjeto(projeto) : undefined}
               >
                 <div className="aspect-[4/3] overflow-hidden relative">
                   {projeto.imagem ? (
@@ -334,8 +333,15 @@ export default function PortfolioSection() {
                       onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
                     />
                   ) : (
-                    <div className="w-full h-full bg-[oklch(0.22_0.07_240)] flex items-center justify-center">
-                      <Play size={32} className="text-[oklch(0.75_0.14_75)]" />
+                    <div className="w-full h-full bg-gradient-to-br from-[oklch(0.22_0.07_240)] to-[oklch(0.16_0.05_240)] p-5 flex flex-col justify-between text-white">
+                      <span className="w-fit border border-[oklch(0.75_0.14_75)/45] bg-[oklch(0.75_0.14_75)/12] px-2.5 py-1 font-heading text-[10px] font-semibold tracking-[0.16em] text-[oklch(0.85_0.10_78)] uppercase">
+                        Referência de projeto
+                      </span>
+                      <div>
+                        <p className="font-display text-xl font-semibold leading-tight">{projeto.cliente}</p>
+                        <p className="mt-2 font-heading text-xs leading-relaxed text-white/75">{projeto.evento}</p>
+                      </div>
+                      <p className="font-sans text-[11px] text-white/55">Imagem e vídeo serão adicionados posteriormente.</p>
                     </div>
                   )}
                   {/* Video indicator */}
@@ -347,7 +353,7 @@ export default function PortfolioSection() {
                 </div>
 
                 {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.12_0.08_240)/90] via-[oklch(0.12_0.08_240)/40] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                {temMidia && <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.12_0.08_240)/90] via-[oklch(0.12_0.08_240)/40] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
                   <div className="p-5 w-full">
                     <div className="flex items-center justify-between">
                       <div>
@@ -359,7 +365,7 @@ export default function PortfolioSection() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {/* VIP Badge */}
                 {projeto.vip && (
@@ -380,7 +386,8 @@ export default function PortfolioSection() {
                   <p className="text-[oklch(0.5_0.02_240)] text-xs font-heading mt-0.5">{projeto.cliente} · {projeto.evento}</p>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </motion.div>
 
@@ -515,19 +522,6 @@ export default function PortfolioSection() {
                   </span>
                 </div>
                 <p className="text-white/70 text-sm font-sans mt-3 leading-relaxed">{selecionado.descricao}</p>
-                {selecionado.notaImagem && (
-                  <p className="text-white/50 text-xs font-sans mt-3 leading-relaxed italic">{selecionado.notaImagem}</p>
-                )}
-                {selecionado.fonteEvento && (
-                  <a
-                    href={selecionado.fonteEvento}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex mt-4 text-[oklch(0.85_0.10_78)] text-xs font-heading underline underline-offset-4 hover:text-white transition-colors"
-                  >
-                    Informações oficiais da LAT.BUS 2026
-                  </a>
-                )}
               </div>
             </motion.div>
           </motion.div>

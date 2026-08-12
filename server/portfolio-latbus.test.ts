@@ -6,16 +6,17 @@ const portfolioPath = resolve(process.cwd(), "client/src/components/PortfolioSec
 const portfolioSource = readFileSync(portfolioPath, "utf8");
 
 describe("projeto Perto S.A. na LAT.BUS 2026", () => {
-  it("mantém o projeto no portfólio com cliente, evento e ativo contextual", () => {
+  it("mantém o projeto no portfólio como referência de cliente e feira, sem mídia não autorizada", () => {
     expect(portfolioSource).toContain('titulo: "Stand Perto S.A. — LAT.BUS 2026"');
     expect(portfolioSource).toContain('cliente: "Perto S.A."');
     expect(portfolioSource).toContain('evento: "LAT.BUS 2026 — São Paulo Expo, São Paulo/SP"');
-    expect(portfolioSource).toContain('/manus-storage/latbus-2026-identidade-visual_65ae3a1b.webp');
+    expect(portfolioSource).toMatch(/cliente: "Perto S\.A\.",[\s\S]*?imagem: null,[\s\S]*?video: null,[\s\S]*?galeria: \[\]/);
   });
 
-  it("identifica a imagem como contextual e preserva a fonte oficial do evento", () => {
-    expect(portfolioSource).toContain("Imagem de apoio da identidade visual pública da LAT.BUS 2026");
-    expect(portfolioSource).toContain('fonteEvento: "https://www.latbus2026.com.br/"');
-    expect(portfolioSource).toContain("Informações oficiais da LAT.BUS 2026");
+  it("não exibe ícone de vídeo ou clique para projetos sem mídia", () => {
+    expect(portfolioSource).toContain("const temMidia = Boolean(projeto.imagem || projeto.video || projeto.galeria.length > 0);");
+    expect(portfolioSource).toContain('onClick={temMidia ? () => abrirProjeto(projeto) : undefined}');
+    expect(portfolioSource).toContain("Imagem e vídeo serão adicionados posteriormente.");
+    expect(portfolioSource).toContain("Referência de projeto");
   });
 });
