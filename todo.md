@@ -396,3 +396,11 @@
 - [x] Disponibilizar atalhos para os módulos financeiros no início do dashboard
 - [x] Garantir navegação, responsividade e compatibilidade sem regressões
 - [x] Criar teste de regressão para os novos elementos e a navegação oficial dos atalhos
+
+## Módulo de Suporte/Tickets (Ago/2026)
+- [x] Definir perfil Desenvolvedor, permissões e fluxo de atendimento de tickets
+- [x] Criar tabelas, APIs e armazenamento seguro de anexos para tickets
+- [x] Implementar abertura de tickets e acompanhamento pelo usuário solicitante
+- [x] Implementar painel do Desenvolvedor para triagem, respostas, status e prazos
+- [x] Validar permissões, anexos, desktop/mobile e criar testes de regressão
+- [x] Criar testes de regressão para autorização, anexos e navegação de Tickets

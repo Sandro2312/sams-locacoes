@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -72,3 +72,49 @@ export const orcamentos = mysqlTable("orcamentos", {
 
 export type Orcamento = typeof orcamentos.$inferSelect;
 export type InsertOrcamento = typeof orcamentos.$inferInsert;
+
+export const crmTickets = mysqlTable("crm_tickets", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 30 }).notNull().unique(),
+  titulo: varchar("titulo", { length: 180 }).notNull(),
+  descricao: text("descricao").notNull(),
+  categoria: varchar("categoria", { length: 40 }).notNull().default("problema"),
+  prioridade: varchar("prioridade", { length: 20 }).notNull().default("normal"),
+  status: varchar("status", { length: 30 }).notNull().default("aberto"),
+  solicitanteId: int("solicitante_id").notNull(),
+  solicitanteNome: varchar("solicitante_nome", { length: 255 }).notNull(),
+  solicitanteEmail: varchar("solicitante_email", { length: 255 }),
+  responsavelId: int("responsavel_id"),
+  responsavelNome: varchar("responsavel_nome", { length: 255 }),
+  prazoAt: timestamp("prazo_at"),
+  firstResponseAt: timestamp("first_response_at"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export const crmTicketMensagens = mysqlTable("crm_ticket_mensagens", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  ticketId: bigint("ticket_id", { mode: "number" }).notNull(),
+  autorId: int("autor_id").notNull(),
+  autorNome: varchar("autor_nome", { length: 255 }).notNull(),
+  tipoAutor: varchar("tipo_autor", { length: 20 }).notNull(),
+  mensagem: text("mensagem"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const crmTicketAnexos = mysqlTable("crm_ticket_anexos", {
+  id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
+  ticketId: bigint("ticket_id", { mode: "number" }).notNull(),
+  mensagemId: bigint("mensagem_id", { mode: "number" }),
+  nomeOriginal: varchar("nome_original", { length: 180 }).notNull(),
+  arquivoKey: varchar("arquivo_key", { length: 500 }).notNull(),
+  arquivoUrl: text("arquivo_url").notNull(),
+  mimeType: varchar("mime_type", { length: 120 }).notNull(),
+  tamanhoBytes: bigint("tamanho_bytes", { mode: "number" }).notNull().default(0),
+  createdBy: int("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type CrmTicket = typeof crmTickets.$inferSelect;
+export type InsertCrmTicket = typeof crmTickets.$inferInsert;

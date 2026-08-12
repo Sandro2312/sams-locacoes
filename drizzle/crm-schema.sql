@@ -511,3 +511,53 @@ CREATE TABLE IF NOT EXISTS crm_transacoes (
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_tipo ON crm_transacoes(tipo);
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_data ON crm_transacoes(data);
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_centro_custo ON crm_transacoes(centro_custo);
+
+-- Suporte/Tickets
+CREATE TABLE IF NOT EXISTS crm_tickets (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(30) NOT NULL UNIQUE,
+  titulo VARCHAR(180) NOT NULL,
+  descricao TEXT NOT NULL,
+  categoria VARCHAR(40) NOT NULL DEFAULT 'problema',
+  prioridade VARCHAR(20) NOT NULL DEFAULT 'normal',
+  status VARCHAR(30) NOT NULL DEFAULT 'aberto',
+  solicitante_id INT NOT NULL,
+  solicitante_nome VARCHAR(255) NOT NULL,
+  solicitante_email VARCHAR(255) NULL,
+  responsavel_id INT NULL,
+  responsavel_nome VARCHAR(255) NULL,
+  prazo_at TIMESTAMP NULL,
+  first_response_at TIMESTAMP NULL,
+  resolved_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_crm_tickets_solicitante (solicitante_id),
+  INDEX idx_crm_tickets_status_prazo (status, prazo_at),
+  INDEX idx_crm_tickets_updated (updated_at)
+);
+
+CREATE TABLE IF NOT EXISTS crm_ticket_mensagens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  ticket_id BIGINT NOT NULL,
+  autor_id INT NOT NULL,
+  autor_nome VARCHAR(255) NOT NULL,
+  tipo_autor VARCHAR(20) NOT NULL,
+  mensagem TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_crm_ticket_mensagens_ticket (ticket_id, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS crm_ticket_anexos (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  ticket_id BIGINT NOT NULL,
+  mensagem_id BIGINT NULL,
+  nome_original VARCHAR(180) NOT NULL,
+  arquivo_key VARCHAR(500) NOT NULL,
+  arquivo_url TEXT NOT NULL,
+  mime_type VARCHAR(120) NOT NULL,
+  tamanho_bytes BIGINT NOT NULL DEFAULT 0,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_crm_ticket_anexos_ticket (ticket_id),
+  INDEX idx_crm_ticket_anexos_mensagem (mensagem_id)
+);

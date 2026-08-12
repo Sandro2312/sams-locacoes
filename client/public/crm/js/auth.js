@@ -11,10 +11,15 @@ const AuthSystem = {
 
     // Níveis de acesso e permissões
     accessLevels: {
+        'desenvolvedor': {
+            name: 'Desenvolvedor',
+            permissions: ['all'],
+            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'administracao', 'acervo', 'suporte']
+        },
         'administrador': {
             name: 'Administrador',
             permissions: ['all'],
-            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'administracao', 'acervo']
+            modules: ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban', 'administracao', 'acervo', 'suporte']
         },
         'marketing': {
             name: 'Marketing',
@@ -1061,7 +1066,7 @@ const AuthSystem = {
         moduleCards.forEach(card => {
             const module = card.getAttribute('data-module');
             
-            if (userRole === 'administrador' || userRole === 'admin' || this.hasModuleAccess(module)) {
+            if (this.isPrivilegedRole(userRole) || this.hasModuleAccess(module)) {
                 card.style.display = 'block';
             } else {
                 card.style.display = 'none';
@@ -1071,7 +1076,7 @@ const AuthSystem = {
         // Módulo de administração apenas para administrador
         const adminModule = document.getElementById('adminModule');
         if (adminModule) {
-            if (userRole === 'administrador' || userRole === 'admin') {
+            if (this.isPrivilegedRole(userRole)) {
                 adminModule.style.display = 'block';
             } else {
                 adminModule.style.display = 'none';
@@ -1118,7 +1123,7 @@ const AuthSystem = {
         if (!this.currentUser) return false;
         
         const userRole = this.currentUser.role;
-        if (userRole === 'administrador' || userRole === 'admin') return true;
+        if (this.isPrivilegedRole(userRole)) return true;
         
         // Usar o sistema de permissões se disponível
         if (typeof PermissionSystem !== 'undefined') {
@@ -1134,7 +1139,7 @@ const AuthSystem = {
         try {
             if (!this.currentUser) return false;
             const role = this.currentUser.role != null ? String(this.currentUser.role).trim().toLowerCase() : '';
-            if (role === 'administrador' || role === 'admin') return true;
+            if (this.isPrivilegedRole(role)) return true;
 
             const p = permission != null ? String(permission).trim() : '';
             if (!p) return false;
@@ -1157,9 +1162,10 @@ const AuthSystem = {
     // Verificar acesso ao módulo
     hasModuleAccess(module) {
         if (!this.currentUser) return false;
+        if (String(module || '').toLowerCase() === 'suporte') return true;
         
         const userRole = this.currentUser.role;
-        if (userRole === 'administrador' || userRole === 'admin') return true;
+        if (this.isPrivilegedRole(userRole)) return true;
         
         // Usar o sistema de permissões se disponível
         if (typeof PermissionSystem !== 'undefined' && typeof PermissionSystem.hasModuleAccess === 'function') {
@@ -1169,6 +1175,10 @@ const AuthSystem = {
         // Fallback para sistema básico
         const userModules = Array.isArray(this.currentUser.modules) ? this.currentUser.modules : (this.accessLevels[userRole]?.modules || []);
         return userModules.includes(module);
+    },
+
+    isPrivilegedRole(role) {
+        return ['administrador', 'admin', 'desenvolvedor', 'developer'].includes(String(role || '').trim().toLowerCase());
     },
 
     // Mostrar mensagem

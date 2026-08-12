@@ -7333,6 +7333,7 @@ const ModuleSystem = {
 
             const roleLabel = (r) => {
                 const s = String(r || '').toLowerCase();
+                if (s === 'desenvolvedor' || s === 'developer') return 'Desenvolvedor';
                 if (s === 'administrador' || s === 'admin') return 'Administrador';
                 if (s === 'gerente' || s === 'gerencia' || s === 'gerência' || s === 'gestor' || s === 'gestao' || s === 'gestão') return 'Gerente';
                 if (s === 'vendedor' || s === 'vendas') return 'Vendedor';
@@ -7344,6 +7345,7 @@ const ModuleSystem = {
             const normalizeRole = (r) => {
                 const s = String(r || '').trim().toLowerCase();
                 if (s === 'admin') return 'administrador';
+                if (s === 'developer') return 'desenvolvedor';
                 if (s === 'gerencia' || s === 'gerência' || s === 'gestor' || s === 'gestao' || s === 'gestão') return 'gerente';
                 return s;
             };
@@ -7357,13 +7359,15 @@ const ModuleSystem = {
                 { key: 'administrativo', label: 'Administrativo' },
                 { key: 'juridico', label: 'Jurídico' },
                 { key: 'kanban', label: 'Kanban' },
-                { key: 'administracao', label: 'Administração' }
+                { key: 'administracao', label: 'Administração' },
+                { key: 'acervo', label: 'Acervo' },
+                { key: 'suporte', label: 'Suporte' }
             ];
 
             const defaultModulesByRole = (role) => {
                 const r = normalizeRole(role);
                 const all = allModules.map(m => m.key);
-                if (r === 'administrador') return all;
+                if (r === 'administrador' || r === 'desenvolvedor') return all;
                 if (r === 'gerente') return ['marketing', 'comercial', 'projetos', 'montagem', 'financeiro', 'administrativo', 'juridico', 'kanban'];
                 if (r === 'marketing') return ['marketing', 'kanban'];
                 if (r === 'projetos') return ['projetos', 'kanban'];
@@ -7382,7 +7386,7 @@ const ModuleSystem = {
                             ? (window.AuthSystem.getCurrentUser() || null)
                             : ((window.AuthSystem && window.AuthSystem.currentUser) ? window.AuthSystem.currentUser : null);
                     const role = normalizeRole(current && current.role != null ? current.role : '');
-                    if (role === 'administrador') return new Set(allModules.map(m => m.key));
+                    if (role === 'administrador' || role === 'desenvolvedor') return new Set(allModules.map(m => m.key));
                     const mods = Array.isArray(current && current.modules) ? current.modules : [];
                     return new Set(mods.map(x => String(x).trim().toLowerCase()).filter(Boolean));
                 } catch {
@@ -7564,7 +7568,7 @@ const ModuleSystem = {
                 const roleNormalized = normalizeRole(roleValue);
 
                 const permissionEditorHtml = (window.PermissionSystem && typeof window.PermissionSystem.generatePermissionCheckboxes === 'function') 
-                    ? window.PermissionSystem.generatePermissionCheckboxes(userPermissionsInitial, normalizeRole(roleValue) === 'administrador')
+                    ? window.PermissionSystem.generatePermissionCheckboxes(userPermissionsInitial, ['administrador', 'desenvolvedor'].includes(normalizeRole(roleValue)))
                     : '<div class="text-sm text-gray-500">Sistema de permissões não disponível.</div>';
 
                 const content = `
@@ -7590,6 +7594,7 @@ const ModuleSystem = {
                                     <option value="comercial" ${String(roleValue).toLowerCase() === 'comercial' ? 'selected' : ''}>Comercial</option>
                                     <option value="marketing" ${String(roleValue).toLowerCase() === 'marketing' ? 'selected' : ''}>Marketing</option>
                                     <option value="gerente" ${String(roleValue).toLowerCase() === 'gerente' ? 'selected' : ''}>Gerente</option>
+                                    <option value="desenvolvedor" ${String(roleValue).toLowerCase() === 'desenvolvedor' ? 'selected' : ''}>Desenvolvedor</option>
                                     <option value="administrador" ${String(roleValue).toLowerCase() === 'administrador' ? 'selected' : ''}>Administrador</option>
                                 </select>
                             </div>
@@ -7604,7 +7609,7 @@ const ModuleSystem = {
                                 ${allModules.map((m, idx) => {
                                     const checkboxId = `adminUserMod_${m.key}_${id || 'new'}_${idx}`;
                                     const creatorDisabled = !creatorAllowed.has(m.key);
-                                    const roleDisabled = m.key === 'administracao' && roleNormalized !== 'administrador';
+                                    const roleDisabled = m.key === 'administracao' && !['administrador', 'desenvolvedor'].includes(roleNormalized);
                                     const disabled = creatorDisabled || roleDisabled;
                                     const checked = roleDisabled ? false : initialModules.includes(m.key);
                                     const lockReason = creatorDisabled && checked ? 'creator' : '';
@@ -7688,7 +7693,7 @@ const ModuleSystem = {
                                 if (!cb) return;
                                 const val = String(cb.value || '').trim().toLowerCase();
                                 const creatorDisabled = !creatorAllowed.has(val);
-                                const roleDisabled = val === 'administracao' && normalizeRole(nextRole) !== 'administrador';
+                                const roleDisabled = val === 'administracao' && !['administrador', 'desenvolvedor'].includes(normalizeRole(nextRole));
                                 cb.disabled = creatorDisabled || roleDisabled;
                                 if (roleDisabled && cb.checked) cb.checked = false;
                                 if (creatorDisabled) {
@@ -7703,12 +7708,12 @@ const ModuleSystem = {
 
                             const adminWarning = document.getElementById('admin-permission-warning');
                             if (adminWarning) {
-                                if (nextRole === 'administrador' || nextRole === 'admin') {
+                                if (['administrador', 'admin', 'desenvolvedor', 'developer'].includes(normalizeRole(nextRole))) {
                                     adminWarning.classList.remove('hidden');
                                     adminWarning.innerHTML = `
                                         <div class="flex items-center">
                                             <i class="fas fa-crown text-purple-600 mr-2"></i>
-                                            <span class="text-purple-800 font-medium">Este usuário é administrador e possui todas as permissões automaticamente. As seleções abaixo serão salvas, mas o administrador ignora essas restrições.</span>
+                                            <span class="text-purple-800 font-medium">Este usuário possui privilégios administrativos completos. As seleções abaixo serão salvas, mas não restringem o acesso do perfil selecionado.</span>
                                         </div>
                                     `;
                                     adminWarning.className = 'bg-purple-50 border border-purple-200 p-4 rounded-lg mb-4';
@@ -7748,7 +7753,7 @@ const ModuleSystem = {
                         blocks.forEach(block => {
                             const permModule = String(block.getAttribute('data-perm-module') || '').trim().toLowerCase();
                             const accessModule = permModule === 'admin' ? 'administracao' : permModule;
-                            const allowAdminPerms = permModule !== 'admin' || roleNow === 'administrador';
+                            const allowAdminPerms = permModule !== 'admin' || ['administrador', 'desenvolvedor'].includes(roleNow);
                             const enabled = allowAdminPerms && moduleSet.has(accessModule);
                             if (enabled) block.classList.remove('opacity-60');
                             else block.classList.add('opacity-60');

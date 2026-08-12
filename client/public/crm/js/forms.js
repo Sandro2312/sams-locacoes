@@ -5864,7 +5864,7 @@ ENTREGA
                             <label for="${formId}-nivel" class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso</label>
                             <select id="${formId}-nivel" name="nivel_acesso" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                 <option value="">Selecione o nível</option>
-                                ${['Admin','Gestor','Usuário'].map(n => `<option value="${n}" ${usuario?.nivel_acesso === n ? 'selected' : ''}>${n}</option>`).join('')}
+                                ${['Desenvolvedor','Admin','Gestor','Usuário'].map(n => `<option value="${n}" ${usuario?.nivel_acesso === n ? 'selected' : ''}>${n}</option>`).join('')}
                             </select>
                         </div>
                         <div>

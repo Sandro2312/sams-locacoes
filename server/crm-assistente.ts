@@ -79,10 +79,10 @@ function checkDailyLimit(userId: number): { ok: boolean; remaining: number; rese
 }
 
 // ─── Permissões (mesma lógica do crm.ts) ─────────────────────────────────────
-const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
+const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia", "desenvolvedor", "developer"];
 function isAdmin(role: string) { return ADMIN_ROLES.includes(role?.toLowerCase()); }
 function canAccessFinanceiro(role: string) {
-  return ["admin", "manager", "administrador", "gerente", "gerencia", "financeiro"].includes(role?.toLowerCase());
+  return ["admin", "manager", "administrador", "gerente", "gerencia", "desenvolvedor", "developer", "financeiro"].includes(role?.toLowerCase());
 }
 // Eventos, Clientes, Tarefas: qualquer usuário autenticado (mesma lógica dos GETs no crm.ts)
 function canAccessEventos(_role: string) { return true; }

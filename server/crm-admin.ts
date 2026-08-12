@@ -34,7 +34,7 @@ function requireAuth(req: any, res: any, next: any) {
   }).catch(() => res.status(401).json({ error: "Erro de autenticação" }));
 }
 
-const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
+const ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia", "desenvolvedor", "developer"];
 
 function requireAdmin(req: any, res: any, next: any) {
   requireAuth(req, res, () => {

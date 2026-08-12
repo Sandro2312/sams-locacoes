@@ -3,6 +3,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { registerImportRoutes } from "./crm-import";
 import { registerAssistenteRoutes } from "./crm-assistente";
+import { registerTicketRoutes } from "./crm-tickets";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -104,7 +105,7 @@ function requireCrmAuth(req: Request, res: Response, next: NextFunction) {
   }).catch(() => res.status(500).json({ error: "Erro interno" }));
 }
 
-const CRM_ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia"];
+const CRM_ADMIN_ROLES = ["admin", "manager", "administrador", "gerente", "gerencia", "desenvolvedor", "developer"];
 
 function requireCrmAdmin(req: Request, res: Response, next: NextFunction) {
   requireCrmAuth(req, res, () => {
@@ -2222,6 +2223,8 @@ export function registerCrmRoutes(app: any) {
   registerImportRoutes(r);
   // Registrar rotas da assistente virtual Veruska
   registerAssistenteRoutes(app);
+  // Registrar rotas do módulo de Suporte/Tickets (montagem isolada para não afetar /login)
+  registerTicketRoutes(app);
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);
 }

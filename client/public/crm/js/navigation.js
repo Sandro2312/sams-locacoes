@@ -114,6 +114,13 @@ const NavigationSystem = {
             pages: {
                 documentos: { name: 'Documentos', icon: 'fas fa-folder-open' }
             }
+        },
+        suporte: {
+            name: 'Suporte',
+            icon: 'fas fa-life-ring',
+            pages: {
+                tickets: { name: 'Tickets', icon: 'fas fa-ticket-alt' }
+            }
         }
     },
 
@@ -731,6 +738,8 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.administracao?.listComissoes?.() || '';
         } else if (module === 'administracao' && page === 'logs') {
             pageContent = ModuleSystem?.administracao?.listLogs?.() || '';
+        } else if (module === 'suporte' && page === 'tickets') {
+            pageContent = window.SuporteModule?.listTickets?.() || '';
         } else if (module === 'administracao' && page === 'ia') {
             pageContent = `
                 <div class="bg-white rounded-lg shadow">
@@ -897,7 +906,7 @@ const NavigationSystem = {
             if (!current) return null;
 
             const role = current.role != null ? String(current.role).trim().toLowerCase() : '';
-            if (role === 'administrador' || role === 'admin') return null;
+            if (['administrador', 'admin', 'desenvolvedor', 'developer'].includes(role)) return null;
 
             const perms = Array.isArray(current.permissions) ? current.permissions.map(p => String(p)) : [];
             const hasFinancePerms = perms.some(p => String(p).trim().toLowerCase().startsWith('financeiro.'));
@@ -992,6 +1001,11 @@ const NavigationSystem = {
         if (module === 'financeiro' && page === 'comissoes') {
             setTimeout(() => {
                 try { ModuleSystem?.financeiro?.initComissoes?.(); } catch {}
+            }, 50);
+        }
+        if (module === 'suporte' && page === 'tickets') {
+            setTimeout(() => {
+                try { window.SuporteModule?.initTickets?.(); } catch (error) { console.warn('[NavigationSystem] Falha ao iniciar Tickets:', error); }
             }, 50);
         }
         // Sincronização: ao abrir qualquer página do módulo financeiro, buscar transações da API

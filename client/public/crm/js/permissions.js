@@ -174,6 +174,14 @@ const PermissionSystem = {
                 'acervo.arquivos.download': 'Baixar arquivos',
                 'acervo.drive.link': 'Vincular Google Drive'
             }
+        },
+        suporte: {
+            name: 'Suporte',
+            permissions: {
+                'suporte.tickets.create': 'Abrir tickets',
+                'suporte.tickets.view_own': 'Acompanhar próprios tickets',
+                'suporte.tickets.manage': 'Triar e atender todos os tickets'
+            }
         }
     },
 
@@ -313,8 +321,8 @@ const PermissionSystem = {
                 const currentUser = AuthSystem.getCurrentUser();
                 if (!currentUser) return false;
                 
-                // Administrador tem todas as permissões
-                if (currentUser.role === 'administrador' || currentUser.role === 'admin') return true;
+                // Administrador e Desenvolvedor têm todas as permissões
+                if (['administrador', 'admin', 'desenvolvedor', 'developer'].includes(String(currentUser.role || '').toLowerCase())) return true;
                 
                 // Verificar permissões específicas do usuário
                 const userPermissions = currentUser.permissions || [];
@@ -326,7 +334,7 @@ const PermissionSystem = {
                 const currentUser = AuthSystem.getCurrentUser();
                 if (!currentUser) return [];
                 
-                if (currentUser.role === 'administrador' || currentUser.role === 'admin') return 'all';
+                if (['administrador', 'admin', 'desenvolvedor', 'developer'].includes(String(currentUser.role || '').toLowerCase())) return 'all';
                 
                 return currentUser.permissions || [];
             };
@@ -720,7 +728,7 @@ const PermissionSystem = {
             const currentUser = AuthSystem.getCurrentUser();
             if (!currentUser) return false;
             const role = currentUser.role != null ? String(currentUser.role).toLowerCase() : '';
-            if (role === 'administrador' || role === 'admin') return true;
+            if (['administrador', 'admin', 'desenvolvedor', 'developer'].includes(role)) return true;
 
             const modules = Array.isArray(currentUser.modules) ? currentUser.modules.map(x => String(x)) : [];
             if (modules.includes(String(module))) return true;
