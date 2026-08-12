@@ -377,3 +377,9 @@
 - [x] Corrigir receitas zeradas e totais incorretos preservando os demais relatórios financeiros
 - [x] Validar os totais do relatório contra o banco de dados e criar teste de regressão
 - [x] Criar teste de regressão para a compatibilidade TiDB de LIMIT/OFFSET paginados
+
+## Investigação — Acesso automático na tela de login (Ago/2026)
+- [x] Auditar restauração de sessão, cookies e inicialização do CRM
+- [x] Corrigir apenas o gatilho que entra automaticamente com a sessão anterior
+- [x] Validar login, logout e retorno à tela de autenticação em desktop e mobile
+- [x] Criar teste de regressão para impedir a restauração automática no bootstrap

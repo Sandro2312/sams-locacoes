@@ -71,9 +71,14 @@ const AuthSystem = {
     // Estado atual
     currentUser: null,
     loginAttempts: {},
+    initialized: false,
 
     // Inicialização
     init() {
+        // auth.js pode ser inicializado pelo bootstrap principal e pelo fallback.
+        // Executar uma única vez evita concorrência entre verificações de sessão.
+        if (this.initialized) return;
+        this.initialized = true;
         if (location.protocol !== 'http:' && location.protocol !== 'https:') {
             this.currentUser = null;
             this.showLogin();
@@ -85,7 +90,12 @@ const AuthSystem = {
         if (isDev && this.config.lockoutDuration > 60 * 1000) {
             this.config.lockoutDuration = 60 * 1000; // 1 minuto
         }
-        this.checkSession();
+        // Segurança e previsibilidade: uma sessão válida anterior não deve abrir
+        // o CRM sozinha. A tela de login permanece visível até o usuário enviar
+        // suas credenciais pelo botão "Entrar". O cookie/token continua sendo
+        // usado normalmente depois do login explícito, inclusive em mobile.
+        this.currentUser = null;
+        this.showLogin();
         this.bindEvents();
         this.loadLoginAttempts();
     },
