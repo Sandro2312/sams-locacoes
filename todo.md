@@ -383,3 +383,10 @@
 - [x] Corrigir apenas o gatilho que entra automaticamente com a sessão anterior
 - [x] Validar login, logout e retorno à tela de autenticação em desktop e mobile
 - [x] Criar teste de regressão para impedir a restauração automática no bootstrap
+
+## Melhoria — Experiência da tela de login (Ago/2026)
+- [x] Adicionar opção Lembrar-me com persistência explícita e segura
+- [x] Melhorar feedback visual e acessível de credenciais incorretas
+- [x] Implementar estado de carregamento suave e bloqueio contra envios duplicados
+- [x] Validar sintaxe, fluxo e compatibilidade em desktop e mobile
+- [x] Ampliar teste de regressão da tela de login para os novos comportamentos

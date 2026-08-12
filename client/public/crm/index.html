@@ -1026,13 +1026,24 @@
 
                     <input type="hidden" name="csrf_token" id="csrfToken" value="">
 
+                    <!-- Lembrar-me: preserva somente o e-mail neste dispositivo; nunca autentica automaticamente -->
+                    <label for="rememberMe" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#475569;cursor:pointer;user-select:none">
+                        <input type="checkbox" id="rememberMe" name="rememberMe"
+                            style="width:16px;height:16px;accent-color:#2563eb;flex-shrink:0"
+                            aria-describedby="rememberMeHint">
+                        <span>Lembrar-me neste dispositivo</span>
+                    </label>
+                    <p id="rememberMeHint" style="margin:-12px 0 0 24px;font-size:0.72rem;line-height:1.35;color:#94a3b8">Salva apenas seu e-mail. O acesso continua exigindo senha.</p>
+
                     <!-- Botão Entrar -->
-                    <button type="submit"
-                        style="width:100%;padding:13px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;letter-spacing:0.3px;box-shadow:0 4px 16px rgba(59,130,246,0.35)"
+                    <button type="submit" id="loginSubmitBtn"
+                        style="width:100%;padding:13px;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;letter-spacing:0.3px;box-shadow:0 4px 16px rgba(59,130,246,0.35);transition:transform 180ms ease,opacity 180ms ease,box-shadow 180ms ease"
                         title="Fazer login no sistema" aria-label="Fazer login no sistema">
-                        <span id="loginSpinner" class="hidden mr-2"><i class="fas fa-spinner fa-spin"></i></span>
-                        <i class="fas fa-sign-in-alt" style="margin-right:8px"></i>
-                        Entrar no Sistema
+                        <span style="display:inline-flex;align-items:center;justify-content:center;gap:8px">
+                            <span id="loginSpinner" class="hidden" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span>
+                            <i id="loginSubmitIcon" class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                            <span id="loginSubmitLabel">Entrar no Sistema</span>
+                        </span>
                     </button>
 
                     <!-- Esqueci minha senha -->
@@ -1530,7 +1541,7 @@
     <!-- Timer de logout por inatividade (deve carregar antes do auth.js) -->
     <script src="/crm/js/crm-idle-timer.js?v=1783341600" defer></script>
   <script src="/crm/js/crm-veruska.js?v=1784979525" defer></script>
-    <script src="/crm/js/auth.js?v=1786545997" defer></script>
+    <script src="/crm/js/auth.js?v=1786546563" defer></script>
     <!-- Módulo dedicado de Contas a Receber (deve carregar antes de modules.js e forms.js) -->
     <script src="/crm/js/crm-contas-receber.js?v=1783337181" defer></script>
     <script src="/crm/js/modules.js?v=1786201519" defer></script>

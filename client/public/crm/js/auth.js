@@ -72,6 +72,7 @@ const AuthSystem = {
     currentUser: null,
     loginAttempts: {},
     initialized: false,
+    rememberedLoginKey: 'crm_remembered_login_email',
 
     // Inicialização
     init() {
@@ -96,8 +97,57 @@ const AuthSystem = {
         // usado normalmente depois do login explícito, inclusive em mobile.
         this.currentUser = null;
         this.showLogin();
+        this.restoreRememberedLogin();
         this.bindEvents();
         this.loadLoginAttempts();
+    },
+
+    // "Lembrar-me" guarda somente o e-mail; não preserva senha nem reabre o CRM.
+    restoreRememberedLogin() {
+        try {
+            const email = String(localStorage.getItem(this.rememberedLoginKey) || '').trim();
+            const emailEl = document.getElementById('loginEmail');
+            const rememberEl = document.getElementById('rememberMe');
+            if (email && emailEl) emailEl.value = email;
+            if (rememberEl) rememberEl.checked = !!email;
+        } catch {}
+    },
+
+    persistRememberedLogin(email, shouldRemember) {
+        try {
+            if (shouldRemember && email) localStorage.setItem(this.rememberedLoginKey, String(email).trim());
+            else localStorage.removeItem(this.rememberedLoginKey);
+        } catch {}
+    },
+
+    setCredentialFeedback(hasError) {
+        const inputs = [document.getElementById('loginEmail'), document.getElementById('loginPassword')].filter(Boolean);
+        for (const input of inputs) {
+            input.setAttribute('aria-invalid', hasError ? 'true' : 'false');
+            input.style.borderColor = hasError ? '#ef4444' : '#e2e8f0';
+            input.style.background = hasError ? '#fef2f2' : '#f8fafc';
+            input.style.boxShadow = hasError ? '0 0 0 3px rgba(239,68,68,0.12)' : 'none';
+            input.style.transition = 'border-color 180ms ease,background 180ms ease,box-shadow 180ms ease';
+        }
+    },
+
+    setLoginLoading(isLoading) {
+        const formEl = document.getElementById('loginForm');
+        const button = document.getElementById('loginSubmitBtn');
+        const spinner = document.getElementById('loginSpinner');
+        const icon = document.getElementById('loginSubmitIcon');
+        const label = document.getElementById('loginSubmitLabel');
+        if (formEl) formEl.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+        if (button) {
+            button.disabled = !!isLoading;
+            button.style.opacity = isLoading ? '0.82' : '1';
+            button.style.cursor = isLoading ? 'wait' : 'pointer';
+            button.style.transform = isLoading ? 'scale(0.985)' : 'scale(1)';
+            button.setAttribute('aria-label', isLoading ? 'Autenticando, aguarde' : 'Fazer login no sistema');
+        }
+        if (spinner) spinner.classList.toggle('hidden', !isLoading);
+        if (icon) icon.classList.toggle('hidden', !!isLoading);
+        if (label) label.textContent = isLoading ? 'Autenticando...' : 'Entrar no Sistema';
     },
 
     // Verificar sessão existente
@@ -224,6 +274,14 @@ const AuthSystem = {
             }
         }, true);
 
+        // Ao corrigir os campos, remove o destaque de erro sem apagar a mensagem.
+        document.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target && (target.id === 'loginEmail' || target.id === 'loginPassword')) {
+                this.setCredentialFeedback(false);
+            }
+        }, true);
+
         // Delegação de clique para toggle de senha
         // Nota: o onclick inline no botão #togglePassword já cuida do toggle.
         // Mantemos este handler apenas para data-action="togglePassword" em outros contextos.
@@ -273,12 +331,13 @@ const AuthSystem = {
         const formEl = document.getElementById('loginForm');
         const emailEl = document.getElementById('loginEmail');
         const passwordEl = document.getElementById('loginPassword');
-        const spinnerEl = document.getElementById('loginSpinner');
+        const rememberEl = document.getElementById('rememberMe');
         const messageDiv = document.getElementById('loginMessage');
         const inputCsrf = document.getElementById('csrfToken');
 
         const email = emailEl ? emailEl.value.trim() : '';
         const password = passwordEl ? passwordEl.value : '';
+        if (formEl && formEl.getAttribute('aria-busy') === 'true') return;
 
         // Garantir token CSRF sincronizado entre meta e input (corrige falha em mobile/Safari)
         const ensureCsrf = () => {
@@ -301,18 +360,20 @@ const AuthSystem = {
 
         // Validações básicas
         if (!email || !password) {
+            this.setCredentialFeedback(true);
             this.showMessage('Por favor, preencha todos os campos.', 'error');
             return;
         }
 
         // Ativar feedback visual
-        if (formEl) formEl.setAttribute('aria-busy', 'true');
-        if (spinnerEl) spinnerEl.classList.remove('hidden');
+        this.setCredentialFeedback(false);
+        this.setLoginLoading(true);
         if (messageDiv) {
             messageDiv.classList.add('hidden');
             messageDiv.textContent = '';
         }
 
+        let loginSucceeded = false;
         try {
             // Verificar bloqueio por tentativas
             if (this.isUserLocked(email)) {
@@ -332,6 +393,7 @@ const AuthSystem = {
                 const payload = await resp.json().catch(()=>({}));
                 if (!resp.ok) {
                     this.recordFailedAttempt(email);
+                    this.setCredentialFeedback(true);
                     const msg = payload && payload.error ? payload.error : 'Email/login ou senha incorretos.';
                     this.showMessage(msg, 'error');
                     return;
@@ -339,6 +401,7 @@ const AuthSystem = {
                 const user = payload.user;
                 // Login bem-sucedido
                 this.clearFailedAttempts(email);
+                this.persistRememberedLogin(email, !!(rememberEl && rememberEl.checked));
                 // Armazenar token de fallback para browsers que bloqueiam cookies (Safari ITP, Brave)
                 if (payload._sessionToken) {
                     try { sessionStorage.setItem('crm_fallback_token', payload._sessionToken); } catch {}
@@ -348,22 +411,24 @@ const AuthSystem = {
                 }
                 this.createSession(user);
                 this.showMessage('Login realizado com sucesso!', 'success');
+                loginSucceeded = true;
 
                 setTimeout(() => {
                     this.showMainApp();
                 }, 1000);
             } catch(fetchErr){
                 console.error('Erro ao chamar /api/login:', fetchErr);
+                this.setCredentialFeedback(true);
                 this.showMessage('Erro de comunicação com o servidor. Tente novamente.', 'error');
                 return;
             }
         } catch (err) {
             console.error('Erro no processo de login:', err);
+            this.setCredentialFeedback(true);
             this.showMessage('Ocorreu um erro no login. Tente novamente.', 'error');
         } finally {
-            // Desativar feedback visual
-            if (formEl) formEl.setAttribute('aria-busy', 'false');
-            if (spinnerEl) spinnerEl.classList.add('hidden');
+            // Após sucesso, manter o botão no estado de processamento até abrir o CRM.
+            if (!loginSucceeded) this.setLoginLoading(false);
         }
     },
 
@@ -630,9 +695,14 @@ const AuthSystem = {
         document.getElementById('loginScreen').classList.remove('hidden');
         document.getElementById('mainApp').classList.add('hidden');
         
-        // Limpar campos
-        document.getElementById('loginEmail').value = '';
-        document.getElementById('loginPassword').value = '';
+        // Limpar senha sempre; o e-mail só é restaurado pela opção Lembrar-me.
+        const emailEl = document.getElementById('loginEmail');
+        const passwordEl = document.getElementById('loginPassword');
+        if (emailEl) emailEl.value = '';
+        if (passwordEl) passwordEl.value = '';
+        this.setCredentialFeedback(false);
+        this.setLoginLoading(false);
+        this.restoreRememberedLogin();
         document.getElementById('loginMessage').classList.add('hidden');
     },
 
