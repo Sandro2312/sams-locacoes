@@ -415,3 +415,9 @@
 - [x] Manter o Dashboard Financeiro na página inicial do módulo
 - [x] Posicionar os cartões de Despesas, Receitas, Comissões e Boletos antes do Dashboard
 - [x] Validar ordem, navegação e responsividade sem regressões
+
+## Portfólio — LAT.BUS e Perto S.A. (Ago/2026)
+- [x] Pesquisar fontes oficiais da LAT.BUS, São Paulo Expo e Perto S.A.
+- [x] Atualizar o portfólio com o projeto de montagem de stand da Perto S.A.
+- [x] Validar conteúdo, responsividade e testes antes do checkpoint
+- [x] Criar teste de regressão para os fatos e a imagem contextual do projeto LAT.BUS

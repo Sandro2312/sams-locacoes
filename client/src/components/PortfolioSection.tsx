@@ -7,6 +7,20 @@ const CDN2 = "/manus-storage";
 
 const projetos = [
   {
+    id: 16,
+    titulo: "Stand Perto S.A. — LAT.BUS 2026",
+    cliente: "Perto S.A.",
+    evento: "LAT.BUS 2026 — São Paulo Expo, São Paulo/SP",
+    categoria: "Personalizado",
+    imagem: "/manus-storage/latbus-2026-identidade-visual_65ae3a1b.webp",
+    video: null,
+    galeria: ["/manus-storage/latbus-2026-identidade-visual_65ae3a1b.webp"],
+    vip: false,
+    fonteEvento: "https://www.latbus2026.com.br/",
+    notaImagem: "Imagem de apoio da identidade visual pública da LAT.BUS 2026; a foto autorizada do stand da Perto S.A. será incluída assim que for disponibilizada.",
+    descricao: "A SAMS Locações realizou a montagem do stand da Perto S.A. na LAT.BUS 2026, feira latino-americana de mobilidade por ônibus realizada de 11 a 13 de agosto no São Paulo Expo. O projeto apresentou a marca em um ambiente alinhado às suas soluções de autoatendimento, recarga, venda de passagens e gestão para transporte público.",
+  },
+  {
     id: 11,
     titulo: "Stand Calçados Beira Rio",
     cliente: "Calçados Beira Rio",
@@ -177,7 +191,11 @@ const projetos = [
 
 const categorias = ["Todos", "Personalizado", "Modular", "Híbrido", "Cenografia"];
 
-type Projeto = typeof projetos[0] & { videoExtra?: string };
+type Projeto = typeof projetos[number] & {
+  videoExtra?: string;
+  fonteEvento?: string;
+  notaImagem?: string;
+};
 
 export default function PortfolioSection() {
   const [filtro, setFiltro] = useState("Todos");
@@ -221,7 +239,7 @@ export default function PortfolioSection() {
             <span className="italic text-[oklch(0.75_0.14_75)]">Stands Personalizados</span>
           </h2>
           <p className="text-[oklch(0.5_0.02_240)] text-base max-w-2xl mx-auto font-sans leading-relaxed">
-            Conheça os <strong>stands personalizados para feiras</strong> que realizamos na <strong>FIMEC 2026</strong> — Feira Internacional de Tecnologia para Calçados, em Novo Hamburgo/RS. <strong>Montagem de estandes corporativos</strong> com qualidade e pontualidade.
+            Conheça os <strong>stands personalizados para feiras</strong> que realizamos em grandes eventos nacionais — da <strong>FIMEC 2026</strong> à <strong>LAT.BUS 2026</strong>, no São Paulo Expo. <strong>Montagem de estandes corporativos</strong> com qualidade e pontualidade.
           </p>
         </motion.div>
 
@@ -497,6 +515,19 @@ export default function PortfolioSection() {
                   </span>
                 </div>
                 <p className="text-white/70 text-sm font-sans mt-3 leading-relaxed">{selecionado.descricao}</p>
+                {selecionado.notaImagem && (
+                  <p className="text-white/50 text-xs font-sans mt-3 leading-relaxed italic">{selecionado.notaImagem}</p>
+                )}
+                {selecionado.fonteEvento && (
+                  <a
+                    href={selecionado.fonteEvento}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex mt-4 text-[oklch(0.85_0.10_78)] text-xs font-heading underline underline-offset-4 hover:text-white transition-colors"
+                  >
+                    Informações oficiais da LAT.BUS 2026
+                  </a>
+                )}
               </div>
             </motion.div>
           </motion.div>
