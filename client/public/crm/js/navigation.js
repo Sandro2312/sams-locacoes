@@ -62,6 +62,7 @@ const NavigationSystem = {
             name: 'Financeiro',
             icon: 'fas fa-chart-line',
             pages: {
+                dashboard: { name: 'Dashboard', icon: 'fas fa-chart-pie' },
                 custos: { name: 'Despesas', icon: 'fas fa-money-bill-wave' },
                 receitas: { name: 'Receitas', icon: 'fas fa-coins' },
                 comissoes: { name: 'Comissões', icon: 'fas fa-percentage' },
@@ -512,7 +513,7 @@ const NavigationSystem = {
                         : ((window.AuthSystem && window.AuthSystem.currentUser) ? window.AuthSystem.currentUser : null);
                 const role = current && current.role != null ? String(current.role).trim().toLowerCase() : '';
                 const isManagerOrAdmin =
-                    role === 'administrador' || role === 'admin' ||
+                    role === 'administrador' || role === 'admin' || role === 'desenvolvedor' || role === 'developer' ||
                     role === 'gerente' || role === 'gerencia' || role === 'gerência' ||
                     role === 'gestor' || role === 'gestao' || role === 'gestão';
                 if (isManagerOrAdmin && window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.initDashboardHome === 'function') {
@@ -594,6 +595,8 @@ const NavigationSystem = {
             this.reloadEventosList();
         } else if (module === 'comercial' && page === 'briefings') {
             this.reloadBriefingsList();
+        } else if (module === 'financeiro' && page === 'dashboard') {
+            try { ModuleSystem?.financeiro?.initDashboardHome?.(); } catch (e) { console.warn('Falha ao carregar dashboard financeiro:', e); }
         } else if (module === 'financeiro' && page === 'receitas') {
             try {
                 if (window.FinanceiroModule && typeof window.FinanceiroModule.loadContasReceber === 'function') {
@@ -624,7 +627,7 @@ const NavigationSystem = {
                         : ((window.AuthSystem && window.AuthSystem.currentUser) ? window.AuthSystem.currentUser : null);
                 const role = current && current.role != null ? String(current.role).trim().toLowerCase() : '';
                 const isManagerOrAdmin =
-                    role === 'administrador' || role === 'admin' ||
+                    role === 'administrador' || role === 'admin' || role === 'desenvolvedor' || role === 'developer' ||
                     role === 'gerente' || role === 'gerencia' || role === 'gerência' ||
                     role === 'gestor' || role === 'gestao' || role === 'gestão';
                 if (isManagerOrAdmin && module === 'financeiro' && window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.renderDashboardHome === 'function') {
@@ -718,6 +721,8 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.montagem?.listOrdensServico?.() || '';
         } else if (module === 'financeiro' && page === 'custos') {
             pageContent = ModuleSystem?.financeiro?.listTransacoes?.() || '';
+        } else if (module === 'financeiro' && page === 'dashboard') {
+            pageContent = ModuleSystem?.financeiro?.renderDashboardHome?.() || '';
         } else if (module === 'financeiro' && page === 'receitas') {
             pageContent = ModuleSystem?.financeiro?.listReceitas?.() || '';
         } else if (module === 'financeiro' && page === 'comissoes') {
@@ -914,6 +919,8 @@ const NavigationSystem = {
 
             const hasAny = (candidates) => candidates.some(k => perms.includes(k));
             const allowed = new Set();
+
+            if (hasFinancePerms) allowed.add('dashboard');
 
             if (hasAny(['financeiro.comissoes.view', 'financeiro.comissoes.calculate'])) allowed.add('comissoes');
             if (hasAny(['financeiro.relatorios.view', 'financeiro.relatorios.export'])) allowed.add('relatorios');

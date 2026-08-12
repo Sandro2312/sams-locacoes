@@ -404,3 +404,9 @@
 - [x] Implementar painel do Desenvolvedor para triagem, respostas, status e prazos
 - [x] Validar permissões, anexos, desktop/mobile e criar testes de regressão
 - [x] Criar testes de regressão para autorização, anexos e navegação de Tickets
+
+## Correção — Dashboard Financeiro para Administrador (Ago/2026)
+- [x] Auditar a regra que oculta ou bloqueia o Dashboard Financeiro do perfil Administrador
+- [x] Restaurar o acesso da Vera sem ampliar permissões indevidas para usuários comuns
+- [x] Validar os perfis Administrador, Desenvolvedor e usuário comum em desktop e mobile
+- [x] Criar teste de regressão para a aba Dashboard e suas permissões financeiras
