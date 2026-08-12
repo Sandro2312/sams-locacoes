@@ -426,3 +426,8 @@
 - [x] Auditar projetos sem foto/vídeo e referências de mídia indisponíveis
 - [x] Exibir somente cliente e feira em projetos sem mídia, sem ícone de reprodução
 - [x] Validar layout mobile e criar teste de regressão
+
+## Melhoria — Tipografia das referências de Portfólio (Ago/2026)
+- [x] Criar uma composição editorial atraente para cartões sem mídia
+- [x] Refinar hierarquia tipográfica de cliente, feira e identificação do projeto
+- [x] Validar responsividade e atualizar teste de regressão

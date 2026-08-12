@@ -16,7 +16,8 @@ describe("projeto Perto S.A. na LAT.BUS 2026", () => {
   it("não exibe ícone de vídeo ou clique para projetos sem mídia", () => {
     expect(portfolioSource).toContain("const temMidia = Boolean(projeto.imagem || projeto.video || projeto.galeria.length > 0);");
     expect(portfolioSource).toContain('onClick={temMidia ? () => abrirProjeto(projeto) : undefined}');
-    expect(portfolioSource).toContain("Imagem e vídeo serão adicionados posteriormente.");
-    expect(portfolioSource).toContain("Referência de projeto");
+    expect(portfolioSource).toContain("Portfólio SAMS");
+    expect(portfolioSource).toContain("Montagem de stand");
+    expect(portfolioSource).toContain("Imagens em breve");
   });
 });

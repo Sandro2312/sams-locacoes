@@ -333,15 +333,27 @@ export default function PortfolioSection() {
                       onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[oklch(0.22_0.07_240)] to-[oklch(0.16_0.05_240)] p-5 flex flex-col justify-between text-white">
-                      <span className="w-fit border border-[oklch(0.75_0.14_75)/45] bg-[oklch(0.75_0.14_75)/12] px-2.5 py-1 font-heading text-[10px] font-semibold tracking-[0.16em] text-[oklch(0.85_0.10_78)] uppercase">
-                        Referência de projeto
-                      </span>
-                      <div>
-                        <p className="font-display text-xl font-semibold leading-tight">{projeto.cliente}</p>
-                        <p className="mt-2 font-heading text-xs leading-relaxed text-white/75">{projeto.evento}</p>
+                    <div className="relative isolate w-full h-full overflow-hidden bg-[oklch(0.17_0.055_240)] px-6 py-5 text-white flex flex-col justify-between">
+                      <div className="absolute inset-0 -z-10 opacity-35 bg-[radial-gradient(circle_at_88%_16%,oklch(0.75_0.14_75)_0%,transparent_26%),linear-gradient(120deg,transparent_0%,oklch(0.27_0.08_240)_48%,transparent_100%)]" />
+                      <div className="absolute right-5 top-5 font-display text-5xl leading-none text-white/[0.07] select-none">S</div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="w-fit border border-[oklch(0.75_0.14_75)/45] bg-[oklch(0.75_0.14_75)/12] px-2.5 py-1 font-heading text-[9px] font-bold tracking-[0.2em] text-[oklch(0.85_0.10_78)] uppercase">
+                          Portfólio SAMS
+                        </span>
+                        <span className="font-heading text-[9px] tracking-[0.16em] text-white/45 uppercase">Referência</span>
                       </div>
-                      <p className="font-sans text-[11px] text-white/55">Imagem e vídeo serão adicionados posteriormente.</p>
+                      <div className="mt-4">
+                        <div className="mb-3 flex items-center gap-3">
+                          <span className="h-px w-8 bg-[oklch(0.75_0.14_75)]" />
+                          <span className="font-heading text-[9px] font-semibold tracking-[0.18em] text-[oklch(0.85_0.10_78)] uppercase">Cliente</span>
+                        </div>
+                        <p className="font-display text-2xl sm:text-[1.7rem] font-semibold leading-[1.05] tracking-[-0.02em] text-white">{projeto.cliente}</p>
+                        <p className="mt-4 border-l-2 border-[oklch(0.75_0.14_75)] pl-3 font-heading text-xs leading-relaxed text-white/75">{projeto.evento}</p>
+                      </div>
+                      <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-3 font-heading text-[9px] tracking-[0.12em] text-white/45 uppercase">
+                        <span>Montagem de stand</span>
+                        <span className="text-[oklch(0.85_0.10_78)]">Imagens em breve</span>
+                      </div>
                     </div>
                   )}
                   {/* Video indicator */}
