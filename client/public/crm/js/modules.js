@@ -5206,6 +5206,17 @@ const ModuleSystem = {
                         </div>
                     </div>
                     <div id="financeiro-alertas-banner" class="px-6 pt-2"></div>
+                    <div id="financeiroQuickAccess" class="px-6 pt-3" aria-label="Atalhos do módulo Financeiro">
+                        <div class="flex flex-col gap-2 rounded-lg border border-blue-100 bg-blue-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="text-sm font-semibold text-slate-700"><i class="fas fa-bolt mr-1 text-blue-600" aria-hidden="true"></i>Acesso rápido</div>
+                            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                                <button type="button" data-finance-page="despesas" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-red-700 shadow-sm ring-1 ring-red-100 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400" title="Abrir Despesas"><i class="fas fa-money-bill-wave mr-1" aria-hidden="true"></i>Despesas</button>
+                                <button type="button" data-finance-page="receitas" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-emerald-700 shadow-sm ring-1 ring-emerald-100 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" title="Abrir Receitas"><i class="fas fa-coins mr-1" aria-hidden="true"></i>Receitas</button>
+                                <button type="button" data-finance-page="comissoes" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-violet-700 shadow-sm ring-1 ring-violet-100 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-400" title="Abrir Comissões"><i class="fas fa-percent mr-1" aria-hidden="true"></i>Comissões</button>
+                                <button type="button" data-finance-page="boletos" class="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400" title="Abrir Boletos"><i class="fas fa-receipt mr-1" aria-hidden="true"></i>Boletos</button>
+                            </div>
+                        </div>
+                    </div>
                     <div id="financeiroDashBody" class="p-6">
                         <div class="text-sm text-gray-500">Carregando...</div>
                     </div>
@@ -5219,9 +5230,22 @@ const ModuleSystem = {
             const btnRefresh = document.getElementById('financeiroDashRefresh');
             const dateInput = document.getElementById('financeiroDashDate');
             const relRoot = document.getElementById('financeiroRelatoriosHome');
+            const quickAccessRoot = document.getElementById('financeiroQuickAccess');
             if (!root) return;
             if (root.getAttribute('data-init') === 'true') return;
             root.setAttribute('data-init', 'true');
+
+            // Atalhos ficam acima das listas extensas; reutilizam a navegação oficial e suas permissões.
+            if (quickAccessRoot && !quickAccessRoot.getAttribute('data-bound')) {
+                quickAccessRoot.setAttribute('data-bound', 'true');
+                quickAccessRoot.addEventListener('click', (event) => {
+                    const target = event.target && event.target.closest ? event.target.closest('[data-finance-page]') : null;
+                    const page = target && target.getAttribute('data-finance-page');
+                    if (!page || !(window.NavigationSystem && typeof window.NavigationSystem.navigateToPage === 'function')) return;
+                    event.preventDefault();
+                    window.NavigationSystem.navigateToPage('financeiro', page);
+                });
+            }
 
             const escapeHtml = (s) => String(s == null ? '' : s)
                 .replace(/&/g, '&amp;')

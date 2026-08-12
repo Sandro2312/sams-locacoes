@@ -1027,13 +1027,15 @@
                     <input type="hidden" name="csrf_token" id="csrfToken" value="">
 
                     <!-- Lembrar-me: preserva somente o e-mail neste dispositivo; nunca autentica automaticamente -->
-                    <label for="rememberMe" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#475569;cursor:pointer;user-select:none">
+                    <label for="rememberMe" style="display:flex;align-items:flex-start;gap:8px;width:100%;font-size:0.82rem;color:#475569;cursor:pointer;user-select:none">
                         <input type="checkbox" id="rememberMe" name="rememberMe"
-                            style="width:16px;height:16px;accent-color:#2563eb;flex-shrink:0"
+                            style="width:16px;height:16px;margin-top:2px;accent-color:#2563eb;flex-shrink:0"
                             aria-describedby="rememberMeHint">
-                        <span>Lembrar-me neste dispositivo</span>
+                        <span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:2px;line-height:1.3">
+                            <span style="font-weight:600;color:#475569;overflow-wrap:anywhere">Lembrar-me neste dispositivo</span>
+                            <span id="rememberMeHint" style="font-size:0.72rem;line-height:1.35;color:#94a3b8;overflow-wrap:anywhere">Salva apenas seu e-mail. O acesso continua exigindo senha.</span>
+                        </span>
                     </label>
-                    <p id="rememberMeHint" style="margin:-12px 0 0 24px;font-size:0.72rem;line-height:1.35;color:#94a3b8">Salva apenas seu e-mail. O acesso continua exigindo senha.</p>
 
                     <!-- Botão Entrar -->
                     <button type="submit" id="loginSubmitBtn"
@@ -1544,7 +1546,7 @@
     <script src="/crm/js/auth.js?v=1786546563" defer></script>
     <!-- Módulo dedicado de Contas a Receber (deve carregar antes de modules.js e forms.js) -->
     <script src="/crm/js/crm-contas-receber.js?v=1783337181" defer></script>
-    <script src="/crm/js/modules.js?v=1786201519" defer></script>
+    <script src="/crm/js/modules.js?v=1786548075" defer></script>
     <script src="/crm/js/navigation.js?v=1784842201" defer></script>
     <script src="/crm/js/acervo.js?v=1779800114" defer></script>
     <script src="/crm/js/validation-system.js?v=1779800114" defer></script>

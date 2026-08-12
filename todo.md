@@ -390,3 +390,9 @@
 - [x] Implementar estado de carregamento suave e bloqueio contra envios duplicados
 - [x] Validar sintaxe, fluxo e compatibilidade em desktop e mobile
 - [x] Ampliar teste de regressão da tela de login para os novos comportamentos
+
+## Melhoria — Navegação Financeira e opção Lembrar-me (Ago/2026)
+- [x] Corrigir quebra/truncamento do texto explicativo da opção Lembrar-me
+- [x] Disponibilizar atalhos para os módulos financeiros no início do dashboard
+- [x] Garantir navegação, responsividade e compatibilidade sem regressões
+- [x] Criar teste de regressão para os novos elementos e a navegação oficial dos atalhos
