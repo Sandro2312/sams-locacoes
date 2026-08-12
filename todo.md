@@ -410,3 +410,8 @@
 - [x] Restaurar o acesso da Vera sem ampliar permissões indevidas para usuários comuns
 - [x] Validar os perfis Administrador, Desenvolvedor e usuário comum em desktop e mobile
 - [x] Criar teste de regressão para a aba Dashboard e suas permissões financeiras
+
+## Ajuste — Ordem dos cartões e Dashboard Financeiro (Ago/2026)
+- [x] Manter o Dashboard Financeiro na página inicial do módulo
+- [x] Posicionar os cartões de Despesas, Receitas, Comissões e Boletos antes do Dashboard
+- [x] Validar ordem, navegação e responsividade sem regressões

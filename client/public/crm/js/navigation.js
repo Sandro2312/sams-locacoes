@@ -616,6 +616,8 @@ const NavigationSystem = {
         const financeAllowed = module === 'financeiro' ? this.getAllowedFinancePages() : null;
         const pages = Object.entries(moduleInfo.pages).filter(([key]) => {
             if (module === 'financeiro' && key === 'relatorios') return false;
+            // O Dashboard já é exibido abaixo dos cartões na página inicial; a aba formal continua disponível.
+            if (module === 'financeiro' && key === 'dashboard') return false;
             if (module === 'financeiro' && financeAllowed && !financeAllowed.has(String(key).trim().toLowerCase())) return false;
             return true;
         });
@@ -654,8 +656,6 @@ const NavigationSystem = {
                     </div>
                 </div>
 
-                ${extraDashboard}
-
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     ${pages.map(([pageKey, pageInfo]) => `
                         <div class="page-card bg-white rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all duration-300" 
@@ -670,6 +670,8 @@ const NavigationSystem = {
                         </div>
                     `).join('')}
                 </div>
+
+                ${extraDashboard}
 
                 <div class="mt-8">
                     <button type="button" data-nav-module="dashboard"

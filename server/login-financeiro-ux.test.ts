@@ -10,6 +10,10 @@ const modulesSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/public/crm/js/modules.js"),
   "utf8",
 );
+const navigationSource = fs.readFileSync(
+  path.resolve(process.cwd(), "client/public/crm/js/navigation.js"),
+  "utf8",
+);
 
 describe("Experiência do login e atalhos financeiros", () => {
   it("mantém a descrição de Lembrar-me dentro de um rótulo responsivo e sem margem negativa", () => {
@@ -24,16 +28,18 @@ describe("Experiência do login e atalhos financeiros", () => {
     expect(rememberBlock).not.toContain('margin:-12px');
   });
 
-  it("posiciona atalhos responsivos antes das listas extensas e usa a navegação oficial", () => {
-    const quickAccessAt = modulesSource.indexOf('id="financeiroQuickAccess"');
-    const dashboardBodyAt = modulesSource.indexOf('id="financeiroDashBody"');
+  it("posiciona os cartões completos antes do Dashboard, sem atalhos duplicados", () => {
+    const moduleStart = navigationSource.indexOf('generateModuleHTML(module, moduleInfo)');
+    const moduleEnd = navigationSource.indexOf('async generatePageHTML', moduleStart);
+    const moduleTemplate = navigationSource.slice(moduleStart, moduleEnd);
+    const cardsAt = moduleTemplate.indexOf('<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">');
+    const dashboardAt = moduleTemplate.indexOf('${extraDashboard}');
 
-    expect(quickAccessAt).toBeGreaterThanOrEqual(0);
-    expect(quickAccessAt).toBeLessThan(dashboardBodyAt);
-    expect(modulesSource).toContain('data-finance-page="despesas"');
-    expect(modulesSource).toContain('data-finance-page="receitas"');
-    expect(modulesSource).toContain('data-finance-page="comissoes"');
-    expect(modulesSource).toContain('data-finance-page="boletos"');
-    expect(modulesSource).toContain("window.NavigationSystem.navigateToPage('financeiro', page)");
+    expect(cardsAt).toBeGreaterThanOrEqual(0);
+    expect(dashboardAt).toBeGreaterThan(cardsAt);
+    expect(navigationSource).toContain("custos: { name: 'Despesas'");
+    expect(navigationSource).toContain("receitas: { name: 'Receitas'");
+    expect(navigationSource).toContain("comissoes: { name: 'Comissões'");
+    expect(modulesSource).not.toContain('id="financeiroQuickAccess"');
   });
 });
