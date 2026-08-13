@@ -449,3 +449,8 @@
 - [x] Investigar a divergência entre o alerta de vencidas e a lista filtrada por status Vencido
 - [x] Corrigir o filtro preservando os fluxos existentes de Despesas e Receitas
 - [x] Validar com dados reais, em desktop/mobile, e criar teste de regressão
+
+## Análise — Apuração por Evento e Cliente/Stand (Ago/2026)
+- [x] Mapear os vínculos atuais entre lançamentos, eventos, clientes e centros de custo
+- [x] Identificar lacunas para apurar custos, receitas e resultado por stand dentro de cada feira
+- [x] Propor evolução gradual de filtros, cadastros e relatórios sem modificar dados existentes
