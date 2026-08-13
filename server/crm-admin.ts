@@ -372,6 +372,23 @@ export function registerCrmAdminRoutes(app: any) {
     }
   });
 
+  rtarefas.get("/:id", requireAuth, async (req, res) => {
+    try {
+      const taskId = Number(req.params.id);
+      if (!Number.isInteger(taskId) || taskId < 1) {
+        return res.status(400).json({ error: "Identificador de tarefa inválido" });
+      }
+      const task = await dbOne<any>(
+        "SELECT t.*, u.name as responsavel_nome, c.nome as cliente_nome FROM crm_tarefas t LEFT JOIN crm_users u ON t.responsavel_id = u.id LEFT JOIN crm_clientes c ON t.cliente_id = c.id WHERE t.id=?",
+        [taskId]
+      );
+      if (!task) return res.status(404).json({ error: "Tarefa não encontrada" });
+      res.json(task);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   rtarefas.post("/", requireAuth, async (req, res) => {
     try {
       const u = (req as any).crmUser;

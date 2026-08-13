@@ -48,4 +48,10 @@ describe("Captação do site para Leads e Kanban", () => {
     expect(modulesSource).toContain("t.responsavel != null ? t.responsavel : t.responsavel_nome");
     expect(modulesSource).toContain("t.data_vencimento || t.prazo");
   });
+
+  it("expõe o detalhe autenticado da tarefa para a ação Abrir da Agenda", () => {
+    expect(adminSource).toContain('rtarefas.get("/:id", requireAuth');
+    expect(adminSource).toContain("WHERE t.id=?");
+    expect(adminSource).toContain("Tarefa não encontrada");
+  });
 });

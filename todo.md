@@ -515,3 +515,8 @@
 - [x] Corrigir a persistência e a atribuição dos novos registros à Vera
 - [x] Regularizar apenas os registros reais afetados, sem tocar em dados históricos
 - [x] Validar a visão da Vera e criar regressão do fluxo publicado
+
+## Correção urgente — Abrir lead pela Agenda (Ago/2026)
+- [x] Identificar a referência nula na ação Abrir de tarefas captadas pelo site
+- [x] Corrigir a navegação para o lead vinculado e adicionar fallback seguro
+- [x] Validar abertura em desktop/mobile e criar teste de regressão
