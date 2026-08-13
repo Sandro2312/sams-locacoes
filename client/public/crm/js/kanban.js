@@ -119,12 +119,14 @@ const KanbanSystem = {
         const normalize = (v) => (v != null ? String(v).trim().toLowerCase() : '');
         const rankFromAuthRole = (role) => {
             const r = normalize(role);
+            if (r === 'desenvolvedor' || r === 'developer') return 4;
             if (r === 'administrador' || r === 'admin') return 3;
             if (r === 'gerencia' || r === 'gerente' || r === 'gestor') return 2;
             return r ? 1 : 0;
         };
         const rankFromNivelAcesso = (nivel) => {
             const n = normalize(nivel);
+            if (n === 'desenvolvedor' || n === 'developer') return 4;
             if (n === 'admin' || n === 'administrador') return 3;
             if (n === 'gestor' || n === 'gerente' || n === 'gerência' || n === 'gerencia') return 2;
             if (n === 'usuário' || n === 'usuario') return 1;
@@ -160,6 +162,7 @@ const KanbanSystem = {
         const rankOf = (record) => {
             const role = normalize(record?.role);
             const nivel = normalize(record?.nivel_acesso);
+            if (role === 'desenvolvedor' || role === 'developer' || nivel === 'desenvolvedor' || nivel === 'developer') return 4;
             if (role === 'administrador' || role === 'admin' || nivel === 'admin' || nivel === 'administrador') return 3;
             if (role === 'gerencia' || role === 'gerente' || role === 'gestor' || nivel === 'gestor' || nivel === 'gerente' || nivel === 'gerência' || nivel === 'gerencia') return 2;
             return (role || nivel) ? 1 : 0;
@@ -877,12 +880,12 @@ const KanbanSystem = {
                         <span class="inline-block h-2 w-10 ${priority.color} rounded-full"></span>
                         <span class="text-xs font-medium text-gray-500 truncate">${priority.text}</span>
                     </div>
-                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition duration-300">
-                        <button onclick="KanbanSystem.showTaskForm(null, '${task.id}')" class="text-gray-400 hover:text-sky-700 transition duration-300">
-                            <i class="fas fa-edit text-xs"></i>
+                    <div class="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition duration-300">
+                        <button type="button" onclick="KanbanSystem.showTaskForm(null, '${task.id}')" class="p-1 text-gray-400 hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded transition duration-300" aria-label="Editar tarefa ${this.escapeHtml(task.titulo || '')}">
+                            <i class="fas fa-edit text-xs" aria-hidden="true"></i>
                         </button>
-                        <button onclick="KanbanSystem.deleteTask('${task.id}')" class="text-gray-400 hover:text-red-600 transition duration-300">
-                            <i class="fas fa-trash text-xs"></i>
+                        <button type="button" onclick="KanbanSystem.deleteTask('${task.id}')" class="p-1 text-gray-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded transition duration-300" aria-label="Excluir tarefa ${this.escapeHtml(task.titulo || '')}">
+                            <i class="fas fa-trash text-xs" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>

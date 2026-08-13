@@ -484,3 +484,9 @@
 - [x] Identificar por que o atalho de Receitas não aparece quando há poucos créditos
 - [x] Exibir link direto para a lista de Receitas sempre que houver créditos listados
 - [x] Validar navegação, acessibilidade e responsividade dos dois atalhos
+
+## Auditoria — Kanban (Ago/2026)
+- [x] Mapear a causa do acesso negado e as permissões aplicadas ao módulo Kanban
+- [x] Corrigir bloqueios indevidos sem ampliar acesso não autorizado
+- [x] Validar criação, edição, movimentação e persistência de cards
+- [x] Validar desktop/mobile e criar testes de regressão do Kanban

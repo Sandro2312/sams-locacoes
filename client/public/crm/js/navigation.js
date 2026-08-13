@@ -395,9 +395,27 @@ const NavigationSystem = {
         console.log('✅ NavigationSystem: Event delegation universal registrado (Chrome/Edge/Safari/mobile)');
     },
 
+    ensureAuthenticated() {
+        try {
+            const auth = window.AuthSystem;
+            const current = auth && typeof auth.getCurrentUser === 'function'
+                ? auth.getCurrentUser()
+                : (auth ? auth.currentUser : null);
+            if (current) return true;
+            if (auth && typeof auth.showLogin === 'function') auth.showLogin();
+        } catch (error) {
+            console.warn('Não foi possível validar a sessão antes da navegação.', error);
+        }
+        return false;
+    },
+
     // Navegar para módulo
     navigateToModule(module) {
         console.log(`🧭 NavigationSystem: Navegando para módulo ${module}`);
+
+        // O Dashboard não deve continuar navegável por uma tela residual sem login.
+        // Sem sessão, voltar ao login é mais seguro e claro do que exibir acesso negado.
+        if (!this.ensureAuthenticated()) return;
         
         // Verificar permissão
         if (!AuthSystem.hasModuleAccess(module) && module !== 'dashboard') {
@@ -437,6 +455,8 @@ const NavigationSystem = {
 
     // Navegar para página específica
     navigateToPage(module, page) {
+        if (!this.ensureAuthenticated()) return;
+
         // Verificar permissão
         if (!AuthSystem.hasModuleAccess(module)) {
             this.showAccessDenied();
