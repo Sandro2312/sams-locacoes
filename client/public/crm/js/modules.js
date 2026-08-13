@@ -3177,6 +3177,7 @@ const ModuleSystem = {
                             : ((window.AuthSystem && window.AuthSystem.currentUser) ? window.AuthSystem.currentUser : null);
                     const role = current && current.role != null ? String(current.role).trim().toLowerCase() : '';
                     const isManagerOrAdmin =
+                        role === 'desenvolvedor' || role === 'developer' ||
                         role === 'administrador' || role === 'admin' ||
                         role === 'gerente' || role === 'gerencia' || role === 'gerência' ||
                         role === 'gestor' || role === 'gestao' || role === 'gestão';
@@ -3194,8 +3195,9 @@ const ModuleSystem = {
             fetch(url, { credentials: 'include' })
                 .then(async (r) => {
                     const j = await r.json().catch(() => []);
-                    if (!r.ok || !Array.isArray(j)) return;
-                    this._tarefasAdminApiCache = j.map((t) => {
+                    const rows = Array.isArray(j) ? j : (Array.isArray(j?.data) ? j.data : []);
+                    if (!r.ok || !Array.isArray(rows)) return;
+                    this._tarefasAdminApiCache = rows.map((t) => {
                         const envolvidosIds = (() => {
                             const raw = t && t.envolvidos_json != null ? t.envolvidos_json : null;
                             if (!raw) return [];
@@ -3213,9 +3215,9 @@ const ModuleSystem = {
                             prazo: t.data_vencimento,
                             responsavel: t.responsavel_nome || null,
                             responsavelId: t.responsavel_id,
-                            tipo: t.tipo || null,
-                            origemModulo: t.origem_modulo || null,
-                            origemId: t.origem_id != null ? t.origem_id : null,
+                            tipo: t.tipo || t.modulo || null,
+                            origemModulo: t.origem_modulo || t.modulo || null,
+                            origemId: t.origem_id != null ? t.origem_id : (t.referencia_id != null ? t.referencia_id : null),
                             envolvidosIds
                         };
                     });

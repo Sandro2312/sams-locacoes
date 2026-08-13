@@ -339,6 +339,16 @@ export function registerCrmAdminRoutes(app: any) {
   const rtarefas = express.Router();
   rtarefas.use(express.json({ limit: "10mb" }));
 
+  const normalizeTaskStatus = (value: any, fallback = "pendente") => {
+    const normalized = String(value ?? fallback).trim().toLowerCase();
+    const aliases: Record<string, string> = {
+      backlog: "pendente", todo: "pendente", review: "em_andamento", doing: "em_andamento",
+      done: "concluida", concluido: "concluida", concluída: "concluida",
+    };
+    const status = aliases[normalized] || normalized;
+    return ["pendente", "em_andamento", "concluida", "cancelada"].includes(status) ? status : fallback;
+  };
+
   rtarefas.get("/", requireAuth, async (req, res) => {
   try {
       const { status, responsavel_id, limit: limitQ, offset: offsetQ } = req.query as any;
@@ -365,11 +375,11 @@ export function registerCrmAdminRoutes(app: any) {
   rtarefas.post("/", requireAuth, async (req, res) => {
     try {
       const u = (req as any).crmUser;
-      const { titulo, descricao, status = "pendente", prioridade = "media", responsavel_id, evento_id, cliente_id, data_vencimento } = req.body;
+      const { titulo, descricao, status = "pendente", prioridade = "media", responsavel_id, evento_id, cliente_id, data_vencimento, modulo, referencia_id, origem_modulo, origem_id } = req.body;
       if (!titulo) return res.status(400).json({ error: "Título obrigatório" });
       const [result] = await getPool().execute(
-        "INSERT INTO crm_tarefas (titulo, descricao, status, prioridade, responsavel_id, evento_id, cliente_id, data_vencimento, created_by) VALUES (?,?,?,?,?,?,?,?,?)",
-        [titulo, descricao || null, status, prioridade, responsavel_id || null, evento_id || null, cliente_id || null, data_vencimento || null, u.userId]
+        "INSERT INTO crm_tarefas (titulo, descricao, status, prioridade, responsavel_id, evento_id, cliente_id, data_vencimento, modulo, referencia_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        [titulo, descricao || null, normalizeTaskStatus(status), prioridade, responsavel_id || null, evento_id || null, cliente_id || null, data_vencimento || null, modulo || origem_modulo || null, referencia_id || origem_id || null, u.userId]
       );
       res.json({ id: (result as any).insertId, ok: true });
     } catch (e: any) {
@@ -379,10 +389,22 @@ export function registerCrmAdminRoutes(app: any) {
 
   rtarefas.put("/:id", requireAuth, async (req, res) => {
     try {
-      const { titulo, descricao, status, prioridade, responsavel_id, evento_id, cliente_id, data_vencimento } = req.body;
+      const current = await dbOne<any>("SELECT * FROM crm_tarefas WHERE id=?", [req.params.id]);
+      if (!current) return res.status(404).json({ error: "Tarefa não encontrada" });
+      const body = req.body || {};
+      const titulo = body.titulo !== undefined ? body.titulo : current.titulo;
+      const descricao = body.descricao !== undefined ? body.descricao : current.descricao;
+      const status = body.status !== undefined ? normalizeTaskStatus(body.status, current.status) : current.status;
+      const prioridade = body.prioridade !== undefined ? body.prioridade : current.prioridade;
+      const responsavel_id = body.responsavel_id !== undefined ? body.responsavel_id : current.responsavel_id;
+      const evento_id = body.evento_id !== undefined ? body.evento_id : current.evento_id;
+      const cliente_id = body.cliente_id !== undefined ? body.cliente_id : current.cliente_id;
+      const data_vencimento = body.data_vencimento !== undefined ? body.data_vencimento : current.data_vencimento;
+      const modulo = body.modulo ?? body.origem_modulo ?? current.modulo;
+      const referencia_id = body.referencia_id ?? body.origem_id ?? current.referencia_id;
       await db(
-        "UPDATE crm_tarefas SET titulo=?, descricao=?, status=?, prioridade=?, responsavel_id=?, evento_id=?, cliente_id=?, data_vencimento=? WHERE id=?",
-        [titulo, descricao || null, status, prioridade, responsavel_id || null, evento_id || null, cliente_id || null, data_vencimento || null, req.params.id]
+        "UPDATE crm_tarefas SET titulo=?, descricao=?, status=?, prioridade=?, responsavel_id=?, evento_id=?, cliente_id=?, data_vencimento=?, modulo=?, referencia_id=? WHERE id=?",
+        [titulo, descricao || null, status, prioridade, responsavel_id || null, evento_id || null, cliente_id || null, data_vencimento || null, modulo || null, referencia_id || null, req.params.id]
       );
       res.json({ ok: true });
     } catch (e: any) {

@@ -490,3 +490,16 @@
 - [x] Corrigir bloqueios indevidos sem ampliar acesso não autorizado
 - [x] Validar criação, edição, movimentação e persistência de cards
 - [x] Validar desktop/mobile e criar testes de regressão do Kanban
+
+## Automação — Captação de contatos em Leads e Kanban (Ago/2026)
+- [x] Mapear formulários do site, origens de contato e integrações sociais disponíveis
+- [x] Definir origem, deduplicação e atribuição segura de novos leads para os formulários do site
+- [x] Criar automaticamente tarefa no Kanban para o responsável comercial nos formulários integrados do site
+- [ ] Preparar integração de Instagram/Facebook após conexão autorizada das contas
+- [x] Validar captação do site, permissões, Kanban e regressões em desktop/mobile
+
+## Implementação — Captação do Site para Leads e Kanban (Ago/2026)
+- [x] Definir contrato de origem, deduplicação e atribuição do responsável comercial
+- [x] Criar serviço transacional de lead e tarefa sem alterar o registro público de contato/orçamento
+- [x] Integrar formulário de Contato e Solicitação de Orçamento à automação
+- [x] Validar duplicidades, tarefas, notificações, permissões e regressões

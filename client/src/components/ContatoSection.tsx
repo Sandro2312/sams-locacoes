@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Phone, Mail, MapPin, Instagram, Facebook, Linkedin, CheckCircle2, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { getSiteAttribution } from "@/lib/attribution";
 
 const tiposEvento = [
   "Feira Comercial",
@@ -53,7 +54,7 @@ export default function ContatoSection() {
       toast.error("Por favor, preencha os campos obrigatórios.");
       return;
     }
-    enviarContato.mutate(form);
+    enviarContato.mutate({ ...form, ...getSiteAttribution() });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

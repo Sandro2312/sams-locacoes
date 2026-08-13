@@ -40,6 +40,63 @@ const KanbanSystem = {
         this.bindEvents();
         this.initializeData();
         this.initialized = true;
+        this.syncCapturedLeadTasks().catch(() => {});
+    },
+
+    async syncCapturedLeadTasks() {
+        try {
+            if (typeof ModuleSystem === 'undefined' || !ModuleSystem.data) return;
+            const current = this.getCurrentUser();
+            if (!current) return;
+            const resp = await fetch('/api/crm/tarefas-admin?limit=200', { credentials: 'include' });
+            const payload = await resp.json().catch(() => null);
+            const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+            if (!resp.ok || !Array.isArray(rows)) return;
+            const captured = rows.filter(t => t && String(t.modulo || t.origem_modulo || '') === 'captacao_site');
+            if (!captured.length) return;
+            this.normalizeKanbanData(false);
+            const tasks = ModuleSystem.data.kanban.tasks;
+            const fallbackBoardId = this.currentBoard || ModuleSystem.data.kanban.boards?.[0]?.id;
+            let changed = false;
+            const mapStatus = (value) => {
+                const s = String(value || '').toLowerCase();
+                if (s === 'concluida' || s === 'cancelada') return 'done';
+                if (s === 'em_andamento') return 'doing';
+                return 'todo';
+            };
+            for (const item of captured) {
+                const serverId = Number(item.id);
+                if (!Number.isFinite(serverId) || serverId <= 0) continue;
+                const mapped = {
+                    id: `captacao-${serverId}`,
+                    tarefasAdminId: serverId,
+                    boardId: fallbackBoardId,
+                    titulo: String(item.titulo || 'Novo lead do site'),
+                    descricao: item.descricao ? String(item.descricao) : '',
+                    status: mapStatus(item.status),
+                    prioridade: String(item.prioridade || 'media'),
+                    responsavel: item.responsavel_nome || null,
+                    responsavelId: item.responsavel_id != null ? String(item.responsavel_id) : null,
+                    dataVencimento: item.data_vencimento || null,
+                    dataCriacao: item.created_at || new Date().toISOString(),
+                    origemModulo: 'captacao_site',
+                    origemId: item.referencia_id != null ? item.referencia_id : null,
+                    tags: ['captação', 'site']
+                };
+                const index = tasks.findIndex(t => t && Number(t.tarefasAdminId) === serverId);
+                if (index >= 0) {
+                    tasks[index] = { ...tasks[index], ...mapped, boardId: tasks[index].boardId || mapped.boardId };
+                } else {
+                    tasks.push(mapped);
+                }
+                changed = true;
+            }
+            if (changed) {
+                try { ModuleSystem.saveData(); } catch {}
+                const board = document.getElementById(this.config.boardId);
+                if (board) this.renderBoard();
+            }
+        } catch {}
     },
 
     // Inicializar dados do Kanban

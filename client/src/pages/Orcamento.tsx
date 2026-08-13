@@ -12,6 +12,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { getSiteAttribution } from "@/lib/attribution";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/sams-logo_9fc7a984.jpg";
 
@@ -147,7 +148,7 @@ export default function Orcamento() {
   };
 
   const onSubmit = (data: OrcamentoForm) => {
-    enviarOrcamento.mutate({ ...data, servicosAdicionais: selectedServices });
+    enviarOrcamento.mutate({ ...data, servicosAdicionais: selectedServices, ...getSiteAttribution() });
   };
 
   // ─── Success Screen ────────────────────────────────────────────────────────

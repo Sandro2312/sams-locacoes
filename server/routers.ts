@@ -6,6 +6,7 @@ import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { contatos, orcamentos } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
+import { captureLeadFromSite } from "./lead-capture";
 
 export const appRouter = router({
   system: systemRouter,
@@ -28,6 +29,9 @@ export const appRouter = router({
         tipoEvento: z.string().optional().default(""),
         metragem: z.string().optional().default(""),
         mensagem: z.string().optional().default(""),
+        utmSource: z.string().optional().default(""),
+        utmMedium: z.string().optional().default(""),
+        utmCampaign: z.string().optional().default(""),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -41,6 +45,23 @@ export const appRouter = router({
             metragem: input.metragem,
             mensagem: input.mensagem,
           });
+        }
+        try {
+          await captureLeadFromSite({
+            source: "site_contato",
+            name: input.nome,
+            company: input.empresa,
+            email: input.email,
+            phone: input.whatsapp,
+            eventInterest: input.tipoEvento,
+            standArea: input.metragem,
+            message: input.mensagem,
+            utmSource: input.utmSource,
+            utmMedium: input.utmMedium,
+            utmCampaign: input.utmCampaign,
+          });
+        } catch {
+          console.warn("[Captação] O contato público foi salvo, mas a conversão em lead não foi concluída.");
         }
         await notifyOwner({
           title: `Novo Contato - ${input.nome}`,
@@ -84,6 +105,9 @@ export const appRouter = router({
         referenciasVisuais: z.string().optional().default(""),
         orcamentoPrevisto: z.string().optional().default(""),
         observacoes: z.string().optional().default(""),
+        utmSource: z.string().optional().default(""),
+        utmMedium: z.string().optional().default(""),
+        utmCampaign: z.string().optional().default(""),
       }))
       .mutation(async ({ input }) => {
         const db = await getDb();
@@ -110,6 +134,24 @@ export const appRouter = router({
             orcamentoPrevisto: input.orcamentoPrevisto,
             observacoes: input.observacoes,
           });
+        }
+
+        try {
+          await captureLeadFromSite({
+            source: "site_orcamento",
+            name: input.nome,
+            company: input.empresa,
+            email: input.email,
+            phone: input.whatsapp,
+            eventInterest: [input.tipoEvento, input.nomeEvento, input.cidadeEvento, input.estadoEvento].filter(Boolean).join(" — "),
+            standArea: input.metragem,
+            message: [input.observacoes, input.descricaoMarca, input.servicosAdicionais.length ? `Serviços: ${input.servicosAdicionais.join(", ")}` : ""].filter(Boolean).join("\n"),
+            utmSource: input.utmSource,
+            utmMedium: input.utmMedium,
+            utmCampaign: input.utmCampaign,
+          });
+        } catch {
+          console.warn("[Captação] O orçamento público foi salvo, mas a conversão em lead não foi concluída.");
         }
 
         const servicosStr = input.servicosAdicionais.length > 0
