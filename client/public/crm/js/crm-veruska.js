@@ -409,9 +409,11 @@
                 '<div style="font-size:32px;margin-bottom:8px">👋</div>' +
                 '<div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Olá! Sou a Veruska.</div>' +
                 '<div style="font-size:12px;line-height:1.5">Posso consultar dados do sistema para você — pendências financeiras, eventos, clientes e muito mais.</div>' +
-                '<div style="font-size:11px;color:#9ca3af;margin-top:8px">Exemplos de perguntas:</div>' +
-                '<div style="font-size:11px;color:#2563eb;margin-top:4px;line-height:1.8">' +
-                    '"Quais contas estão vencidas?"<br>"Me mostra os eventos deste mês"<br>"Qual o resumo financeiro de julho?"' +
+                '<div style="font-size:11px;color:#6b7280;margin:12px 0 7px">Comece por uma consulta rápida:</div>' +
+                '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">' +
+                    '<button type="button" data-veruska-prompt="Quais contas estão vencidas?" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:5px 8px;font-size:11px;cursor:pointer">Contas vencidas</button>' +
+                    '<button type="button" data-veruska-prompt="Quais são os eventos deste mês?" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:5px 8px;font-size:11px;cursor:pointer">Eventos do mês</button>' +
+                    '<button type="button" data-veruska-prompt="Qual é o resumo financeiro do mês?" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:5px 8px;font-size:11px;cursor:pointer">Resumo financeiro</button>' +
                 '</div>' +
             '</div>';
         } else {
@@ -430,7 +432,7 @@
                 '<div style="background:#f3f4f6;border-radius:12px 12px 12px 4px;padding:10px 14px;font-size:13px;color:#6b7280">' +
                     '<span style="animation:veruska-pop 0.5s infinite alternate">●</span> ' +
                     '<span style="animation:veruska-pop 0.5s 0.15s infinite alternate">●</span> ' +
-                    '<span style="animation:veruska-pop 0.5s 0.3s infinite alternate">●</span>' +
+                    '<span style="animation:veruska-pop 0.5s 0.3s infinite alternate">●</span> <span style="margin-left:4px;font-size:11px">Consultando o CRM...</span>' +
                 '</div>' +
             '</div>';
         }
@@ -460,20 +462,45 @@
             renderPanel();
             setTimeout(scrollChatToBottom, 30);
 
+            var authHeaders = {};
+            try {
+                if (window.AuthSystem && typeof window.AuthSystem._getAuthHeaders === 'function') {
+                    authHeaders = window.AuthSystem._getAuthHeaders() || {};
+                }
+            } catch {}
+
             fetch('/api/crm/assistente/perguntar', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders),
+                credentials: 'include',
                 body: JSON.stringify({
                     pergunta: text,
                     historico: _chatHistory.slice(0, -1).slice(-8),
                 }),
             })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
+            .then(function(r) {
+                return r.json().catch(function() { return {}; }).then(function(data) {
+                    return { status: r.status, ok: r.ok, data: data };
+                });
+            })
+            .then(function(result) {
+                var data = result.data || {};
                 _thinking = false;
-                if (data.error) {
-                    _chatHistory.push({ role: 'assistant', content: '⚠️ ' + data.error });
+                if (result.status === 401 || result.status === 403) {
+                    _chatHistory.push({ role: 'assistant', content: '⚠️ Sua sessão expirou. Faça login novamente para que eu possa consultar os dados do CRM.' });
+                    renderPanel();
+                    setTimeout(scrollChatToBottom, 30);
+                    setTimeout(function() {
+                        try {
+                            if (window.AuthSystem && typeof window.AuthSystem._clearAllSessionData === 'function') window.AuthSystem._clearAllSessionData();
+                            if (window.AuthSystem && typeof window.AuthSystem.showLogin === 'function') window.AuthSystem.showLogin();
+                        } catch {}
+                    }, 1400);
+                    return;
+                }
+                if (!result.ok || data.error) {
+                    var errorMessage = data.error || 'Não foi possível concluir esta consulta agora. Tente novamente em alguns instantes.';
+                    _chatHistory.push({ role: 'assistant', content: '⚠️ ' + errorMessage });
                 } else {
                     _chatHistory.push({ role: 'assistant', content: data.resposta });
                 }
@@ -490,6 +517,13 @@
         }
 
         sendBtn.addEventListener('click', sendMessage);
+        var promptBtns = _panel ? _panel.querySelectorAll('[data-veruska-prompt]') : [];
+        promptBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                input.value = btn.getAttribute('data-veruska-prompt') || '';
+                sendMessage();
+            });
+        });
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

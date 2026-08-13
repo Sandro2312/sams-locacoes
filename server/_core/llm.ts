@@ -30,6 +30,7 @@ export type Message = {
   content: MessageContent | MessageContent[];
   name?: string;
   tool_call_id?: string;
+  tool_calls?: ToolCall[];
 };
 
 export type Tool = {
@@ -56,6 +57,7 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
+  model?: string;
   messages: Message[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
@@ -137,7 +139,7 @@ const normalizeContentPart = (
 };
 
 const normalizeMessage = (message: Message) => {
-  const { role, name, tool_call_id } = message;
+  const { role, name, tool_call_id, tool_calls } = message;
 
   if (role === "tool" || role === "function") {
     const content = ensureArray(message.content)
@@ -160,6 +162,7 @@ const normalizeMessage = (message: Message) => {
       role,
       name,
       content: contentParts[0].text,
+      ...(tool_calls ? { tool_calls } : {}),
     };
   }
 
@@ -167,6 +170,7 @@ const normalizeMessage = (message: Message) => {
     role,
     name,
     content: contentParts,
+    ...(tool_calls ? { tool_calls } : {}),
   };
 };
 
@@ -269,6 +273,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
   const {
+    model,
     messages,
     tools,
     toolChoice,
@@ -280,7 +285,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    // gpt-5-mini é um modelo estável do catálogo integrado e funciona bem
+    // como padrão econômico; chamadores podem sobrescrever com `model`.
+    model: model || "gpt-5-mini",
     messages: messages.map(normalizeMessage),
   };
 
@@ -296,9 +303,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  if (typeof params.maxTokens === "number" || typeof params.max_tokens === "number") {
+    payload.max_tokens = params.maxTokens ?? params.max_tokens;
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({

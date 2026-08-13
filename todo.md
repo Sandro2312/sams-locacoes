@@ -431,3 +431,10 @@
 - [x] Criar uma composição editorial atraente para cartões sem mídia
 - [x] Refinar hierarquia tipográfica de cliente, feira e identificação do projeto
 - [x] Validar responsividade e atualizar teste de regressão
+
+## Melhoria — Veruska (Ago/2026)
+- [x] Auditar a autenticação e o erro interno exibidos no chat
+- [x] Corrigir a integração de sessão e o processamento de perguntas
+- [x] Melhorar feedback visual, mensagens de estado e atalhos do assistente
+- [x] Validar consultas autenticadas, responsividade e testes de regressão
+- [x] Criar testes de regressão para modelo, sessão expirada e mensagens de falha

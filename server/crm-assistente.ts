@@ -11,7 +11,14 @@ import { Router, Request, Response } from "express";
 import mysql from "mysql2/promise";
 import { parse as parseCookieHeader } from "cookie";
 import { ENV } from "./_core/env";
+import { invokeLLM, Tool } from "./_core/llm";
 import { getSessionFromCrm } from "./crm";
+
+class VeruskaServiceError extends Error {
+  constructor(public code: string, public userMessage: string) {
+    super(code);
+  }
+}
 
 // ─── DB helper ────────────────────────────────────────────────────────────────
 let _pool: mysql.Pool | null = null;
@@ -155,6 +162,15 @@ const TOOLS = [
   },
 ];
 
+const PROJECT_TOOLS: Tool[] = TOOLS.map((tool) => ({
+  type: "function",
+  function: {
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.input_schema,
+  },
+}));
+
 // ─── Implementação das ferramentas ────────────────────────────────────────────
 async function executeTool(name: string, input: any, role: string): Promise<string> {
   try {
@@ -171,8 +187,7 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
            FROM crm_contas_receber cr
            LEFT JOIN crm_clientes c ON cr.cliente_id = c.id
            WHERE cr.status NOT IN ('pago','Pago','baixado','Baixado','cancelado','Cancelado')
-           ORDER BY cr.vencimento ASC LIMIT ?`,
-          [limite]
+           ORDER BY cr.vencimento ASC LIMIT ${limite}`
         );
         result.contas_receber = rows;
       }
@@ -183,8 +198,7 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
            FROM crm_transacoes
            WHERE (tipo = 'pagar' OR tipo LIKE '%despesa%' OR tipo LIKE '%pagar%')
              AND status NOT IN ('pago','Pago','baixado','Baixado','cancelado','Cancelado')
-           ORDER BY data ASC LIMIT ?`,
-          [limite]
+           ORDER BY data ASC LIMIT ${limite}`
         );
         result.contas_pagar = rows;
       }
@@ -200,8 +214,7 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
       if (input.status) { sql += " AND status = ?"; params.push(input.status); }
       if (input.data_inicio) { sql += " AND data_inicio >= ?"; params.push(input.data_inicio); }
       if (input.data_fim) { sql += " AND data_fim <= ?"; params.push(input.data_fim); }
-      sql += " ORDER BY data_inicio DESC LIMIT ?";
-      params.push(limite);
+      sql += ` ORDER BY data_inicio DESC LIMIT ${limite}`;
       const rows = await db(sql, params);
       return JSON.stringify({ eventos: rows, total: rows.length });
     }
@@ -264,8 +277,7 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
       const params: any[] = [];
       if (input.status) { sql += " AND t.status = ?"; params.push(input.status); }
       if (input.prioridade) { sql += " AND t.prioridade = ?"; params.push(input.prioridade); }
-      sql += " ORDER BY FIELD(t.prioridade,'critica','alta','media','baixa'), t.data_vencimento ASC LIMIT ?";
-      params.push(limite);
+      sql += ` ORDER BY FIELD(t.prioridade,'critica','alta','media','baixa'), t.data_vencimento ASC LIMIT ${limite}`;
       const rows = await db(sql, params);
       return JSON.stringify({ tarefas: rows, total: rows.length });
     }
@@ -276,10 +288,8 @@ async function executeTool(name: string, input: any, role: string): Promise<stri
   }
 }
 
-// ─── Chamada à API da Anthropic com tool use ──────────────────────────────────
-async function callAnthropic(messages: any[], role: string): Promise<{ text: string; toolsUsed: string[] }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ASSISTENTE_NAO_CONFIGURADA");
+// ─── Chamada à IA gerenciada do projeto com tool use ──────────────────────────
+async function callProjectAssistant(messages: any[], role: string): Promise<{ text: string; toolsUsed: string[] }> {
   const systemPrompt = `Você é Veruska, assistente virtual do CRM da SAMS Locações — empresa especializada em montagem de stands para feiras e eventos corporativos com mais de 15 anos de experiência.
 Seu papel:
 - Responder perguntas sobre dados do sistema usando as ferramentas disponíveis
@@ -290,48 +300,36 @@ Seu papel:
 - RECUSAR educadamente qualquer pedido de ação de escrita (criar, editar, apagar registros), orientando onde fazer manualmente na interface
 Se o usuário pedir para criar/editar/apagar algo, responda: "Posso apenas consultar informações. Para [ação], acesse [módulo correspondente] no menu lateral."
 Responda sempre em português brasileiro.`;
-  const anthropicMessages = [...messages];
+  const conversation: any[] = [{ role: "system", content: systemPrompt }, ...messages];
   const toolsUsed: string[] = [];
   for (let iteration = 0; iteration < 5; iteration++) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 1024,
-        system: systemPrompt,
-        tools: TOOLS,
-        messages: anthropicMessages,
-      }),
-    });
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Anthropic API error ${response.status}: ${err}`);
-    }
-    const data = await response.json() as any;
-    if (data.stop_reason === "end_turn") {
-      const textBlock = data.content?.find((b: any) => b.type === "text");
-      return { text: textBlock?.text ?? "Não consegui gerar uma resposta.", toolsUsed };
-    }
-    if (data.stop_reason === "tool_use") {
-      anthropicMessages.push({ role: "assistant", content: data.content });
-      const toolResults: any[] = [];
-      for (const block of data.content) {
-        if (block.type === "tool_use") {
-          toolsUsed.push(block.name);
-          const result = await executeTool(block.name, block.input, role);
-          toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
-        }
+    try {
+      const response = await invokeLLM({
+        model: "gpt-5-mini",
+        messages: conversation,
+        tools: PROJECT_TOOLS,
+        toolChoice: "auto",
+        maxTokens: 1400,
+      });
+      const message = response.choices?.[0]?.message;
+      const text = typeof message?.content === "string" ? message.content : "";
+      const toolCalls = message?.tool_calls || [];
+      if (toolCalls.length === 0) {
+        return { text: text || "Não consegui gerar uma resposta para esta consulta.", toolsUsed };
       }
-      anthropicMessages.push({ role: "user", content: toolResults });
-      continue;
+
+      conversation.push({ role: "assistant", content: text, tool_calls: toolCalls });
+      for (const toolCall of toolCalls) {
+        toolsUsed.push(toolCall.function.name);
+        let input: any = {};
+        try { input = JSON.parse(toolCall.function.arguments || "{}"); } catch {}
+        const result = await executeTool(toolCall.function.name, input, role);
+        conversation.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+      }
+    } catch (error: any) {
+      console.error("[Veruska] Falha na IA gerenciada:", error?.message);
+      throw new VeruskaServiceError("VERUSKA_IA_INDISPONIVEL", "A Veruska não conseguiu concluir a consulta agora. Tente novamente em alguns instantes.");
     }
-    const textBlock = data.content?.find((b: any) => b.type === "text");
-    return { text: textBlock?.text ?? "Resposta incompleta.", toolsUsed };
   }
   return { text: "Não consegui completar a consulta após múltiplas tentativas.", toolsUsed };
 }
@@ -354,12 +352,6 @@ export function registerAssistenteRoutes(app: any) {
         resetAt: limit.resetAt,
       });
     }
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({
-        error: "A assistente Veruska não está configurada. Entre em contato com o administrador do sistema.",
-        code: "ASSISTENTE_NAO_CONFIGURADA",
-      });
-    }
     try {
       const messages: any[] = [];
       if (historico?.length) {
@@ -370,7 +362,7 @@ export function registerAssistenteRoutes(app: any) {
         }
       }
       messages.push({ role: "user", content: pergunta });
-      const { text, toolsUsed } = await callAnthropic(messages, user.role);
+      const { text, toolsUsed } = await callProjectAssistant(messages, user.role);
       await audit(
         user.userId, "veruska_pergunta", "assistente", null,
         { pergunta: pergunta.substring(0, 500), tools_used: toolsUsed, remaining: limit.remaining },
@@ -378,12 +370,12 @@ export function registerAssistenteRoutes(app: any) {
       );
       return res.json({ resposta: text, toolsUsed, remaining: limit.remaining });
     } catch (e: any) {
-      if (e.message === "ASSISTENTE_NAO_CONFIGURADA") {
-        return res.status(503).json({ error: "A assistente Veruska não está configurada.", code: "ASSISTENTE_NAO_CONFIGURADA" });
-      }
       console.error("[Veruska] Erro:", e.message);
       await audit(user.userId, "veruska_erro", "assistente", null, { erro: e.message, pergunta: pergunta?.substring(0, 200) }, req.ip);
-      return res.status(500).json({ error: "Erro interno ao processar sua pergunta. Tente novamente." });
+      if (e instanceof VeruskaServiceError) {
+        return res.status(503).json({ error: e.userMessage, code: e.code });
+      }
+      return res.status(500).json({ error: "Não foi possível processar a consulta agora. Tente novamente em alguns instantes.", code: "VERUSKA_ERRO_INTERNO" });
     }
   });
 
