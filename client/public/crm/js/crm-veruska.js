@@ -284,7 +284,9 @@
         if (!document.getElementById('veruska-style')) {
             var style = document.createElement('style');
             style.id = 'veruska-style';
-            style.textContent = '@keyframes veruska-pop{from{opacity:0;transform:scale(0.8) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}';
+            style.textContent = '@keyframes veruska-pop{from{opacity:0;transform:scale(0.8) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}' +
+                '@keyframes veruska-typing{0%,60%,100%{transform:translateY(0) scale(0.78);opacity:.38}30%{transform:translateY(-4px) scale(1);opacity:1}}' +
+                '.veruska-typing-dot{display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:#2563eb;animation:veruska-typing 1.05s cubic-bezier(.2,.65,.35,1) infinite}.veruska-typing-dot:nth-child(2){animation-delay:.14s}.veruska-typing-dot:nth-child(3){animation-delay:.28s}';
             document.head.appendChild(style);
         }
 
@@ -429,15 +431,20 @@
 
         if (_thinking) {
             msgs += '<div style="display:flex;justify-content:flex-start;margin-bottom:8px;padding:0 12px">' +
-                '<div style="background:#f3f4f6;border-radius:12px 12px 12px 4px;padding:10px 14px;font-size:13px;color:#6b7280">' +
-                    '<span style="animation:veruska-pop 0.5s infinite alternate">●</span> ' +
-                    '<span style="animation:veruska-pop 0.5s 0.15s infinite alternate">●</span> ' +
-                    '<span style="animation:veruska-pop 0.5s 0.3s infinite alternate">●</span> <span style="margin-left:4px;font-size:11px">Consultando o CRM...</span>' +
+                '<div style="background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1px solid #dbeafe;border-radius:12px 12px 12px 4px;padding:9px 12px;font-size:13px;color:#475569;display:flex;align-items:center;gap:8px">' +
+                    '<span aria-label="Veruska está digitando" style="display:flex;align-items:center;min-width:30px"><i class="veruska-typing-dot"></i><i class="veruska-typing-dot"></i><i class="veruska-typing-dot"></i></span>' +
+                    '<span style="font-size:11px;font-weight:600;letter-spacing:.01em">Consultando o CRM...</span>' +
                 '</div>' +
             '</div>';
         }
 
         return '<div id="veruska-chat-msgs" style="padding:12px 0;min-height:200px;max-height:340px;overflow-y:auto">' + msgs + '</div>' +
+            '<div style="padding:7px 12px;border-top:1px solid #f3f4f6;background:#fafcff;display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+                '<span style="font-size:10px;color:#64748b;font-weight:600;flex:1;min-width:94px">Conversa atual</span>' +
+                '<button type="button" id="veruska-clear" ' + (_thinking || _chatHistory.length === 0 ? 'disabled' : '') + ' title="Limpar conversa" style="border:1px solid #dbe3ee;background:white;color:#475569;border-radius:6px;padding:4px 7px;font-size:10px;cursor:pointer;' + (_thinking || _chatHistory.length === 0 ? 'opacity:.45;cursor:not-allowed' : '') + '">↺ Limpar</button>' +
+                '<button type="button" id="veruska-export-txt" ' + (_chatHistory.length === 0 ? 'disabled' : '') + ' title="Baixar conversa em texto" style="border:1px solid #dbe3ee;background:white;color:#475569;border-radius:6px;padding:4px 7px;font-size:10px;cursor:pointer;' + (_chatHistory.length === 0 ? 'opacity:.45;cursor:not-allowed' : '') + '">TXT</button>' +
+                '<button type="button" id="veruska-export-pdf" ' + (_chatHistory.length === 0 ? 'disabled' : '') + ' title="Abrir versão para salvar como PDF" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:4px 7px;font-size:10px;font-weight:700;cursor:pointer;' + (_chatHistory.length === 0 ? 'opacity:.45;cursor:not-allowed' : '') + '">PDF</button>' +
+            '</div>' +
             '<div style="padding:10px 12px;border-top:1px solid #f3f4f6;display:flex;gap:8px;flex-shrink:0">' +
                 '<input id="veruska-input" type="text" placeholder="Pergunte algo..." ' +
                     'style="flex:1;border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:13px;outline:none;font-family:inherit" ' +
@@ -451,6 +458,13 @@
     function bindChatEvents() {
         var input = document.getElementById('veruska-input');
         var sendBtn = document.getElementById('veruska-send');
+        var clearBtn = document.getElementById('veruska-clear');
+        var textExportBtn = document.getElementById('veruska-export-txt');
+        var pdfExportBtn = document.getElementById('veruska-export-pdf');
+
+        if (clearBtn) clearBtn.addEventListener('click', clearConversation);
+        if (textExportBtn) textExportBtn.addEventListener('click', exportConversationText);
+        if (pdfExportBtn) pdfExportBtn.addEventListener('click', exportConversationPdf);
         if (!input || !sendBtn) return;
 
         function sendMessage() {
@@ -540,6 +554,68 @@
     function focusChatInput() {
         var input = document.getElementById('veruska-input');
         if (input) { try { input.focus(); } catch {} }
+    }
+
+    // ── Controles de conversa e exportação local ──────────────────────────────
+    function clearConversation() {
+        if (_thinking || _chatHistory.length === 0) return;
+        if (!window.confirm('Limpar esta conversa? As mensagens atuais serão removidas apenas desta tela.')) return;
+        _chatHistory = [];
+        renderPanel();
+        setTimeout(focusChatInput, 40);
+    }
+
+    function conversationExportText() {
+        var timestamp = new Date().toLocaleString('pt-BR');
+        var lines = [
+            'Conversa com Veruska — SAMS Locações CRM',
+            'Exportada em: ' + timestamp,
+            '',
+        ];
+        _chatHistory.forEach(function(message) {
+            lines.push((message.role === 'user' ? 'Você' : 'Veruska') + ':');
+            lines.push(String(message.content || ''));
+            lines.push('');
+        });
+        return lines.join('\n');
+    }
+
+    function downloadConversation(content, filename, mime) {
+        var blob = new Blob([content], { type: mime + ';charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(function() { URL.revokeObjectURL(url); }, 500);
+    }
+
+    function exportConversationText() {
+        if (_chatHistory.length === 0) return;
+        downloadConversation(conversationExportText(), 'conversa-veruska-' + dateFileStamp() + '.txt', 'text/plain');
+    }
+
+    function exportConversationPdf() {
+        if (_chatHistory.length === 0) return;
+        var popup = window.open('', '_blank');
+        if (!popup) {
+            window.alert('O navegador bloqueou a janela de impressão. Permita pop-ups para salvar a conversa como PDF.');
+            return;
+        }
+        var messages = _chatHistory.map(function(message) {
+            var author = message.role === 'user' ? 'Você' : 'Veruska';
+            return '<article><h2>' + author + '</h2><p>' + escapeHtml(message.content || '').replace(/\n/g, '<br>') + '</p></article>';
+        }).join('');
+        popup.document.open();
+        popup.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Conversa com Veruska</title><style>@page{margin:18mm}body{font-family:Arial,sans-serif;color:#1f2937;line-height:1.55;max-width:760px;margin:0 auto}header{border-bottom:2px solid #2563eb;padding-bottom:14px;margin-bottom:22px}h1{font-size:24px;margin:0;color:#1e3a5f}header p{font-size:12px;color:#64748b;margin:6px 0 0}article{break-inside:avoid;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:0 0 12px}article h2{font-size:13px;margin:0 0 7px;color:#2563eb}article p{font-size:13px;margin:0;white-space:normal}</style></head><body><header><h1>Conversa com Veruska</h1><p>SAMS Locações CRM • Exportada em ' + escapeHtml(new Date().toLocaleString('pt-BR')) + '</p></header>' + messages + '<script>window.onload=function(){window.print();};<\/script></body></html>');
+        popup.document.close();
+    }
+
+    function dateFileStamp() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
 
     // ── Aba Dicas ─────────────────────────────────────────────────────────────

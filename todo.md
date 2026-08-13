@@ -438,3 +438,9 @@
 - [x] Melhorar feedback visual, mensagens de estado e atalhos do assistente
 - [x] Validar consultas autenticadas, responsividade e testes de regressão
 - [x] Criar testes de regressão para modelo, sessão expirada e mensagens de falha
+
+## Melhoria — Conversas da Veruska (Ago/2026)
+- [x] Adicionar botão para limpar o histórico e iniciar uma nova conversa
+- [x] Exportar conversa em texto e PDF sem enviar dados ao servidor
+- [x] Refinar visualmente o indicador de digitação da Veruska
+- [x] Validar desktop/mobile e ampliar os testes de regressão do chat

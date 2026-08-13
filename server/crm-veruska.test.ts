@@ -26,4 +26,20 @@ describe("Veruska — sessão e disponibilidade", () => {
     expect(clientSource).toContain("data-veruska-prompt");
     expect(clientSource).toContain("Não foi possível concluir esta consulta agora");
   });
+
+  it("oferece limpeza e exportação local da conversa sem enviar o histórico a outro serviço", () => {
+    expect(clientSource).toContain('id="veruska-clear"');
+    expect(clientSource).toContain('id="veruska-export-txt"');
+    expect(clientSource).toContain('id="veruska-export-pdf"');
+    expect(clientSource).toContain("function clearConversation()");
+    expect(clientSource).toContain("function exportConversationText()");
+    expect(clientSource).toContain("function exportConversationPdf()");
+    expect(clientSource).toContain("URL.createObjectURL(blob)");
+  });
+
+  it("renderiza indicador de digitação fluido e acessível", () => {
+    expect(clientSource).toContain("@keyframes veruska-typing");
+    expect(clientSource).toContain("veruska-typing-dot");
+    expect(clientSource).toContain('aria-label="Veruska está digitando"');
+  });
 });
