@@ -1248,14 +1248,19 @@ const NavigationSystem = {
                     const st = stEl ? norm(stEl.value) : '';
                     Array.from(tbody.querySelectorAll('tr')).forEach(row => {
                         const text = norm(row.textContent || '');
+                        const rowStatus = norm(row.getAttribute('data-financeiro-status'));
+                        const isOverdue = row.getAttribute('data-financeiro-vencido') === '1';
                         const matchQ = !q || text.includes(q);
-                        // Status matching: 'pago' matches 'pago' and 'baixado'; 'recebido' matches 'recebido' and 'baixado'
+                        // O vencimento é derivado de data + status em aberto, assim como
+                        // no alerta financeiro; demais status usam o valor da própria linha.
                         let matchSt = true;
                         if (st) {
-                            if (st === 'pago') {
-                                matchSt = text.includes('pago') || text.includes('baixado');
+                            if (st === 'vencido') {
+                                matchSt = isOverdue;
+                            } else if (st === 'pago') {
+                                matchSt = rowStatus.includes('pago') || rowStatus.includes('baixado');
                             } else {
-                                matchSt = text.includes(st);
+                                matchSt = rowStatus ? rowStatus === st : text.includes(st);
                             }
                         }
                         row.style.display = (matchQ && matchSt) ? '' : 'none';

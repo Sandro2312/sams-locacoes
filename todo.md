@@ -444,3 +444,8 @@
 - [x] Exportar conversa em texto e PDF sem enviar dados ao servidor
 - [x] Refinar visualmente o indicador de digitação da Veruska
 - [x] Validar desktop/mobile e ampliar os testes de regressão do chat
+
+## Correção — Filtro de despesas vencidas (Ago/2026)
+- [x] Investigar a divergência entre o alerta de vencidas e a lista filtrada por status Vencido
+- [x] Corrigir o filtro preservando os fluxos existentes de Despesas e Receitas
+- [x] Validar com dados reais, em desktop/mobile, e criar teste de regressão

@@ -753,11 +753,11 @@ export function registerCrmAdminRoutes(app: any) {
       // Contas a receber: vencidas (não pagas) e a vencer nos próximos N dias
       const [crVencidas, crAVencer] = await Promise.all([
         db(
-          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE status NOT IN ('pago','recebido','baixado','cancelado') AND vencimento < ? ORDER BY vencimento ASC LIMIT 50",
+          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE LOWER(TRIM(COALESCE(status, ''))) NOT IN ('pago','recebido','baixado','cancelado') AND vencimento < ? ORDER BY vencimento ASC LIMIT 50",
           [toISO(hoje)]
         ),
         db(
-          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE status NOT IN ('pago','recebido','baixado','cancelado') AND vencimento >= ? AND vencimento <= ? ORDER BY vencimento ASC LIMIT 50",
+          "SELECT id, descricao, valor, vencimento, status FROM crm_contas_receber WHERE LOWER(TRIM(COALESCE(status, ''))) NOT IN ('pago','recebido','baixado','cancelado') AND vencimento >= ? AND vencimento <= ? ORDER BY vencimento ASC LIMIT 50",
           [toISO(hoje), toISO(limite)]
         ),
       ]);
@@ -765,11 +765,11 @@ export function registerCrmAdminRoutes(app: any) {
       // Contas a pagar (transações): vencidas e a vencer
       const [txVencidas, txAVencer] = await Promise.all([
         db(
-          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND status NOT IN ('pago','baixado','cancelado') AND data < ? ORDER BY data ASC LIMIT 50",
+          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND LOWER(TRIM(COALESCE(status, ''))) NOT IN ('pago','baixado','cancelado') AND data < ? ORDER BY data ASC LIMIT 50",
           [toISO(hoje)]
         ),
         db(
-          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND status NOT IN ('pago','baixado','cancelado') AND data >= ? AND data <= ? ORDER BY data ASC LIMIT 50",
+          "SELECT id, descricao, valor, data as vencimento, status FROM crm_transacoes WHERE tipo IN ('despesa','pagar','contas a pagar') AND LOWER(TRIM(COALESCE(status, ''))) NOT IN ('pago','baixado','cancelado') AND data >= ? AND data <= ? ORDER BY data ASC LIMIT 50",
           [toISO(hoje), toISO(limite)]
         ),
       ]);

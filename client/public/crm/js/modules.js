@@ -4078,6 +4078,28 @@ const ModuleSystem = {
                 if (s.includes('cancel')) return 'bg-gray-200 text-gray-700';
                 return 'bg-gray-100 text-gray-800';
             };
+            // "Vencido" é uma condição calculada: despesa ainda em aberto cuja
+            // data já passou. Não depende de o status armazenado ter sido trocado
+            // manualmente de "Pendente" para "Vencido".
+            const localDateKey = (date = new Date()) => {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
+            const transactionDateKey = (value) => {
+                const key = value == null ? '' : String(value).slice(0, 10);
+                return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : '';
+            };
+            const isClosedStatus = (status) => {
+                const s = normalize(status);
+                return s.includes('pago') || s.includes('baix') || s.includes('cancel') || s.includes('receb');
+            };
+            const isOverdue = (transacao) => {
+                const dueDate = transactionDateKey(transacao?.data);
+                return Boolean(dueDate && dueDate < localDateKey() && !isClosedStatus(transacao?.status));
+            };
+            const displayStatus = (transacao) => isOverdue(transacao) ? 'Vencido' : (transacao?.status || '-');
             const dateBR = (ymd) => {
                 if (!ymd) return '-';
                 try {
@@ -4156,7 +4178,7 @@ const ModuleSystem = {
                             </thead>
                             <tbody id="despesas-list-tbody" class="bg-white divide-y divide-gray-200">
                                 ${filtered.map(transacao => `
-                                    <tr class="hover:bg-gray-50">
+                                    <tr class="hover:bg-gray-50" data-financeiro-status="${ModuleSystem.escapeHtml(displayStatus(transacao))}" data-financeiro-vencido="${isOverdue(transacao) ? '1' : '0'}">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900">${transacao.descricao || '-'}</div>
                                         </td>
@@ -4173,8 +4195,8 @@ const ModuleSystem = {
                                             R$ ${formatMoney(transacao.valor)}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadge(transacao.status)}">
-                                                ${transacao.status || '-'}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadge(displayStatus(transacao))}">
+                                                ${displayStatus(transacao)}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
