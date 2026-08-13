@@ -98,7 +98,9 @@ const PermissionSystem = {
                 'financeiro.comissoes.view': 'Visualizar comissões',
                 'financeiro.comissoes.calculate': 'Calcular comissões',
                 'financeiro.relatorios.view': 'Visualizar relatórios financeiros',
-                'financeiro.relatorios.export': 'Exportar relatórios'
+                'financeiro.relatorios.export': 'Exportar relatórios',
+                'financeiro.resultado_stand.view': 'Visualizar resultado por stand',
+                'financeiro.resultado_stand.manage': 'Gerenciar Projetos de Stand'
             }
         },
         administrativo: {
@@ -210,7 +212,7 @@ const PermissionSystem = {
                 'projetos.arquivos.view', 'projetos.arquivos.upload', 'projetos.arquivos.download',
                 // Financeiro
                 'financeiro.orcamentos.view', 'financeiro.orcamentos.create', 'financeiro.orcamentos.edit',
-                'financeiro.contratos.view', 'financeiro.comissoes.view', 'financeiro.relatorios.view',
+                'financeiro.contratos.view', 'financeiro.comissoes.view', 'financeiro.relatorios.view', 'financeiro.resultado_stand.view', 'financeiro.resultado_stand.manage',
                 // Kanban
                 'kanban.boards.view', 'kanban.tasks.view', 'kanban.tasks.create', 'kanban.tasks.edit', 'kanban.tasks.move', 'kanban.tasks.assign'
             ]
@@ -265,7 +267,7 @@ const PermissionSystem = {
                 'financeiro.orcamentos.view', 'financeiro.orcamentos.create', 'financeiro.orcamentos.edit',
                 'financeiro.contratos.view', 'financeiro.contratos.create', 'financeiro.contratos.edit',
                 'financeiro.comissoes.view', 'financeiro.comissoes.calculate',
-                'financeiro.relatorios.view', 'financeiro.relatorios.export',
+                'financeiro.relatorios.view', 'financeiro.relatorios.export', 'financeiro.resultado_stand.view', 'financeiro.resultado_stand.manage',
                 // Comercial (limitado)
                 'comercial.clientes.view',
                 // Administrativo (limitado)

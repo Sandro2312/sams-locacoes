@@ -29,6 +29,13 @@
       "when": 1786550939477,
       "tag": "0003_next_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786626622414,
+      "tag": "0004_groovy_shen",
+      "breakpoints": true
     }
   ]
 }

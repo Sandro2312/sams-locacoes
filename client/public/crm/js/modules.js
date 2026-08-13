@@ -50,6 +50,7 @@ const ModuleSystem = {
         usuarios: [],
         transacoes: [],
         contasReceber: [],
+        projetosStand: [],
         tarefasAdmin: [],
         demandasJuridicas: [],
         kanban: { boards: [], tasks: [] },
@@ -81,6 +82,7 @@ const ModuleSystem = {
             this.syncEventosFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar eventos:', e));
             this.syncContasReceberFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar contas a receber:', e));
             this.syncLeadsFromBackend().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar leads:', e));
+            window.ProjetosStandModule?.sync?.().catch(e => console.warn('[ModuleSystem.init] Falha ao sincronizar Projetos de Stand:', e));
         }, 800);
     },
 
@@ -99,6 +101,7 @@ const ModuleSystem = {
             usuarios: [],
             transacoes: [],
             contasReceber: [],
+            projetosStand: [],
             tarefasAdmin: [],
             demandasJuridicas: [],
             kanban: { boards: [], tasks: [] },
@@ -156,6 +159,7 @@ const ModuleSystem = {
             centroCusto: r.centro_custo || r.centroCusto || null,
             eventoId: r.evento_id || r.eventoId || null,
             clienteId: r.cliente_id || r.clienteId || null,
+            projetoStandId: r.projeto_stand_id || r.projetoStandId || null,
             clienteNome: r.cliente_nome || r.clienteNome || null,
             eventoNome: r.evento_nome || r.eventoNome || null,
             recorrenciaGrupoId: r.recorrencia_grupo_id || r.recorrenciaGrupoId || null,

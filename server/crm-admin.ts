@@ -13,6 +13,10 @@ const db = async (sql: string, params: any[] = []) => {
   const [rows] = await getPool().execute(sql, params);
   return rows as any[];
 };
+const dbOne = async <T = any>(sql: string, params: any[] = []) => {
+  const rows = await db(sql, params);
+  return (rows[0] as T | undefined) ?? null;
+};
 
 async function getSession(token: string) {
   if (!token) return null;
@@ -246,8 +250,19 @@ export function registerCrmAdminRoutes(app: any) {
   rt.post("/", requireAuth, async (req, res) => {
     try {
       const u = (req as any).crmUser;
-      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id, recorrencia, recorrencia_grupo_id, recorrencia_indice, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
+      const { descricao, tipo, valor, status = "pendente", centro_custo, data, observacoes, evento_id, cliente_id, projeto_stand_id, projetoStandId: projetoStandIdInput, recorrencia, recorrencia_grupo_id, recorrencia_indice, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
       if (!descricao || !tipo || valor === undefined) return res.status(400).json({ error: "Campos obrigatórios: descricao, tipo, valor" });
+      const projetoStandId = Number(projeto_stand_id ?? projetoStandIdInput) || null;
+      let finalEventoId = Number(evento_id) || null;
+      let finalClienteId = Number(cliente_id) || null;
+      if (projetoStandId) {
+        const projeto = await dbOne<{ evento_id: number; cliente_id: number }>("SELECT evento_id, cliente_id FROM crm_projetos_stand WHERE id = ?", [projetoStandId]);
+        if (!projeto) return res.status(400).json({ error: "Projeto de Stand selecionado não existe" });
+        if (finalEventoId && finalEventoId !== Number(projeto.evento_id)) return res.status(400).json({ error: "O evento informado não corresponde ao Projeto de Stand" });
+        if (finalClienteId && finalClienteId !== Number(projeto.cliente_id)) return res.status(400).json({ error: "O cliente informado não corresponde ao Projeto de Stand" });
+        finalEventoId = Number(projeto.evento_id);
+        finalClienteId = Number(projeto.cliente_id);
+      }
       // Processar upload de comprovante (base64 → S3) se fornecido
       let comprovanteUrl: string | null = null;
       if (comprovanteDataBase64 && comprovanteName) {
@@ -262,8 +277,8 @@ export function registerCrmAdminRoutes(app: any) {
         }
       }
       const [result] = await getPool().execute(
-        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, comprovante_url, evento_id, cliente_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, comprovanteUrl, evento_id || null, cliente_id || null, u.userId, recorrencia || null, recorrencia_grupo_id || null, recorrencia_indice || null]
+        "INSERT INTO crm_transacoes (descricao, tipo, valor, status, centro_custo, data, observacoes, comprovante_url, evento_id, cliente_id, projeto_stand_id, created_by, recorrencia, recorrencia_grupo_id, recorrencia_indice) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, comprovanteUrl, finalEventoId, finalClienteId, projetoStandId, u.userId, recorrencia || null, recorrencia_grupo_id || null, recorrencia_indice || null]
       );
       res.json({ id: (result as any).insertId, ok: true });
     } catch (e: any) {
@@ -273,7 +288,18 @@ export function registerCrmAdminRoutes(app: any) {
 
   rt.put("/:id", requireAuth, async (req, res) => {
     try {
-      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, comprovanteName: updComprovanteName, comprovanteMime: updComprovanteMime, comprovanteDataBase64: updComprovanteDataBase64 } = req.body;
+      const { descricao, tipo, valor, status, centro_custo, data, observacoes, evento_id, cliente_id, projeto_stand_id, projetoStandId: projetoStandIdInput, comprovanteName: updComprovanteName, comprovanteMime: updComprovanteMime, comprovanteDataBase64: updComprovanteDataBase64 } = req.body;
+      const projetoStandId = Number(projeto_stand_id ?? projetoStandIdInput) || null;
+      let finalEventoId = Number(evento_id) || null;
+      let finalClienteId = Number(cliente_id) || null;
+      if (projetoStandId) {
+        const projeto = await dbOne<{ evento_id: number; cliente_id: number }>("SELECT evento_id, cliente_id FROM crm_projetos_stand WHERE id = ?", [projetoStandId]);
+        if (!projeto) return res.status(400).json({ error: "Projeto de Stand selecionado não existe" });
+        if (finalEventoId && finalEventoId !== Number(projeto.evento_id)) return res.status(400).json({ error: "O evento informado não corresponde ao Projeto de Stand" });
+        if (finalClienteId && finalClienteId !== Number(projeto.cliente_id)) return res.status(400).json({ error: "O cliente informado não corresponde ao Projeto de Stand" });
+        finalEventoId = Number(projeto.evento_id);
+        finalClienteId = Number(projeto.cliente_id);
+      }
       // Processar upload de comprovante (base64 → S3) se fornecido na edição
       let updComprovanteUrl: string | undefined = undefined; // undefined = não alterar a coluna
       if (updComprovanteDataBase64 && updComprovanteName) {
@@ -287,8 +313,8 @@ export function registerCrmAdminRoutes(app: any) {
           console.warn('[CRM-Admin] Falha ao salvar comprovante em S3 (update):', err);
         }
       }
-      const updCols = ["descricao=?", "tipo=?", "valor=?", "status=?", "centro_custo=?", "data=?", "observacoes=?", "evento_id=?", "cliente_id=?"];
-      const updVals: any[] = [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, evento_id || null, cliente_id || null];
+      const updCols = ["descricao=?", "tipo=?", "valor=?", "status=?", "centro_custo=?", "data=?", "observacoes=?", "evento_id=?", "cliente_id=?", "projeto_stand_id=?"];
+      const updVals: any[] = [descricao, tipo, parseFloat(valor), status, centro_custo || null, data || null, observacoes || null, finalEventoId, finalClienteId, projetoStandId];
       if (updComprovanteUrl !== undefined) { updCols.push("comprovante_url=?"); updVals.push(updComprovanteUrl); }
       updVals.push(req.params.id);
       await db(`UPDATE crm_transacoes SET ${updCols.join(', ')} WHERE id=?`, updVals);

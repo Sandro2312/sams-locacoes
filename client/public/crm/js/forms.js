@@ -1540,6 +1540,15 @@ const FormSystem = {
                 const normalizeItem = (item) => {
                     const out = { ...item };
                     if (out.status == null || String(out.status).trim() === '') out.status = 'Pendente';
+                    const projetoStandId = out.projetoStandId ?? out.projeto_stand_id ?? null;
+                    if (projetoStandId) {
+                        const projeto = (ModuleSystem.data?.projetosStand || []).find(p => String(p.id) === String(projetoStandId));
+                        if (projeto) {
+                            out.projetoStandId = projeto.id;
+                            out.eventoId = projeto.evento_id ?? projeto.eventoId ?? out.eventoId ?? out.evento_id ?? null;
+                            out.clienteId = projeto.cliente_id ?? projeto.clienteId ?? out.clienteId ?? out.cliente_id ?? null;
+                        }
+                    }
                     out.recorrencia = recorrencia;
                     if (isRecorrente) out.recorrenciaQtd = recorrenciaQtd;
                     return out;
@@ -1555,6 +1564,7 @@ const FormSystem = {
                     observacoes: item.observacoes || null,
                     evento_id: item.eventoId || item.evento_id || null,
                     cliente_id: item.clienteId || item.cliente_id || null,
+                    projeto_stand_id: item.projetoStandId || item.projeto_stand_id || null,
                     recorrencia: item.recorrencia || 'nenhuma',
                     recorrencia_grupo_id: item.recorrenciaGrupoId || null,
                     recorrencia_indice: item.recorrenciaIndice || null,
@@ -2248,6 +2258,7 @@ const FormSystem = {
                             observacoes: data.observacoes || null,
                             evento_id: data.eventoId || data.evento_id || null,
                             cliente_id: data.clienteId || data.cliente_id || null,
+                            projeto_stand_id: data.projetoStandId || data.projeto_stand_id || null,
                             // Comprovante: usar comprovanteName (sem acento) conforme esperado pelo backend
                             comprovanteName: data.comprovanteName || data.comprovanteNome || null,
                             comprovanteMime: data.comprovanteMime || null,
@@ -4441,6 +4452,12 @@ ENTREGA
         const recorrencia = transacao?.recorrencia != null && String(transacao.recorrencia).trim() !== '' ? String(transacao.recorrencia) : 'nenhuma';
         const recorrenciaQtd = transacao?.recorrenciaQtd != null ? Number(transacao.recorrenciaQtd) : 1;
         const comprovanteNome = transacao?.comprovanteNome ?? transacao?.comprovante_nome ?? '';
+        const eventoId = transacao?.eventoId ?? transacao?.evento_id ?? '';
+        const clienteId = transacao?.clienteId ?? transacao?.cliente_id ?? '';
+        const projetoStandId = transacao?.projetoStandId ?? transacao?.projeto_stand_id ?? '';
+        const eventos = Array.isArray(ModuleSystem.data?.eventos) ? ModuleSystem.data.eventos : [];
+        const clientes = Array.isArray(ModuleSystem.data?.clientes) ? ModuleSystem.data.clientes : [];
+        const projetosStand = Array.isArray(ModuleSystem.data?.projetosStand) ? ModuleSystem.data.projetosStand : [];
         return `
             <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="transacoes" data-id="${id || ''}" autocomplete="on">
                 <div class="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-lg mb-6 border border-red-200">
@@ -4460,6 +4477,31 @@ ENTREGA
                             <input type="text" id="fornecedor_${formId}" name="fornecedor" value="${transacao?.fornecedor ?? ''}"
                                    placeholder="Opcional"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        </div>
+
+                        <div>
+                            <label for="evento_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Evento</label>
+                            <select id="evento_${formId}" name="eventoId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <option value="">Não vincular a evento</option>
+                                ${eventos.map(evento => `<option value="${evento.id}" ${String(eventoId) === String(evento.id) ? 'selected' : ''}>${ModuleSystem.escapeHtml(evento.nome || `Evento #${evento.id}`)}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="cliente_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                            <select id="cliente_${formId}" name="clienteId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <option value="">Não vincular a cliente</option>
+                                ${clientes.map(cliente => `<option value="${cliente.id}" ${String(clienteId) === String(cliente.id) ? 'selected' : ''}>${ModuleSystem.escapeHtml(cliente.nome || cliente.razao_social || cliente.empresa || `Cliente #${cliente.id}`)}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="projeto_stand_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Projeto de Stand</label>
+                            <select id="projeto_stand_${formId}" name="projetoStandId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <option value="">Não vincular a Projeto de Stand</option>
+                                ${projetosStand.map(projeto => `<option value="${projeto.id}" ${String(projetoStandId) === String(projeto.id) ? 'selected' : ''}>${ModuleSystem.escapeHtml(`${projeto.evento_nome || 'Evento'} — ${projeto.cliente_nome || 'Cliente'} — ${projeto.nome || projeto.codigo}`)}</option>`).join('')}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Ao selecionar um projeto, o CRM confirma automaticamente o evento e o cliente correspondentes.</p>
                         </div>
 
                         <div>

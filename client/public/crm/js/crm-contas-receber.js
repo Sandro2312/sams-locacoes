@@ -119,11 +119,13 @@
   function normalize(r) {
     const clienteId = r.clienteId ?? r.cliente_id ?? null;
     const resolved = resolveCliente(clienteId);
-    return {
-      id: r.id,
-      vendaId: r.vendaId ?? r.venda_id ?? null,
-      clienteId,
-      centroCusto: r.centroCusto ?? r.centro_custo ?? null,
+      return {
+        id: r.id,
+        vendaId: r.vendaId ?? r.venda_id ?? null,
+        clienteId,
+        eventoId: r.eventoId ?? r.evento_id ?? null,
+        projetoStandId: r.projetoStandId ?? r.projeto_stand_id ?? null,
+        centroCusto: r.centroCusto ?? r.centro_custo ?? null,
       tipoReceita: r.tipoReceita ?? r.tipo_receita ?? null,
       descricao: r.descricao ?? '',
       valor: r.valor ?? 0,
@@ -350,6 +352,9 @@
       const vencimento = id ? ((conta?.vencimento || '').slice(0, 10)) : '';
       const dataPagamento = (conta?.dataPagamento ?? conta?.data_pagamento ?? '').slice(0, 10);
       const selectedClienteId = conta?.clienteId ?? conta?.cliente_id ?? '';
+      const selectedEventoId = conta?.eventoId ?? conta?.evento_id ?? '';
+      const selectedProjetoStandId = conta?.projetoStandId ?? conta?.projeto_stand_id ?? '';
+      const projetosStand = Array.isArray(window.ModuleSystem?.data?.projetosStand) ? window.ModuleSystem.data.projetosStand : [];
 
       // Recuperar último Centro de Custos usado
       let lastCentro = '';
@@ -397,6 +402,22 @@
               <input type="text" id="venda_${formId}" name="vendaId" value="${escapeHtml(String(conta?.vendaId ?? conta?.venda_id ?? ''))}"
                      placeholder="Opcional"
                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+            </div>
+
+            <div>
+              <label for="evento_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Evento</label>
+              <select id="evento_${formId}" name="eventoId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="">Não vincular a evento</option>
+                ${(window.ModuleSystem?.data?.eventos || []).map(evento => `<option value="${evento.id}" ${String(selectedEventoId) === String(evento.id) ? 'selected' : ''}>${escapeHtml(evento.nome || `Evento #${evento.id}`)}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label for="projeto_stand_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Projeto de Stand</label>
+              <select id="projeto_stand_${formId}" name="projetoStandId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="">Não vincular a Projeto de Stand</option>
+                ${projetosStand.map(projeto => `<option value="${projeto.id}" ${String(selectedProjetoStandId) === String(projeto.id) ? 'selected' : ''}>${escapeHtml(`${projeto.evento_nome || 'Evento'} — ${projeto.cliente_nome || 'Cliente'} — ${projeto.nome || projeto.codigo}`)}</option>`).join('')}
+              </select>
             </div>
 
             <div>
@@ -498,6 +519,8 @@
         body: JSON.stringify({
           vendaId:               data.vendaId ?? null,
           clienteId:             data.clienteId ?? null,
+          eventoId:              data.eventoId ?? null,
+          projetoStandId:        data.projetoStandId ?? null,
           centroCusto:           data.centroCusto ?? null,
           centro_custo:          data.centroCusto ?? null,
           tipoReceita:           data.tipoReceita ?? null,
@@ -556,6 +579,8 @@
           body: JSON.stringify({
             vendaId:        data.vendaId ?? null,
             clienteId:      data.clienteId ?? null,
+            eventoId:       data.eventoId ?? null,
+            projetoStandId: data.projetoStandId ?? null,
             centroCusto:    data.centroCusto ?? null,
             centro_custo:   data.centroCusto ?? null,
             tipoReceita:    data.tipoReceita ?? null,

@@ -4,6 +4,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { registerImportRoutes } from "./crm-import";
 import { registerAssistenteRoutes } from "./crm-assistente";
 import { registerTicketRoutes } from "./crm-tickets";
+import { registerProjetosStandRoutes } from "./crm-projetos-stand";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -882,7 +883,7 @@ export function registerCrmRoutes(app: any) {
   r.post("/contas-receber", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
     const {
-      clienteId, cliente_id, vendaId, venda_id,
+      clienteId, cliente_id, vendaId, venda_id, eventoId, evento_id, projetoStandId, projeto_stand_id,
       centroCusto, centro_custo,
       tipoReceita, tipo_receita,
       descricao, valor, vencimento,
@@ -892,13 +893,24 @@ export function registerCrmRoutes(app: any) {
     } = req.body;
 
     // Normalizar nomes de campos (aceitar camelCase e snake_case)
-    const finalClienteId = clienteId ?? cliente_id ?? null;
+    let finalClienteId = clienteId ?? cliente_id ?? null;
     const finalVendaId = vendaId ?? venda_id ?? null;
+    let finalEventoId = eventoId ?? evento_id ?? null;
+    const finalProjetoStandId = projetoStandId ?? projeto_stand_id ?? null;
     const finalCentroCusto = centroCusto ?? centro_custo ?? null;
     const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
     const finalStatus = (status ?? 'pendente').toString().toLowerCase();
     const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
     const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
+
+    if (finalProjetoStandId) {
+      const projeto = await dbOne<{ evento_id: number; cliente_id: number }>("SELECT evento_id, cliente_id FROM crm_projetos_stand WHERE id = ?", [finalProjetoStandId]);
+      if (!projeto) return res.status(400).json({ error: "Projeto de Stand selecionado não existe" });
+      if (finalClienteId && Number(finalClienteId) !== Number(projeto.cliente_id)) return res.status(400).json({ error: "O cliente informado não corresponde ao Projeto de Stand" });
+      if (finalEventoId && Number(finalEventoId) !== Number(projeto.evento_id)) return res.status(400).json({ error: "O evento informado não corresponde ao Projeto de Stand" });
+      finalClienteId = projeto.cliente_id;
+      finalEventoId = projeto.evento_id;
+    }
 
     if (!descricao || !valor || !vencimento) return res.status(400).json({ error: "Campos obrigatórios faltando" });
 
@@ -920,27 +932,38 @@ export function registerCrmRoutes(app: any) {
     const n = (v: any) => (v === undefined ? null : v);
     const [result] = await getPool().execute(
       `INSERT INTO crm_contas_receber
-       (cliente_id, venda_id, centro_custo, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [n(finalClienteId), n(finalVendaId), n(finalCentroCusto), n(descricao), n(valor), n(vencimento), n(finalStatus), n(finalDataPagamento), n(finalFormaPagamento), n(observacoes), n(comprovanteUrl)]
+       (cliente_id, venda_id, evento_id, projeto_stand_id, centro_custo, descricao, valor, vencimento, status, data_pagamento, forma_pagamento, observacoes, comprovante_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [n(finalClienteId), n(finalVendaId), n(finalEventoId), n(finalProjetoStandId), n(finalCentroCusto), n(descricao), n(valor), n(vencimento), n(finalStatus), n(finalDataPagamento), n(finalFormaPagamento), n(observacoes), n(comprovanteUrl)]
     );
     const insertId = (result as any).insertId;
-    await audit(u.userId, "create", "crm_contas_receber", insertId, { descricao, valor, cliente_id: finalClienteId }, req.ip);
+    await audit(u.userId, "create", "crm_contas_receber", insertId, { descricao, valor, cliente_id: finalClienteId, evento_id: finalEventoId, projeto_stand_id: finalProjetoStandId }, req.ip);
     res.json({ id: insertId, ok: true });
   });
 
   r.put("/contas-receber/:id", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
     const id = req.params.id;
-    const { clienteId, cliente_id, vendaId, venda_id, centroCusto, centro_custo, tipoReceita, tipo_receita, descricao, valor, vencimento, status, dataPagamento, data_pagamento, formaPagamento, forma_pagamento, observacoes, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
+    const { clienteId, cliente_id, vendaId, venda_id, eventoId, evento_id, projetoStandId, projeto_stand_id, centroCusto, centro_custo, tipoReceita, tipo_receita, descricao, valor, vencimento, status, dataPagamento, data_pagamento, formaPagamento, forma_pagamento, observacoes, comprovanteName, comprovanteMime, comprovanteDataBase64 } = req.body;
     
-    const finalClienteId = clienteId ?? cliente_id ?? null;
+    let finalClienteId = clienteId ?? cliente_id ?? null;
     const finalVendaId = vendaId ?? venda_id ?? null;
+    let finalEventoId = eventoId ?? evento_id ?? null;
+    const finalProjetoStandId = projetoStandId ?? projeto_stand_id ?? null;
     const finalCentroCusto = centroCusto ?? centro_custo ?? null;
     const finalTipoReceita = tipoReceita ?? tipo_receita ?? 'stand';
     const finalStatus = (status ?? 'pendente').toString().toLowerCase();
     const finalDataPagamento = dataPagamento ?? data_pagamento ?? null;
     const finalFormaPagamento = formaPagamento ?? forma_pagamento ?? null;
+
+    if (finalProjetoStandId) {
+      const projeto = await dbOne<{ evento_id: number; cliente_id: number }>("SELECT evento_id, cliente_id FROM crm_projetos_stand WHERE id = ?", [finalProjetoStandId]);
+      if (!projeto) return res.status(400).json({ error: "Projeto de Stand selecionado não existe" });
+      if (finalClienteId && Number(finalClienteId) !== Number(projeto.cliente_id)) return res.status(400).json({ error: "O cliente informado não corresponde ao Projeto de Stand" });
+      if (finalEventoId && Number(finalEventoId) !== Number(projeto.evento_id)) return res.status(400).json({ error: "O evento informado não corresponde ao Projeto de Stand" });
+      finalClienteId = projeto.cliente_id;
+      finalEventoId = projeto.evento_id;
+    }
     
     // Comprovante agora é opcional - removida validação obrigatória
     
@@ -961,6 +984,8 @@ export function registerCrmRoutes(app: any) {
     
     if (finalClienteId !== undefined) { updates.push("cliente_id=?"); values.push(finalClienteId); }
     if (finalVendaId !== undefined) { updates.push("venda_id=?"); values.push(finalVendaId); }
+    if (finalEventoId !== undefined) { updates.push("evento_id=?"); values.push(finalEventoId); }
+    if (finalProjetoStandId !== undefined) { updates.push("projeto_stand_id=?"); values.push(finalProjetoStandId); }
     if (finalCentroCusto !== undefined) { updates.push("centro_custo=?"); values.push(finalCentroCusto); }
     if (descricao !== undefined) { updates.push("descricao=?"); values.push(descricao); }
     if (valor !== undefined) { updates.push("valor=?"); values.push(valor); }
@@ -2225,6 +2250,8 @@ export function registerCrmRoutes(app: any) {
   registerAssistenteRoutes(app);
   // Registrar rotas do módulo de Suporte/Tickets (montagem isolada para não afetar /login)
   registerTicketRoutes(app);
+  // Registrar rotas de Projeto de Stand e apuração por evento/cliente
+  registerProjetosStandRoutes(app);
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);
 }

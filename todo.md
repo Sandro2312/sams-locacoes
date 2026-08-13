@@ -454,3 +454,10 @@
 - [x] Mapear os vínculos atuais entre lançamentos, eventos, clientes e centros de custo
 - [x] Identificar lacunas para apurar custos, receitas e resultado por stand dentro de cada feira
 - [x] Propor evolução gradual de filtros, cadastros e relatórios sem modificar dados existentes
+
+## Implementação — Apuração por Evento e Cliente/Stand — Etapa 1 (Ago/2026)
+- [x] Criar entidade Projeto de Stand, mantendo os registros financeiros históricos intactos
+- [x] Criar APIs autenticadas e permissões para gerenciamento de Projetos de Stand
+- [x] Incluir Evento, Cliente e Projeto de Stand nos novos lançamentos financeiros
+- [x] Adicionar filtros encadeados e visão de resultado por stand no Financeiro
+- [x] Validar CRUD, filtros, permissões, desktop/mobile e testes de regressão

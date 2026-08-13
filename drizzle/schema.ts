@@ -73,6 +73,32 @@ export const orcamentos = mysqlTable("orcamentos", {
 export type Orcamento = typeof orcamentos.$inferSelect;
 export type InsertOrcamento = typeof orcamentos.$inferInsert;
 
+/**
+ * Unidade de apuração para um stand de determinado cliente dentro de uma feira.
+ * Os vínculos em despesas e receitas são opcionais para preservar o histórico
+ * já existente e permitir adoção gradual nos novos lançamentos.
+ */
+export const crmProjetosStand = mysqlTable("crm_projetos_stand", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 60 }).notNull().unique(),
+  eventoId: int("evento_id").notNull(),
+  clienteId: int("cliente_id").notNull(),
+  contratoId: int("contrato_id"),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  referenciaStand: varchar("referencia_stand", { length: 120 }),
+  pavilhao: varchar("pavilhao", { length: 120 }),
+  areaM2: varchar("area_m2", { length: 30 }),
+  centroCusto: varchar("centro_custo", { length: 150 }),
+  status: varchar("status", { length: 30 }).notNull().default("planejado"),
+  observacoes: text("observacoes"),
+  createdBy: int("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CrmProjetoStand = typeof crmProjetosStand.$inferSelect;
+export type InsertCrmProjetoStand = typeof crmProjetosStand.$inferInsert;
+
 export const crmTickets = mysqlTable("crm_tickets", {
   id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),
   codigo: varchar("codigo", { length: 30 }).notNull().unique(),
