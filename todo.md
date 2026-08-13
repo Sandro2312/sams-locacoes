@@ -526,3 +526,10 @@
 - [x] Corrigir rolagem, fechamento e ações fixas de salvar/cancelar
 - [x] Adicionar filtros de busca e revisão clara das permissões selecionadas
 - [x] Validar persistência, proteção de perfis críticos e responsividade
+
+## Análise — Evolução do módulo Jurídico (Ago/2026)
+- [x] Mapear os dados, permissões e fluxos jurídicos existentes no CRM
+- [x] Avaliar consulta por número de processo e cobertura oficial de citações/intimações
+- [x] Definir alternativas de integração com proteção de CPF/CNPJ e dados pessoais
+- [x] Propor melhorias graduais para cadastro, prazos e acompanhamento processual
+- [x] Estruturar a divisão operacional entre processos Trabalhistas e Cíveis
