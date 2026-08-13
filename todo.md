@@ -503,3 +503,9 @@
 - [x] Criar serviço transacional de lead e tarefa sem alterar o registro público de contato/orçamento
 - [x] Integrar formulário de Contato e Solicitação de Orçamento à automação
 - [x] Validar duplicidades, tarefas, notificações, permissões e regressões
+
+## Configuração — Responsável padrão da captação do site (Ago/2026)
+- [x] Confirmar a elegibilidade da Vera como Administradora ativa
+- [x] Alinhar o perfil persistido da Vera ao papel Administrador solicitado
+- [x] Definir a Vera como responsável padrão sem alterar leads e tarefas existentes
+- [x] Validar a configuração persistida e registrar checkpoint
