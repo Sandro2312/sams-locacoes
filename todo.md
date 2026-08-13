@@ -479,3 +479,8 @@
 - [x] Confirmar a equivalência entre o cartão Despesas e o aviso de Contas a Pagar
 - [x] Criar link direto e acessível para a lista completa de despesas
 - [x] Validar navegação e responsividade sem regressões
+
+## Correção — Atalho de Receitas nas pendências (Ago/2026)
+- [x] Identificar por que o atalho de Receitas não aparece quando há poucos créditos
+- [x] Exibir link direto para a lista de Receitas sempre que houver créditos listados
+- [x] Validar navegação, acessibilidade e responsividade dos dois atalhos

@@ -8,6 +8,8 @@ const navigationSource = readFileSync(resolve(__dirname, "../client/public/crm/j
 describe("Atalho de pendências financeiras", () => {
   it("encaminha débitos pendentes para a mesma página usada pelo cartão Despesas", () => {
     expect(modulesSource).toContain("const destinoPagina = tipo === 'cred' ? 'receitas' : 'custos'");
+    expect(modulesSource).toContain("const exibirAtalho = extra > 0 || (tipo === 'cred' && items.length > 0)");
+    expect(modulesSource).toContain("Abrir a lista completa de créditos.");
     expect(modulesSource).toContain("Ver todas as ' + destinoNome");
     expect(modulesSource).toContain("NavigationSystem.navigateToPage('financeiro',".replace(/'/g, "\\'"));
     expect(navigationSource).toContain("custos: { name: 'Despesas'");

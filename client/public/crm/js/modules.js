@@ -5922,8 +5922,12 @@ const ModuleSystem = {
                         }).join('');
                         const destinoPagina = tipo === 'cred' ? 'receitas' : 'custos';
                         const destinoNome = tipo === 'cred' ? 'Receitas' : 'Despesas';
-                        const extraRow = extra > 0
-                            ? '<tr><td colspan="' + (tipo === 'cred' ? '6' : '5') + '" class="px-3 py-2 text-center"><span class="text-xs text-gray-500 italic">+ ' + String(extra) + ' item(s) n\u00e3o exibido(s).</span> <button type="button" class="ml-1 inline-flex items-center rounded px-2 py-1 text-xs font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" title="Abrir lista completa de ' + destinoNome + '" aria-label="Ver todos os itens em ' + destinoNome + '" onclick="try{if(window.NavigationSystem&&typeof window.NavigationSystem.navigateToPage===\'function\'){window.NavigationSystem.navigateToPage(\'financeiro\',\'' + destinoPagina + '\');}}catch(e){console.error(e);}">Ver todas as ' + destinoNome + '<i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></button></td></tr>'
+                        const exibirAtalho = extra > 0 || (tipo === 'cred' && items.length > 0);
+                        const mensagemAtalho = extra > 0
+                            ? '+ ' + String(extra) + ' item(s) n\u00e3o exibido(s).'
+                            : 'Abrir a lista completa de créditos.';
+                        const extraRow = exibirAtalho
+                            ? '<tr><td colspan="' + (tipo === 'cred' ? '6' : '5') + '" class="px-3 py-2 text-center"><span class="text-xs text-gray-500 italic">' + mensagemAtalho + '</span> <button type="button" class="ml-1 inline-flex items-center rounded px-2 py-1 text-xs font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" title="Abrir lista completa de ' + destinoNome + '" aria-label="Ver todos os itens em ' + destinoNome + '" onclick="try{if(window.NavigationSystem&&typeof window.NavigationSystem.navigateToPage===\'function\'){window.NavigationSystem.navigateToPage(\'financeiro\',\'' + destinoPagina + '\');}}catch(e){console.error(e);}">Ver todas as ' + destinoNome + '<i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></button></td></tr>'
                             : '';
                         return rows + extraRow;
                     };
