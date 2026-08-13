@@ -533,3 +533,10 @@
 - [x] Definir alternativas de integração com proteção de CPF/CNPJ e dados pessoais
 - [x] Propor melhorias graduais para cadastro, prazos e acompanhamento processual
 - [x] Estruturar a divisão operacional entre processos Trabalhistas e Cíveis
+
+## Implementação — Processos Jurídicos e consulta Datajud (Ago/2026)
+- [x] Criar entidade persistente de Processo com classificação Trabalhista/Cível e controles de sigilo
+- [x] Criar APIs autenticadas, trilha de auditoria e permissões do módulo Jurídico
+- [x] Implementar cadastro por número CNJ, lista, filtros, acesso ao Acervo e Agenda Jurídica
+- [x] Integrar consulta assistida ao Datajud com fonte, data e revisão humana
+- [x] Validar privacidade, permissões, responsividade e regressões

@@ -85,8 +85,7 @@ const NavigationSystem = {
             name: 'Jurídico',
             icon: 'fas fa-gavel',
             pages: {
-                demandas: { name: 'Demandas', icon: 'fas fa-balance-scale' },
-                documentos: { name: 'Documentos', icon: 'fas fa-folder-open' },
+                processos: { name: 'Processos', icon: 'fas fa-balance-scale' },
                 prazos: { name: 'Prazos', icon: 'fas fa-clock' }
             }
         },
@@ -763,8 +762,10 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.financeiro?.listRelatorios?.() || '';
         } else if (module === 'administrativo' && page === 'tarefas') {
             pageContent = ModuleSystem?.administrativo?.listTarefas?.() || '';
-        } else if (module === 'juridico' && page === 'demandas') {
-            pageContent = ModuleSystem?.juridico?.listDemandas?.() || '';
+        } else if (module === 'juridico' && page === 'processos') {
+            pageContent = window.JuridicoProcessosModule?.renderProcessos?.() || '';
+        } else if (module === 'juridico' && page === 'prazos') {
+            pageContent = window.JuridicoProcessosModule?.renderPrazos?.() || '';
         } else if (module === 'administracao' && page === 'usuarios') {
             pageContent = ModuleSystem?.administracao?.listUsuarios?.() || '';
         } else if (module === 'administracao' && page === 'permissoes') {
@@ -1047,6 +1048,16 @@ const NavigationSystem = {
         if (module === 'suporte' && page === 'tickets') {
             setTimeout(() => {
                 try { window.SuporteModule?.initTickets?.(); } catch (error) { console.warn('[NavigationSystem] Falha ao iniciar Tickets:', error); }
+            }, 50);
+        }
+        if (module === 'juridico' && page === 'processos') {
+            setTimeout(() => {
+                try { window.JuridicoProcessosModule?.initProcessos?.(); } catch (error) { console.warn('[NavigationSystem] Falha ao iniciar processos jurídicos:', error); }
+            }, 50);
+        }
+        if (module === 'juridico' && page === 'prazos') {
+            setTimeout(() => {
+                try { window.JuridicoProcessosModule?.initPrazos?.(); } catch (error) { console.warn('[NavigationSystem] Falha ao iniciar prazos jurídicos:', error); }
             }, 50);
         }
         // Sincronização: ao abrir qualquer página do módulo financeiro, buscar transações da API

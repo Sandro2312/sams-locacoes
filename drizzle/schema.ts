@@ -1,4 +1,4 @@
-import { bigint, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, date, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -139,6 +139,86 @@ export const crmRateioAlocacoes = mysqlTable("crm_rateio_alocacoes", {
 
 export type CrmRateioRegra = typeof crmRateioRegras.$inferSelect;
 export type CrmRateioAlocacao = typeof crmRateioAlocacoes.$inferSelect;
+
+/**
+ * Processo judicial persistente. O ramo é obrigatório para separar o fluxo
+ * Trabalhista do Cível; documentos pessoais não são duplicados nesta tabela.
+ */
+export const crmProcessosJuridicos = mysqlTable("crm_processos_juridicos", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 40 }).notNull().unique(),
+  numeroCnj: varchar("numero_cnj", { length: 25 }).unique(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  ramoProcessual: varchar("ramo_processual", { length: 20 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("pre_processual"),
+  sigiloso: int("sigiloso").notNull().default(0),
+  tribunal: varchar("tribunal", { length: 120 }),
+  uf: varchar("uf", { length: 2 }),
+  comarca: varchar("comarca", { length: 120 }),
+  vara: varchar("vara", { length: 180 }),
+  grau: varchar("grau", { length: 40 }),
+  classeProcessual: varchar("classe_processual", { length: 180 }),
+  assunto: varchar("assunto", { length: 255 }),
+  poloEmpresa: varchar("polo_empresa", { length: 30 }),
+  valorCausa: decimal("valor_causa", { precision: 14, scale: 2 }),
+  clienteId: int("cliente_id"),
+  leadId: int("lead_id"),
+  fornecedorId: int("fornecedor_id"),
+  eventoId: int("evento_id"),
+  contratoId: int("contrato_id"),
+  parteExternaNome: varchar("parte_externa_nome", { length: 255 }),
+  responsavelId: int("responsavel_id"),
+  responsavelNome: varchar("responsavel_nome", { length: 255 }),
+  dataDistribuicao: date("data_distribuicao"),
+  proximoPrazo: date("proximo_prazo"),
+  ultimaFonteConsulta: varchar("ultima_fonte_consulta", { length: 60 }),
+  ultimaConsultaEm: timestamp("ultima_consulta_em"),
+  observacoes: text("observacoes"),
+  createdBy: int("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_processos_ramo_status_idx").on(table.ramoProcessual, table.status),
+  index("crm_processos_responsavel_prazo_idx").on(table.responsavelId, table.proximoPrazo),
+  index("crm_processos_cliente_idx").on(table.clienteId),
+  index("crm_processos_lead_idx").on(table.leadId),
+]);
+
+/** Agenda jurídica com histórico de prazos por processo. */
+export const crmProcessosJuridicosPrazos = mysqlTable("crm_processos_juridicos_prazos", {
+  id: int("id").autoincrement().primaryKey(),
+  processoId: int("processo_id").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  tipo: varchar("tipo", { length: 60 }).notNull().default("prazo_processual"),
+  dataPrazo: date("data_prazo").notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("pendente"),
+  responsavelId: int("responsavel_id"),
+  responsavelNome: varchar("responsavel_nome", { length: 255 }),
+  observacoes: text("observacoes"),
+  createdBy: int("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_processos_prazos_processo_idx").on(table.processoId),
+  index("crm_processos_prazos_data_status_idx").on(table.dataPrazo, table.status),
+]);
+
+/** Log de consultas externas; mantém fonte e resultado resumido para revisão humana. */
+export const crmProcessosJuridicosConsultas = mysqlTable("crm_processos_juridicos_consultas", {
+  id: int("id").autoincrement().primaryKey(),
+  processoId: int("processo_id").notNull(),
+  fonte: varchar("fonte", { length: 60 }).notNull(),
+  numeroConsultado: varchar("numero_consultado", { length: 25 }).notNull(),
+  sucesso: int("sucesso").notNull().default(0),
+  resumo: text("resumo"),
+  consultadoPor: int("consultado_por").notNull(),
+  consultadoEm: timestamp("consultado_em").defaultNow().notNull(),
+}, (table) => [
+  index("crm_processos_consultas_processo_data_idx").on(table.processoId, table.consultadoEm),
+]);
+
+export type CrmProcessoJuridico = typeof crmProcessosJuridicos.$inferSelect;
+export type InsertCrmProcessoJuridico = typeof crmProcessosJuridicos.$inferInsert;
 
 export const crmTickets = mysqlTable("crm_tickets", {
   id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),

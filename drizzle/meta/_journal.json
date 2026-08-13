@@ -57,6 +57,13 @@
       "when": 1786629833620,
       "tag": "0007_mysterious_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1786647291630,
+      "tag": "0008_nasty_lockheed",
+      "breakpoints": true
     }
   ]
 }

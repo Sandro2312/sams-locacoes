@@ -632,3 +632,70 @@ CREATE TABLE IF NOT EXISTS crm_ticket_anexos (
   INDEX idx_crm_ticket_anexos_ticket (ticket_id),
   INDEX idx_crm_ticket_anexos_mensagem (mensagem_id)
 );
+
+-- Jurídico: processos persistentes classificados por ramo processual.
+CREATE TABLE IF NOT EXISTS crm_processos_juridicos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(40) NOT NULL UNIQUE,
+  numero_cnj VARCHAR(25) NULL UNIQUE,
+  titulo VARCHAR(255) NOT NULL,
+  ramo_processual VARCHAR(20) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pre_processual',
+  sigiloso TINYINT NOT NULL DEFAULT 0,
+  tribunal VARCHAR(120) NULL,
+  uf VARCHAR(2) NULL,
+  comarca VARCHAR(120) NULL,
+  vara VARCHAR(180) NULL,
+  grau VARCHAR(40) NULL,
+  classe_processual VARCHAR(180) NULL,
+  assunto VARCHAR(255) NULL,
+  polo_empresa VARCHAR(30) NULL,
+  valor_causa DECIMAL(14,2) NULL,
+  cliente_id INT NULL,
+  lead_id INT NULL,
+  fornecedor_id INT NULL,
+  evento_id INT NULL,
+  contrato_id INT NULL,
+  parte_externa_nome VARCHAR(255) NULL,
+  responsavel_id INT NULL,
+  responsavel_nome VARCHAR(255) NULL,
+  data_distribuicao DATE NULL,
+  proximo_prazo DATE NULL,
+  ultima_fonte_consulta VARCHAR(60) NULL,
+  ultima_consulta_em TIMESTAMP NULL,
+  observacoes TEXT NULL,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_crm_processos_ramo_status (ramo_processual, status),
+  INDEX idx_crm_processos_responsavel_prazo (responsavel_id, proximo_prazo),
+  INDEX idx_crm_processos_cliente (cliente_id),
+  INDEX idx_crm_processos_lead (lead_id)
+);
+CREATE TABLE IF NOT EXISTS crm_processos_juridicos_prazos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  processo_id INT NOT NULL,
+  titulo VARCHAR(255) NOT NULL,
+  tipo VARCHAR(60) NOT NULL DEFAULT 'prazo_processual',
+  data_prazo DATE NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pendente',
+  responsavel_id INT NULL,
+  responsavel_nome VARCHAR(255) NULL,
+  observacoes TEXT NULL,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_crm_processos_prazos_processo (processo_id),
+  INDEX idx_crm_processos_prazos_data_status (data_prazo, status)
+);
+CREATE TABLE IF NOT EXISTS crm_processos_juridicos_consultas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  processo_id INT NOT NULL,
+  fonte VARCHAR(60) NOT NULL,
+  numero_consultado VARCHAR(25) NOT NULL,
+  sucesso TINYINT NOT NULL DEFAULT 0,
+  resumo TEXT NULL,
+  consultado_por INT NOT NULL,
+  consultado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_crm_processos_consultas_processo_data (processo_id, consultado_em)
+);

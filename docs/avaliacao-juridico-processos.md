@@ -97,6 +97,22 @@ O usuário **Jurídico** deve operar os processos; **Administrador** e **Desenvo
 4. Habilitar a alternativa B para consulta assistida ao Datajud, exibindo fonte e data da atualização.
 5. Avaliar a alternativa C somente se houver necessidade recorrente de monitoramento externo e credenciais/contrato adequados.
 
+## Implantação realizada — alternativa B assistida
+
+Em 13 de agosto de 2026, a primeira etapa da alternativa B foi implantada no CRM. O módulo Jurídico agora mantém **Processos** e **Prazos** em estrutura persistente, com classificação obrigatória entre **Trabalhista** e **Cível**, status, tribunal, comarca, vara, parte externa, responsável, datas relevantes e marcador de sigilo. O cadastro aceita número CNJ, normaliza a numeração e impede duplicidade quando o número é informado.
+
+| Recurso implantado | Comportamento operacional |
+|---|---|
+| Processos e prazos persistentes | Os registros deixam de depender do navegador/localStorage e passam a ser compartilhados entre sessões autorizadas. |
+| Agenda Jurídica | Exibe prazos pendentes vinculados ao processo e permite registrar novos prazos no detalhe do processo. |
+| Sigilo e perfis | Dados de processos marcados como sigilosos são reduzidos para perfis não privilegiados; operações são protegidas e auditáveis. |
+| Documentos | O detalhe direciona ao Acervo, evitando cópias de arquivos e mantendo o repositório documental único. |
+| Consulta Datajud | A busca é acionada manualmente por processo, registra fonte/data e apresenta somente uma sugestão para revisão humana. Nenhum dado consultado sobrescreve o cadastro automaticamente. |
+
+> **Limite operacional mantido:** a consulta Datajud não é prova de ciência de intimação/citação e não substitui a conferência do responsável jurídico no Domicílio Judicial Eletrônico, DJEN ou tribunal competente.
+
+Antes de cadastrar dados reais, o responsável deve confirmar o número CNJ, o ramo processual e o indicador de sigilo. A chave da API Datajud permanece exclusivamente na configuração segura do servidor e não é enviada ao navegador.
+
 ## Referências
 
 [1]: https://www.cnj.jus.br/sistemas/datajud/api-publica/ "CNJ — API Pública do Datajud"

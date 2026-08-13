@@ -128,6 +128,11 @@ const PermissionSystem = {
                 'juridico.demandas.create': 'Criar demandas',
                 'juridico.demandas.edit': 'Editar demandas',
                 'juridico.demandas.close': 'Fechar demandas',
+                'juridico.processos.view': 'Visualizar processos',
+                'juridico.processos.create': 'Criar processos',
+                'juridico.processos.edit': 'Editar processos',
+                'juridico.processos.manage': 'Gerenciar processos',
+                'juridico.processos.consult': 'Consultar Datajud',
                 'juridico.documentos.view': 'Visualizar documentos',
                 'juridico.documentos.upload': 'Fazer upload de documentos',
                 'juridico.prazos.view': 'Visualizar prazos',
@@ -283,6 +288,7 @@ const PermissionSystem = {
                 // Jurídico
                 'juridico.contratos.view', 'juridico.contratos.create', 'juridico.contratos.edit', 'juridico.contratos.approve',
                 'juridico.demandas.view', 'juridico.demandas.create', 'juridico.demandas.edit', 'juridico.demandas.close',
+                'juridico.processos.view', 'juridico.processos.create', 'juridico.processos.edit', 'juridico.processos.manage', 'juridico.processos.consult',
                 'juridico.documentos.view', 'juridico.documentos.upload',
                 'juridico.prazos.view', 'juridico.prazos.manage',
                 // Financeiro (limitado)
@@ -301,7 +307,7 @@ const PermissionSystem = {
                 'montagem.checklists.view', 'montagem.execucao.view', 'montagem.fotos.view',
                 'financeiro.orcamentos.view', 'financeiro.contratos.view', 'financeiro.relatorios.view',
                 'administrativo.fornecedores.view', 'administrativo.estoque.view', 'administrativo.compras.view',
-                'juridico.contratos.view', 'juridico.demandas.view', 'juridico.documentos.view', 'juridico.prazos.view',
+                'juridico.contratos.view', 'juridico.demandas.view', 'juridico.processos.view', 'juridico.documentos.view', 'juridico.prazos.view',
                 'kanban.boards.view', 'kanban.tasks.view'
             ]
         }
