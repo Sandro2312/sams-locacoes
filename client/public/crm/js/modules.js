@@ -2816,9 +2816,11 @@ const ModuleSystem = {
             const isKanbanTaskForUser = (t) => {
                 if (!current) return true;
                 if (!t) return false;
-                const respId = t.responsavelId != null ? String(t.responsavelId) : '';
+                const rawResponsavelId = t.responsavelId != null ? t.responsavelId : t.responsavel_id;
+                const respId = rawResponsavelId != null ? String(rawResponsavelId) : '';
                 if (currentId && respId && respId === currentId) return true;
-                const respName = normalize(t.responsavel != null ? t.responsavel : '');
+                const rawResponsavelNome = t.responsavel != null ? t.responsavel : t.responsavel_nome;
+                const respName = normalize(rawResponsavelNome != null ? rawResponsavelNome : '');
                 if (respName && ((currentName && respName === currentName) || (currentEmail && respName === currentEmail))) return true;
 
                 const envolvIds = Array.isArray(t.envolvidosIds) ? t.envolvidosIds.map(x => String(x)) : [];
@@ -2894,9 +2896,9 @@ const ModuleSystem = {
                     module: 'tarefasAdmin',
                     id: t.id,
                     title: t.titulo || 'Tarefa administrativa',
-                    dueYmd: t.prazo ? String(t.prazo).slice(0, 10) : null,
+                    dueYmd: (t.data_vencimento || t.prazo) ? String(t.data_vencimento || t.prazo).slice(0, 10) : null,
                     status: t.status || null,
-                    responsavel: t.responsavel || null
+                    responsavel: t.responsavel || t.responsavel_nome || null
                 });
             }
 
@@ -2913,9 +2915,9 @@ const ModuleSystem = {
                     module: 'tarefasAdmin',
                     id: t.id,
                     title: t.titulo || 'Tarefa administrativa',
-                    dueYmd: t.prazo ? String(t.prazo).slice(0, 10) : null,
+                    dueYmd: (t.data_vencimento || t.prazo) ? String(t.data_vencimento || t.prazo).slice(0, 10) : null,
                     status: t.status || null,
-                    responsavel: t.responsavel || null
+                    responsavel: t.responsavel || t.responsavel_nome || null
                 });
             }
 

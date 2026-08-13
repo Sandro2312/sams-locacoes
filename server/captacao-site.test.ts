@@ -41,4 +41,11 @@ describe("Captação do site para Leads e Kanban", () => {
     expect(kanbanSource).toContain("async syncCapturedLeadTasks()");
     expect(kanbanSource).toContain("String(t.modulo || t.origem_modulo || '') === 'captacao_site'");
   });
+
+  it("normaliza o contrato snake_case da API de tarefas para a Agenda do responsável", () => {
+    const modulesSource = readFileSync(resolve(__dirname, "../client/public/crm/js/modules.js"), "utf8");
+    expect(modulesSource).toContain("t.responsavelId != null ? t.responsavelId : t.responsavel_id");
+    expect(modulesSource).toContain("t.responsavel != null ? t.responsavel : t.responsavel_nome");
+    expect(modulesSource).toContain("t.data_vencimento || t.prazo");
+  });
 });

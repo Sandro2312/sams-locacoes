@@ -509,3 +509,9 @@
 - [x] Alinhar o perfil persistido da Vera ao papel Administrador solicitado
 - [x] Definir a Vera como responsável padrão sem alterar leads e tarefas existentes
 - [x] Validar a configuração persistida e registrar checkpoint
+
+## Correção urgente — Captação real do site para Vera (Ago/2026)
+- [x] Localizar o contato real e verificar a cadeia contato/orçamento → lead → tarefa
+- [x] Corrigir a persistência e a atribuição dos novos registros à Vera
+- [x] Regularizar apenas os registros reais afetados, sem tocar em dados históricos
+- [x] Validar a visão da Vera e criar regressão do fluxo publicado
