@@ -24,4 +24,9 @@ describe("módulo Jurídico persistente", () => {
     expect(client).toContain('Trabalhista');
     expect(client).toContain('Cível');
   });
+
+  it("lista processos sem violar only_full_group_by no ambiente publicado", () => {
+    expect(source).toContain('(SELECT COUNT(*) FROM crm_processos_juridicos_prazos pp');
+    expect(source).not.toContain('GROUP BY p.id');
+  });
 });

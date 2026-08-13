@@ -540,3 +540,8 @@
 - [x] Implementar cadastro por número CNJ, lista, filtros, acesso ao Acervo e Agenda Jurídica
 - [x] Integrar consulta assistida ao Datajud com fonte, data e revisão humana
 - [x] Validar privacidade, permissões, responsividade e regressões
+
+## Correção urgente — Carregamento de Processos Jurídicos (Ago/2026)
+- [x] Reproduzir e identificar a falha da API de processos no CRM publicado
+- [x] Corrigir o endpoint ou a consulta sem alterar dados jurídicos existentes
+- [ ] Validar lista, cadastro e abertura de processos no ambiente publicado

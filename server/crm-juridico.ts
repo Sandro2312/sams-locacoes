@@ -126,11 +126,11 @@ export function registerJuridicoRoutes(app: any) {
       if (RAMOS.has(ramo)) { where.push("p.ramo_processual = ?"); params.push(ramo); }
       if (STATUSES.has(status)) { where.push("p.status = ?"); params.push(status); }
       if (busca) { const term = `%${busca}%`; where.push("(p.numero_cnj LIKE ? OR p.titulo LIKE ? OR p.tribunal LIKE ? OR p.comarca LIKE ?)"); params.push(term, term, term, term); }
-      const data = await db<any>(`SELECT p.*, c.nome AS cliente_nome, l.nome AS lead_nome, COUNT(pp.id) AS prazos_abertos
+      const data = await db<any>(`SELECT p.*, c.nome AS cliente_nome, l.nome AS lead_nome,
+        (SELECT COUNT(*) FROM crm_processos_juridicos_prazos pp WHERE pp.processo_id = p.id AND pp.status = 'pendente') AS prazos_abertos
         FROM crm_processos_juridicos p
         LEFT JOIN crm_clientes c ON c.id = p.cliente_id LEFT JOIN crm_leads l ON l.id = p.lead_id
-        LEFT JOIN crm_processos_juridicos_prazos pp ON pp.processo_id = p.id AND pp.status = 'pendente'
-        WHERE ${where.join(" AND ")} GROUP BY p.id ORDER BY COALESCE(p.proximo_prazo, '9999-12-31'), p.updated_at DESC`, params);
+        WHERE ${where.join(" AND ")} ORDER BY COALESCE(p.proximo_prazo, '9999-12-31'), p.updated_at DESC`, params);
       res.json({ data: data.map((row) => maskSensitive(row, String(user.role || "").toLowerCase())) });
     } catch (error) { console.error("[Jurídico] listar processos", error); res.status(500).json({ error: "Não foi possível carregar os processos" }); }
   });
