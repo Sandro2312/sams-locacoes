@@ -474,3 +474,8 @@
 - [x] Criar interface de revisão e consulta de rateios no Financeiro
 - [x] Somar custos rateados ao Resultado por Stand sem duplicar custos diretos
 - [x] Validar auditoria, permissões, cálculos e responsividade em desktop/mobile
+
+## Melhoria — Atalho de pendências para Despesas (Ago/2026)
+- [x] Confirmar a equivalência entre o cartão Despesas e o aviso de Contas a Pagar
+- [x] Criar link direto e acessível para a lista completa de despesas
+- [x] Validar navegação e responsividade sem regressões
