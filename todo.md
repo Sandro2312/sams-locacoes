@@ -461,3 +461,9 @@
 - [x] Incluir Evento, Cliente e Projeto de Stand nos novos lançamentos financeiros
 - [x] Adicionar filtros encadeados e visão de resultado por stand no Financeiro
 - [x] Validar CRUD, filtros, permissões, desktop/mobile e testes de regressão
+
+## Evolução — Oportunidades e custos de projetos não fechados (Ago/2026)
+- [x] Mapear a relação atual entre leads, oportunidades, eventos e Projetos de Stand
+- [x] Permitir Projeto de Stand vinculado a lead/cliente potencial sem contrato ou cliente definitivo
+- [x] Distinguir oportunidades ganhas, em negociação e perdidas nos filtros e indicadores financeiros
+- [x] Preservar todos os registros existentes e validar o novo ciclo em desktop/mobile

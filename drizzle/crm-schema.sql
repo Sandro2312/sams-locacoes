@@ -545,6 +545,16 @@ CREATE INDEX IF NOT EXISTS idx_crm_transacoes_projeto_stand ON crm_transacoes(pr
 CREATE INDEX IF NOT EXISTS idx_crm_contas_receber_evento ON crm_contas_receber(evento_id);
 CREATE INDEX IF NOT EXISTS idx_crm_contas_receber_projeto_stand ON crm_contas_receber(projeto_stand_id);
 
+-- Evolução comercial: um Projeto de Stand pode pertencer a um lead/oportunidade,
+-- mesmo sem conversão em cliente, contrato ou venda.
+ALTER TABLE crm_projetos_stand MODIFY COLUMN cliente_id INT NULL;
+ALTER TABLE crm_projetos_stand ADD COLUMN IF NOT EXISTS lead_id INT NULL;
+ALTER TABLE crm_projetos_stand ADD COLUMN IF NOT EXISTS oportunidade_id INT NULL;
+ALTER TABLE crm_projetos_stand ADD COLUMN IF NOT EXISTS situacao_comercial VARCHAR(30) NOT NULL DEFAULT 'prospecto';
+CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_lead ON crm_projetos_stand(lead_id);
+CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_oportunidade ON crm_projetos_stand(oportunidade_id);
+CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_situacao ON crm_projetos_stand(situacao_comercial);
+
 -- Suporte/Tickets
 CREATE TABLE IF NOT EXISTS crm_tickets (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

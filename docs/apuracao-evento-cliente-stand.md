@@ -119,6 +119,20 @@ Sugiro iniciar pelas etapas **1 e 2**. Elas resolvem a causa estrutural: passar 
 
 O passo seguinte ideal é aplicar o modelo em uma feira futura ou em andamento como piloto. Após validar o fluxo com a equipe financeira e de projetos, o histórico pode ser classificado de forma assistida. A migração dos centros existentes deve permanecer opcional, reversível e auditável, pois o texto atual combina eventos e custos corporativos.
 
+## Projetos de oportunidade e custos de negociações não fechadas
+
+O **Projeto de Stand** deve ser criado desde o estudo comercial, e não somente após uma venda. Por isso, o cadastro pode apontar para um **cliente convertido** ou, enquanto a negociação estiver aberta, para um **lead/cliente potencial** e sua oportunidade. O vínculo com o evento continua obrigatório, pois ele permite separar os gastos comerciais de cada feira.
+
+| Situação comercial | Vínculo recomendado | Como o custo é tratado |
+|---|---|---|
+| Prospecto ou em negociação | Evento + lead potencial + Projeto de Stand | Registra estudo, proposta, visita técnica, desenho e demais custos comerciais diretos. |
+| Ganho | Evento + cliente convertido + Projeto de Stand | Permite apurar receita, custo direto e margem do stand vendido. |
+| Perdido ou cancelado | Evento + lead/oportunidade + Projeto de Stand | Mantém o gasto visível como custo de oportunidade, sem atribuí-lo a um cliente que não contratou a SAMS. |
+
+> Projetos perdidos não devem ser excluídos nem escondidos do resultado da feira. Eles são evidência do custo comercial e ajudam a medir a efetividade das propostas, desde que a situação comercial esteja claramente identificada.
+
+Essa evolução preserva o histórico: o cliente definitivo continua opcional, os lançamentos já existentes não são reclassificados e a conversão de lead para cliente pode ocorrer posteriormente sem perder o custo já registrado.
+
 ## Transparência da análise
 
 **Base:** custos e receitas devem ser apurados por vínculo explícito do lançamento com o Projeto de Stand; valores em aberto permanecem separados de valores recebidos.  

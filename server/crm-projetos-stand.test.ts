@@ -10,6 +10,8 @@ const formsSource = readFileSync(resolve(root, "client/public/crm/js/forms.js"),
 const receitasSource = readFileSync(resolve(root, "client/public/crm/js/crm-contas-receber.js"), "utf8");
 const navigationSource = readFileSync(resolve(root, "client/public/crm/js/navigation.js"), "utf8");
 const migrationSource = readFileSync(resolve(root, "drizzle/migrations/0004_crm_projetos_stand.sql"), "utf8");
+const opportunityMigrationSource = readFileSync(resolve(root, "drizzle/0005_cooing_peter_quill.sql"), "utf8");
+const projectUiSource = readFileSync(resolve(root, "client/public/crm/js/crm-projetos-stand.js"), "utf8");
 
 describe("Projetos de Stand — apuração por evento e cliente", () => {
   it("cria uma estrutura opcional, sem alteração de dados históricos", () => {
@@ -48,5 +50,24 @@ describe("Projetos de Stand — apuração por evento e cliente", () => {
     expect(receitasSource).toContain('name="eventoId"');
     expect(navigationSource).toContain("resultados_stand");
     expect(navigationSource).toContain("window.ProjetosStandModule?.load?.()");
+  });
+
+  it("permite custos para lead potencial sem exigir cliente convertido", () => {
+    expect(opportunityMigrationSource).toContain("MODIFY COLUMN `cliente_id` int");
+    expect(opportunityMigrationSource).toContain("ADD `lead_id` int");
+    expect(opportunityMigrationSource).toContain("ADD `oportunidade_id` int");
+    expect(opportunityMigrationSource).not.toMatch(/UPDATE\s+crm_projetos_stand/i);
+    expect(apiSource).toContain("Evento, cliente ou lead potencial");
+    expect(apiSource).toContain("situacao_comercial");
+    expect(apiSource).toContain("LEFT JOIN crm_leads");
+  });
+
+  it("mostra e filtra o custo comercial de oportunidades perdidas sem ocultar o projeto", () => {
+    expect(projectUiSource).toContain('name="leadId"');
+    expect(projectUiSource).toContain('name="oportunidadeId"');
+    expect(projectUiSource).toContain('name="situacaoComercial"');
+    expect(projectUiSource).toContain("projeto-stand-lead-filter");
+    expect(projectUiSource).toContain("projeto-stand-situacao-filter");
+    expect(projectUiSource).toContain("Projetos perdidos permanecem visíveis");
   });
 });
