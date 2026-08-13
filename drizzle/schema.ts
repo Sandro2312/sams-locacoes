@@ -1,4 +1,4 @@
-import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { bigint, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -101,6 +101,44 @@ export const crmProjetosStand = mysqlTable("crm_projetos_stand", {
 
 export type CrmProjetoStand = typeof crmProjetosStand.$inferSelect;
 export type InsertCrmProjetoStand = typeof crmProjetosStand.$inferInsert;
+
+/**
+ * Regra aprovada para distribuir uma despesa compartilhada de evento sem
+ * modificar a transação de origem. Cada despesa pode ter no máximo uma regra.
+ */
+export const crmRateioRegras = mysqlTable("crm_rateio_regras", {
+  id: int("id").autoincrement().primaryKey(),
+  transacaoId: int("transacao_id").notNull(),
+  eventoId: int("evento_id").notNull(),
+  criterio: varchar("criterio", { length: 30 }).notNull(),
+  valorOrigem: decimal("valor_origem", { precision: 14, scale: 2 }).notNull(),
+  observacoes: text("observacoes"),
+  status: varchar("status", { length: 20 }).notNull().default("aprovado"),
+  createdBy: int("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_rateio_regras_transacao_unique").on(table.transacaoId),
+  index("crm_rateio_regras_evento_idx").on(table.eventoId),
+]);
+
+/**
+ * Livro de alocações de uma regra de rateio. O somatório deve ser exatamente
+ * igual ao valor da despesa de origem, preservando rastreabilidade por stand.
+ */
+export const crmRateioAlocacoes = mysqlTable("crm_rateio_alocacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  regraId: int("regra_id").notNull(),
+  projetoStandId: int("projeto_stand_id").notNull(),
+  percentual: decimal("percentual", { precision: 9, scale: 6 }).notNull(),
+  valor: decimal("valor", { precision: 14, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_rateio_alocacoes_regra_projeto_unique").on(table.regraId, table.projetoStandId),
+  index("crm_rateio_alocacoes_projeto_idx").on(table.projetoStandId),
+]);
+
+export type CrmRateioRegra = typeof crmRateioRegras.$inferSelect;
+export type CrmRateioAlocacao = typeof crmRateioAlocacoes.$inferSelect;
 
 export const crmTickets = mysqlTable("crm_tickets", {
   id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),

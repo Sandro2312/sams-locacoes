@@ -103,6 +103,21 @@ Recomendo suportar três critérios de rateio, definidos no cadastro da regra e 
 
 O rateio deve gerar registros de alocação, não duplicar ou alterar o lançamento original. Dessa forma, o usuário consegue abrir um custo rateado e enxergar sua origem, os destinatários, o critério, o valor distribuído e a data da aprovação.
 
+### Implementação vigente — 13 de agosto de 2026
+
+O CRM passou a registrar o rateio em duas camadas próprias: uma **regra**, ligada de forma única à despesa compartilhada de origem, e suas **alocações**, uma por Projeto de Stand destinatário. O lançamento financeiro original não é sobrescrito, duplicado ou convertido em despesa direta; apenas passa a ser rastreado pelas alocações aprovadas.[3]
+
+| Controle implementado | Regra operacional |
+|---|---|
+| Elegibilidade da origem | Somente despesas ativas, vinculadas a um evento e sem Projeto de Stand direto. |
+| Destinatários | Mínimo de dois Projetos de Stand do mesmo evento da despesa. |
+| Critérios disponíveis | Igualitário, área em m², receita prevista ou distribuição manual. |
+| Precisão | O cálculo é feito em centavos; a soma das alocações deve coincidir exatamente com a despesa de origem. |
+| Duplicidade | Uma despesa só pode ter uma regra de rateio aprovada. |
+| Rastreabilidade | A criação e o desfazimento são registrados na auditoria, com origem, critério e alocações. |
+| Resultado do Stand | Custos diretos e custos rateados são exibidos separadamente, assim como a margem após rateio. |
+| Desfazimento | Remove apenas a regra e suas alocações; a despesa de origem permanece preservada e volta a ficar disponível. |
+
 ## Roteiro de implantação recomendado
 
 | Etapa | Entrega | Proteção contra regressão |
@@ -145,3 +160,4 @@ Essa evolução preserva o histórico: o cliente definitivo continua opcional, o
 
 [1] [Schema operacional do CRM: tabelas de transações, contas a receber, eventos, contratos e ordens de serviço](../drizzle/crm-schema.sql).  
 [2] [Formulário atual de despesas: campo livre de centro de custo](../client/public/crm/js/forms.js).
+[3] [Rotas e regras de rateio auditável](../server/crm-rateios.ts).

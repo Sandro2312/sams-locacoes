@@ -555,6 +555,34 @@ CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_lead ON crm_projetos_stand(lea
 CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_oportunidade ON crm_projetos_stand(oportunidade_id);
 CREATE INDEX IF NOT EXISTS idx_crm_projetos_stand_situacao ON crm_projetos_stand(situacao_comercial);
 
+-- Rateio auditável: distribui despesa compartilhada sem alterar a transação de origem.
+CREATE TABLE IF NOT EXISTS crm_rateio_regras (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  transacao_id INT NOT NULL UNIQUE,
+  evento_id INT NOT NULL,
+  criterio VARCHAR(30) NOT NULL,
+  valor_origem DECIMAL(14,2) NOT NULL,
+  observacoes TEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'aprovado',
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (transacao_id) REFERENCES crm_transacoes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (evento_id) REFERENCES crm_eventos(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS crm_rateio_alocacoes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  regra_id INT NOT NULL,
+  projeto_stand_id INT NOT NULL,
+  percentual DECIMAL(9,6) NOT NULL,
+  valor DECIMAL(14,2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_crm_rateio_alocacoes_regra_projeto (regra_id, projeto_stand_id),
+  FOREIGN KEY (regra_id) REFERENCES crm_rateio_regras(id) ON DELETE CASCADE,
+  FOREIGN KEY (projeto_stand_id) REFERENCES crm_projetos_stand(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_crm_rateio_regras_evento ON crm_rateio_regras(evento_id);
+CREATE INDEX IF NOT EXISTS idx_crm_rateio_alocacoes_projeto ON crm_rateio_alocacoes(projeto_stand_id);
+
 -- Suporte/Tickets
 CREATE TABLE IF NOT EXISTS crm_tickets (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

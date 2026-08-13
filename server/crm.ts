@@ -5,6 +5,7 @@ import { registerImportRoutes } from "./crm-import";
 import { registerAssistenteRoutes } from "./crm-assistente";
 import { registerTicketRoutes } from "./crm-tickets";
 import { registerProjetosStandRoutes } from "./crm-projetos-stand";
+import { registerRateiosRoutes } from "./crm-rateios";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -2252,6 +2253,8 @@ export function registerCrmRoutes(app: any) {
   registerTicketRoutes(app);
   // Registrar rotas de Projeto de Stand e apuração por evento/cliente
   registerProjetosStandRoutes(app);
+  // Registrar rotas de rateio auditável de custos compartilhados
+  registerRateiosRoutes(app);
   // Registrar todas as rotas CRM sob /api/crm
   app.use("/api/crm", r);
 }

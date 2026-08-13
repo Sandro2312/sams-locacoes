@@ -66,6 +66,7 @@ const NavigationSystem = {
                 custos: { name: 'Despesas', icon: 'fas fa-money-bill-wave' },
                 receitas: { name: 'Receitas', icon: 'fas fa-coins' },
                 resultados_stand: { name: 'Resultado por Stand', icon: 'fas fa-store' },
+                rateios: { name: 'Rateios', icon: 'fas fa-share-alt' },
                 comissoes: { name: 'Comissões', icon: 'fas fa-percentage' },
                 boletos: { name: 'Boletos', icon: 'fas fa-receipt' },
                 relatorios: { name: 'Relatórios', icon: 'fas fa-chart-bar' }
@@ -608,6 +609,8 @@ const NavigationSystem = {
             }
         } else if (module === 'financeiro' && page === 'resultados_stand') {
             try { window.ProjetosStandModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado por Stand:', e); }
+        } else if (module === 'financeiro' && page === 'rateios') {
+            try { window.RateiosModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Rateios:', e); }
         }
     } else {
         console.log(`⏳ [NavigationSystem] Ignorando auto-load duplicado para ${signature}`);
@@ -732,6 +735,8 @@ const NavigationSystem = {
             pageContent = ModuleSystem?.financeiro?.listReceitas?.() || '';
         } else if (module === 'financeiro' && page === 'resultados_stand') {
             pageContent = window.ProjetosStandModule?.render?.() || '';
+        } else if (module === 'financeiro' && page === 'rateios') {
+            pageContent = window.RateiosModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'comissoes') {
             pageContent = ModuleSystem?.financeiro?.listComissoes?.() || '';
         } else if (module === 'financeiro' && page === 'relatorios') {
@@ -932,6 +937,7 @@ const NavigationSystem = {
             if (hasAny(['financeiro.comissoes.view', 'financeiro.comissoes.calculate'])) allowed.add('comissoes');
             if (hasAny(['financeiro.relatorios.view', 'financeiro.relatorios.export'])) allowed.add('relatorios');
             if (hasAny(['financeiro.resultado_stand.view', 'financeiro.resultado_stand.manage', 'financeiro.relatorios.view'])) allowed.add('resultados_stand');
+            if (hasAny(['financeiro.resultado_stand.view', 'financeiro.resultado_stand.manage', 'financeiro.relatorios.view'])) allowed.add('rateios');
             if (hasAny([
                 'financeiro.custos.view',
                 'financeiro.custos.create', 'financeiro.custos.edit', 'financeiro.custos.delete',

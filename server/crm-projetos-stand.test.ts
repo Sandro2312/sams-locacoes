@@ -27,7 +27,7 @@ describe("Projetos de Stand — apuração por evento e cliente", () => {
     expect(apiSource).toContain('r.post("/", requireFinanceManager');
     expect(apiSource).toContain('r.put("/:id", requireFinanceManager');
     expect(apiSource).toContain('r.delete("/:id", requireFinanceManager');
-    expect(apiSource).toContain("possui lançamentos vinculados e não pode ser excluído");
+    expect(apiSource).toContain("possui lançamentos ou rateios vinculados e não pode ser excluído");
   });
 
   it("impede incoerência entre um Projeto de Stand e uma despesa vinculada", () => {

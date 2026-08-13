@@ -118,6 +118,9 @@ export function registerProjetosStandRoutes(app: any) {
                           WHERE t.projeto_stand_id = ps.id
                             AND LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('despesa','pagar','contas a pagar')
                             AND LOWER(TRIM(COALESCE(t.status, ''))) <> 'cancelado'), 0) AS custos_diretos,
+                COALESCE((SELECT SUM(ra.valor) FROM crm_rateio_alocacoes ra
+                          JOIN crm_rateio_regras rr ON rr.id = ra.regra_id
+                          WHERE ra.projeto_stand_id = ps.id AND rr.status = 'aprovado'), 0) AS custos_rateados,
                 COALESCE((SELECT SUM(cr.valor) FROM crm_contas_receber cr
                           WHERE cr.projeto_stand_id = ps.id
                             AND LOWER(TRIM(COALESCE(cr.status, ''))) <> 'cancelado'), 0) AS receitas_previstas
@@ -165,10 +168,13 @@ export function registerProjetosStandRoutes(app: any) {
         dbOne<any>(
           `SELECT COALESCE(SUM(CASE WHEN LOWER(TRIM(COALESCE(status, ''))) <> 'cancelado' THEN valor ELSE 0 END), 0) AS custos_registrados,
                   COALESCE(SUM(CASE WHEN LOWER(TRIM(COALESCE(status, ''))) IN ('pago','baixado') THEN valor ELSE 0 END), 0) AS custos_pagos,
+                  COALESCE((SELECT SUM(ra.valor) FROM crm_rateio_alocacoes ra
+                            JOIN crm_rateio_regras rr ON rr.id = ra.regra_id
+                            WHERE ra.projeto_stand_id = ? AND rr.status = 'aprovado'), 0) AS custos_rateados,
                   COUNT(*) AS lancamentos
            FROM crm_transacoes
            WHERE projeto_stand_id = ? AND LOWER(TRIM(COALESCE(tipo, ''))) IN ('despesa','pagar','contas a pagar')`,
-          [id],
+          [id, id],
         ),
         dbOne<any>(
           `SELECT COALESCE(SUM(CASE WHEN LOWER(TRIM(COALESCE(status, ''))) <> 'cancelado' THEN valor ELSE 0 END), 0) AS receita_faturada,
@@ -181,13 +187,16 @@ export function registerProjetosStandRoutes(app: any) {
       ]);
       const faturada = Number(receitas?.receita_faturada || 0);
       const custos = Number(despesas?.custos_registrados || 0);
+      const custosRateados = Number(despesas?.custos_rateados || 0);
       res.json({
         projeto,
-        despesas: { ...despesas, custos_registrados: custos },
+        despesas: { ...despesas, custos_registrados: custos, custos_rateados: custosRateados, custo_total: custos + custosRateados },
         receitas: { ...receitas, receita_faturada: faturada },
         resultado: {
           margem_direta: faturada - custos,
           margem_percentual: faturada > 0 ? ((faturada - custos) / faturada) * 100 : null,
+          margem_apos_rateio: faturada - custos - custosRateados,
+          margem_apos_rateio_percentual: faturada > 0 ? ((faturada - custos - custosRateados) / faturada) * 100 : null,
           valor_em_aberto: faturada - Number(receitas?.receita_recebida || 0),
         },
       });
@@ -289,12 +298,13 @@ export function registerProjetosStandRoutes(app: any) {
     try {
       const user = (req as any).crmUser as CrmSession;
       const id = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
-      const [transacoes, receitas] = await Promise.all([
+      const [transacoes, receitas, rateios] = await Promise.all([
         dbOne<{ total: number }>("SELECT COUNT(*) AS total FROM crm_transacoes WHERE projeto_stand_id = ?", [id]),
         dbOne<{ total: number }>("SELECT COUNT(*) AS total FROM crm_contas_receber WHERE projeto_stand_id = ?", [id]),
+        dbOne<{ total: number }>("SELECT COUNT(*) AS total FROM crm_rateio_alocacoes WHERE projeto_stand_id = ?", [id]),
       ]);
-      if (Number(transacoes?.total || 0) || Number(receitas?.total || 0)) {
-        return res.status(409).json({ error: "Este Projeto de Stand possui lançamentos vinculados e não pode ser excluído" });
+      if (Number(transacoes?.total || 0) || Number(receitas?.total || 0) || Number(rateios?.total || 0)) {
+        return res.status(409).json({ error: "Este Projeto de Stand possui lançamentos ou rateios vinculados e não pode ser excluído" });
       }
       const [result] = await getPool().execute("DELETE FROM crm_projetos_stand WHERE id = ?", [id]);
       if (!Number((result as any).affectedRows || 0)) return res.status(404).json({ error: "Projeto de Stand não encontrado" });

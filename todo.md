@@ -467,3 +467,10 @@
 - [x] Permitir Projeto de Stand vinculado a lead/cliente potencial sem contrato ou cliente definitivo
 - [x] Distinguir oportunidades ganhas, em negociação e perdidas nos filtros e indicadores financeiros
 - [x] Preservar todos os registros existentes e validar o novo ciclo em desktop/mobile
+
+## Implementação — Rateio auditável de custos compartilhados (Ago/2026)
+- [x] Definir transações elegíveis, critérios e validações de integridade para rateio por evento
+- [x] Criar regras e alocações de rateio sem modificar o lançamento financeiro de origem
+- [x] Criar interface de revisão e consulta de rateios no Financeiro
+- [x] Somar custos rateados ao Resultado por Stand sem duplicar custos diretos
+- [x] Validar auditoria, permissões, cálculos e responsividade em desktop/mobile

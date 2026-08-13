@@ -51,9 +51,10 @@
     const cards = state.items.reduce((acc, item) => {
       acc.receitas += Number(item.receitas_previstas || 0);
       acc.custos += Number(item.custos_diretos || 0);
+      acc.rateios += Number(item.custos_rateados || 0);
       return acc;
-    }, { receitas: 0, custos: 0 });
-    const margem = cards.receitas - cards.custos;
+    }, { receitas: 0, custos: 0, rateios: 0 });
+    const margem = cards.receitas - cards.custos - cards.rateios;
     return `
       <section class="space-y-5" aria-label="Resultado por stand">
         <div class="bg-white rounded-lg shadow p-4 md:p-6">
@@ -80,10 +81,11 @@
             <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button id="projeto-stand-refresh" type="button" class="w-full sm:w-auto rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"><i class="fas fa-sync-alt mr-2"></i>Atualizar</button></div>
           </div>
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div class="rounded-lg bg-emerald-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Receitas previstas</p><p class="mt-1 text-2xl font-bold text-emerald-900">${money(cards.receitas)}</p></div>
           <div class="rounded-lg bg-rose-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Custos diretos</p><p class="mt-1 text-2xl font-bold text-rose-900">${money(cards.custos)}</p></div>
-          <div class="rounded-lg ${margem >= 0 ? 'bg-indigo-50' : 'bg-amber-50'} p-4"><p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Margem direta</p><p class="mt-1 text-2xl font-bold ${margem >= 0 ? 'text-indigo-900' : 'text-amber-900'}">${money(margem)}</p></div>
+          <div class="rounded-lg bg-orange-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-orange-700">Custos rateados</p><p class="mt-1 text-2xl font-bold text-orange-900">${money(cards.rateios)}</p></div>
+          <div class="rounded-lg ${margem >= 0 ? 'bg-indigo-50' : 'bg-amber-50'} p-4"><p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Margem após rateio</p><p class="mt-1 text-2xl font-bold ${margem >= 0 ? 'text-indigo-900' : 'text-amber-900'}">${money(margem)}</p></div>
         </div>
         <div class="overflow-x-auto rounded-lg bg-white shadow">
           <table class="min-w-full divide-y divide-gray-200">
@@ -92,23 +94,27 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente / Stand</th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Receita</th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Custo direto</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Rateio</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Custo total</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Situação</th>
               ${manage ? '<th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Ações</th>' : ''}
             </tr></thead>
             <tbody id="projeto-stand-list" class="divide-y divide-gray-100">
-              ${state.loading ? `<tr><td colspan="${manage ? 6 : 5}" class="px-4 py-8 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Carregando Projetos de Stand...</td></tr>` : state.items.length ? state.items.map((item) => `
+              ${state.loading ? `<tr><td colspan="${manage ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Carregando Projetos de Stand...</td></tr>` : state.items.length ? state.items.map((item) => `
                 <tr class="hover:bg-gray-50">
                   <td class="px-4 py-3 text-sm text-gray-700">${escapeHtml(item.evento_nome || '-')}</td>
                   <td class="px-4 py-3"><div class="font-medium text-gray-900">${escapeHtml(item.cliente_nome || item.lead_nome || '-')}</div><div class="text-sm text-gray-500">${escapeHtml(item.nome || '-')} ${item.referencia_stand ? `· ${escapeHtml(item.referencia_stand)}` : ''}</div><div class="text-xs text-gray-400">${item.cliente_convertido_nome ? 'Cliente convertido' : 'Lead / cliente potencial'} · ${escapeHtml(item.codigo || '')}</div></td>
                   <td class="px-4 py-3 text-right text-sm font-medium text-emerald-700">${money(item.receitas_previstas)}</td>
                   <td class="px-4 py-3 text-right text-sm font-medium text-rose-700">${money(item.custos_diretos)}</td>
+                  <td class="px-4 py-3 text-right text-sm font-medium text-orange-700">${money(item.custos_rateados)}</td>
+                  <td class="px-4 py-3 text-right text-sm font-medium text-gray-900">${money(Number(item.custos_diretos || 0) + Number(item.custos_rateados || 0))}</td>
                   <td class="px-4 py-3"><div><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusClass(item.status)}">${escapeHtml(statusLabel(item.status))}</span></div><div class="mt-1"><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${commercialClass(item.situacao_comercial)}">${escapeHtml(commercialLabel(item.situacao_comercial))}</span></div></td>
                   ${manage ? `<td class="px-4 py-3 text-right"><button type="button" class="projeto-stand-edit text-sm font-medium text-indigo-700 hover:text-indigo-900" data-id="${item.id}">Editar</button><button type="button" class="projeto-stand-delete ml-3 text-sm font-medium text-rose-700 hover:text-rose-900" data-id="${item.id}">Excluir</button></td>` : ''}
-                </tr>`).join('') : `<tr><td colspan="${manage ? 6 : 5}" class="px-4 py-8 text-center text-sm text-gray-500">Nenhum Projeto de Stand encontrado. ${manage ? 'Crie o primeiro projeto para começar a vincular novos lançamentos.' : ''}</td></tr>`}
+                </tr>`).join('') : `<tr><td colspan="${manage ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500">Nenhum Projeto de Stand encontrado. ${manage ? 'Crie o primeiro projeto para começar a vincular novos lançamentos.' : ''}</td></tr>`}
             </tbody>
           </table>
         </div>
-        <p class="text-xs text-gray-500">A margem exibida considera receitas vinculadas menos custos diretos vinculados. Projetos perdidos permanecem visíveis para evidenciar o custo comercial da feira. Custos compartilhados e rateios serão incluídos em uma etapa posterior e auditável.</p>
+        <p class="text-xs text-gray-500">A margem exibida considera receitas vinculadas menos custos diretos e alocações de rateio aprovadas. Projetos perdidos permanecem visíveis para evidenciar o custo comercial da feira.</p>
       </section>`;
   }
 
