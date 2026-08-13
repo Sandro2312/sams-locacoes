@@ -520,3 +520,9 @@
 - [x] Identificar a referência nula na ação Abrir de tarefas captadas pelo site
 - [x] Corrigir a navegação para o lead vinculado e adicionar fallback seguro
 - [x] Validar abertura em desktop/mobile e criar teste de regressão
+
+## Correção e melhoria — Gerenciar permissões (Ago/2026)
+- [x] Identificar a causa do modal travado e do conteúdo sem rolagem adequada
+- [x] Corrigir rolagem, fechamento e ações fixas de salvar/cancelar
+- [x] Adicionar filtros de busca e revisão clara das permissões selecionadas
+- [x] Validar persistência, proteção de perfis críticos e responsividade

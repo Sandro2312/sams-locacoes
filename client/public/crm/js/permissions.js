@@ -364,10 +364,11 @@ const PermissionSystem = {
         }
 
         const modalHTML = `
-            <div id="${this.config.overlayId}" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-                <div id="${this.config.modalId}" class="fixed inset-0 flex items-center justify-center p-4">
-                    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div class="flex justify-between items-center p-6 border-b border-gray-200">
+            <div id="${this.config.overlayId}" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden overflow-y-auto">
+                <div id="${this.config.modalId}" class="min-h-full flex items-center justify-center p-3 sm:p-4" role="presentation">
+                    <div id="permission-dialog" role="dialog" aria-modal="true" aria-labelledby="permission-title"
+                         class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+                        <div class="flex-none flex justify-between items-center p-4 sm:p-6 border-b border-gray-200">
                             <h2 id="permission-title" class="text-xl font-semibold text-gray-800">Gerenciar Permissões</h2>
                             <button id="permission-close" class="text-gray-400 hover:text-gray-600 transition duration-300"
                                     title="Fechar modal"
@@ -375,10 +376,10 @@ const PermissionSystem = {
                                 <i class="fas fa-times text-xl" aria-hidden="true"></i>
                             </button>
                         </div>
-                        <div id="permission-content" class="p-6">
+                        <div id="permission-content" class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
                             <!-- Conteúdo será inserido aqui -->
                         </div>
-                        <div class="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                        <div class="flex-none flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:space-x-3 p-4 sm:p-6 border-t border-gray-200 bg-white">
                             <button id="permission-dashboard" class="px-4 py-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition duration-300">
                                 <i class="fas fa-home mr-2"></i>
                                 Voltar ao Dashboard
@@ -401,13 +402,14 @@ const PermissionSystem = {
     // Vincular eventos
     bindEvents() {
         const overlay = document.getElementById(this.config.overlayId);
+        const modalShell = document.getElementById(this.config.modalId);
         const closeBtn = document.getElementById('permission-close');
         const cancelBtn = document.getElementById('permission-cancel');
         const saveBtn = document.getElementById('permission-save');
         const dashboardBtn = document.getElementById('permission-dashboard');
-        [overlay, closeBtn, cancelBtn].forEach(element => {
+        [overlay, modalShell, closeBtn, cancelBtn].forEach(element => {
             element?.addEventListener('click', (e) => {
-                if (e.target === overlay || e.target === closeBtn || e.target === cancelBtn) {
+                if (e.target === overlay || e.target === modalShell || e.target === closeBtn || e.target === cancelBtn) {
                     this.closeModal();
                 }
             });
@@ -429,7 +431,8 @@ const PermissionSystem = {
         // Fechar com ESC
         document.addEventListener('keydown', (e) => {
             // Só processar ESC se não estivermos em um campo de input
-            if (e.key === 'Escape' && !e.target.matches('input, textarea, select') && !document.getElementById(this.config.overlayId).classList.contains('hidden')) {
+            const currentOverlay = document.getElementById(this.config.overlayId);
+            if (e.key === 'Escape' && !e.target.matches('input, textarea, select') && currentOverlay && !currentOverlay.classList.contains('hidden')) {
                 this.closeModal();
             }
         });
@@ -441,15 +444,28 @@ const PermissionSystem = {
         const modalTitle = document.getElementById('permission-title');
         const modalContent = document.getElementById('permission-content');
 
+        if (!overlay || !modalTitle || !modalContent) return;
         modalTitle.textContent = title;
         modalContent.innerHTML = content;
+        modalContent.oninput = (event) => {
+            if (event.target && event.target.id === 'permission-search') {
+                this.filterPermissions(event.target.value);
+            }
+        };
+        modalContent.onchange = (event) => {
+            if (event.target && event.target.matches && event.target.matches('input[name="permissions"]')) {
+                this.refreshPermissionReview();
+            }
+        };
         overlay.classList.remove('hidden');
+        this.refreshPermissionReview();
+        setTimeout(() => document.getElementById('permission-close')?.focus(), 0);
     },
 
     // Fechar modal
     closeModal() {
         const overlay = document.getElementById(this.config.overlayId);
-        overlay.classList.add('hidden');
+        if (overlay) overlay.classList.add('hidden');
     },
 
     // Mostrar editor de permissões para usuário
@@ -538,7 +554,8 @@ const PermissionSystem = {
     // Gerar editor de permissões
     generatePermissionEditor(user) {
         const userPermissions = user.permissions || [];
-        const isAdmin = user.role === 'administrador';
+        const normalizedRole = String(user.role || '').trim().toLowerCase();
+        const isAdmin = ['administrador', 'admin', 'desenvolvedor', 'developer'].includes(normalizedRole);
 
         return `
             <form id="permission-form" data-user-id="${user.id}">
@@ -561,7 +578,7 @@ const PermissionSystem = {
                         <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
                             <div class="flex items-center">
                                 <i class="fas fa-crown text-purple-600 mr-2"></i>
-                                <span class="text-purple-800 font-medium">Este usuário é administrador e possui todas as permissões automaticamente.</span>
+                                <span class="text-purple-800 font-medium">Este usuário possui acesso privilegiado e ignora restrições granulares. O acesso efetivo é definido pelo perfil.</span>
                             </div>
                         </div>
                     ` : `
@@ -581,9 +598,20 @@ const PermissionSystem = {
 
                         <!-- Permissões por Módulo -->
                         <div class="space-y-4">
-                            <h4 class="text-md font-semibold text-gray-800">Permissões Detalhadas</h4>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <h4 class="text-md font-semibold text-gray-800">Permissões Detalhadas</h4>
+                                <span id="permission-selection-summary" class="text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full" aria-live="polite"></span>
+                            </div>
+                            <label class="block">
+                                <span class="sr-only">Buscar permissões</span>
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                                    <input id="permission-search" type="search" autocomplete="off" placeholder="Buscar módulo ou permissão..."
+                                           class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                </div>
+                            </label>
                             ${Object.entries(this.modulePermissions).map(([moduleKey, module]) => `
-                                <div class="border border-gray-200 rounded-lg">
+                                <div class="border border-gray-200 rounded-lg" data-perm-module="${moduleKey}">
                                     <div class="bg-gray-50 p-4 border-b border-gray-200">
                                         <div class="flex items-center justify-between">
                                             <h5 class="font-medium text-gray-800">${module.name}</h5>
@@ -604,7 +632,7 @@ const PermissionSystem = {
                                             ${Object.entries(module.permissions).map(([permKey, permName], index) => {
                                                 const checkboxId = `perm-${permKey.replace(/\./g, '-')}-${index}`;
                                                 return `
-                                                <label for="${checkboxId}" class="flex items-center space-x-2 cursor-pointer">
+                                                <label for="${checkboxId}" class="flex items-center space-x-2 cursor-pointer" data-perm-label>
                                                     <input type="checkbox" id="${checkboxId}" name="permissions" value="${permKey}" 
                                                            ${userPermissions.includes(permKey) ? 'checked' : ''}
                                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
@@ -647,6 +675,7 @@ const PermissionSystem = {
         }
 
         Utils.notifications.success(`Perfil "${profile.name}" aplicado com sucesso!`);
+        this.refreshPermissionReview();
     },
 
     // Selecionar todas as permissões de um módulo
@@ -660,6 +689,7 @@ const PermissionSystem = {
                 checkbox.checked = true;
             }
         });
+        this.refreshPermissionReview();
     },
 
     // Desmarcar todas as permissões de um módulo
@@ -673,6 +703,29 @@ const PermissionSystem = {
                 checkbox.checked = false;
             }
         });
+        this.refreshPermissionReview();
+    },
+
+    filterPermissions(query) {
+        const term = String(query || '').trim().toLowerCase();
+        document.querySelectorAll('[data-perm-module]').forEach(moduleEl => {
+            const labels = Array.from(moduleEl.querySelectorAll('[data-perm-label]'));
+            let matches = 0;
+            labels.forEach(label => {
+                const visible = !term || String(label.textContent || '').toLowerCase().includes(term);
+                label.classList.toggle('hidden', !visible);
+                if (visible) matches += 1;
+            });
+            moduleEl.classList.toggle('hidden', matches === 0);
+        });
+    },
+
+    refreshPermissionReview() {
+        const summary = document.getElementById('permission-selection-summary');
+        if (!summary) return;
+        const total = document.querySelectorAll('#permission-form input[name="permissions"]').length;
+        const selected = document.querySelectorAll('#permission-form input[name="permissions"]:checked').length;
+        summary.textContent = `${selected} de ${total} permissões selecionadas`;
     },
 
      // Salvar permissões
@@ -691,8 +744,16 @@ const PermissionSystem = {
             if (mod) modulesSet.add(mod);
         });
         const modules = Array.from(modulesSet);
+        if (!permissions.length && !confirm('Nenhuma permissão ficará selecionada. Deseja continuar?')) return;
+        const saveBtn = document.getElementById('permission-save');
+        if (saveBtn?.disabled) return;
 
         try {
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.dataset.originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+            }
             // Salvar no banco via API
             const resp = await fetch(`/api/crm/users/${userId}/modules`, {
                 method: 'PUT',
@@ -713,6 +774,11 @@ const PermissionSystem = {
             }
         } catch (error) {
             Utils.notifications.error('Erro ao salvar permissões: ' + error.message);
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = saveBtn.dataset.originalText || 'Salvar Permissões';
+            }
         }
     },
 
