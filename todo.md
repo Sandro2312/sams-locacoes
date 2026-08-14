@@ -590,3 +590,9 @@
 - [x] Implementar resumos documentais e cronologia por IA com revisão humana e fontes internas
 - [x] Validar segurança, permissões, desktop/mobile, sintaxe, tipos e regressões
 - [x] Atualizar documentação, cache-busters e checkpoint da implementação
+
+## Avaliação — Maturidade CRM/ERP para Stands e Serviços (Ago/2026)
+- [x] Mapear módulos, fluxos e controles atualmente implantados
+- [x] Comparar a operação com boas práticas de vendas, projetos, montagem, financeiro e pós-venda
+- [x] Priorizar lacunas, riscos operacionais e próximos investimentos funcionais
+- [x] Documentar o diagnóstico executivo e o roteiro de evolução
