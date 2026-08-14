@@ -29,4 +29,11 @@ describe("módulo Jurídico persistente", () => {
     expect(source).toContain('(SELECT COUNT(*) FROM crm_processos_juridicos_prazos pp');
     expect(source).not.toContain('GROUP BY p.id');
   });
+
+  it("serializa recargas e mantém o formulário aberto para salvar processos sequenciais", () => {
+    expect(client).toContain('processosRequestId');
+    expect(client).not.toContain('AbortController');
+    expect(client).toContain('Salvar e novo');
+    expect(client).toContain("saveMode === 'continue'");
+  });
 });

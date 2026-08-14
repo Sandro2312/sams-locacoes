@@ -545,3 +545,8 @@
 - [x] Reproduzir e identificar a falha da API de processos no CRM publicado
 - [x] Corrigir o endpoint ou a consulta sem alterar dados jurídicos existentes
 - [ ] Validar lista, cadastro e abertura de processos no ambiente publicado
+
+## Correção urgente — Formulário de Processos Jurídicos (Ago/2026)
+- [x] Identificar atualização concorrente ou evento que fecha o formulário durante o preenchimento
+- [x] Corrigir envio, feedback e recarga da lista após salvar processo
+- [x] Validar dois cadastros sequenciais, edição e persistência visual
