@@ -603,3 +603,10 @@
 - [x] Construir interface responsiva para criar, comparar, editar e aprovar versões de orçamento
 - [x] Validar cálculos em centavos, permissões, histórico, desktop/mobile e regressões
 - [x] Atualizar documentação, cache-busters e checkpoint da implementação
+
+## Produção — Vídeo de Tour do Site e CRM (Ago/2026)
+- [x] Definir audiência, duração, formato, estilo, narração e trilha do vídeo com a Veruska como guia
+- [x] Mapear as telas e estruturar o roteiro demonstrativo do tour do site e sistema
+- [x] Planejar clipes, locução e referências visuais de cada etapa
+- [x] Produzir vídeo, áudio e materiais de apresentação
+- [x] Validar a entrega final e o roteiro de apoio aos colaboradores
