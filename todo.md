@@ -577,3 +577,8 @@
 - [x] Exibir barra de progresso e confirmação animada no upload de documentos
 - [x] Validar responsividade, permissões, upload, filtros e regressões
 - [x] Atualizar cache-buster, documentação e checkpoint da evolução
+
+## Avaliação — Apoio ao Advogado no Jurídico (Ago/2026)
+- [x] Pesquisar boas práticas, limites profissionais e segurança para peticionamento e IA assistiva
+- [x] Propor áreas de trabalho, prioridades e salvaguardas sem alterar o fluxo jurídico existente
+- [x] Documentar a recomendação e os próximos passos de implantação gradual
