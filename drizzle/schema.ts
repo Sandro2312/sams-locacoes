@@ -103,6 +103,60 @@ export type CrmProjetoStand = typeof crmProjetosStand.$inferSelect;
 export type InsertCrmProjetoStand = typeof crmProjetosStand.$inferInsert;
 
 /**
+ * Orçamento técnico-comercial versionado de um Projeto de Stand. Cada versão
+ * preserva a composição e os valores de custo/venda para comparação futura.
+ */
+export const crmOrcamentosTecnicos = mysqlTable("crm_orcamentos_tecnicos", {
+  id: int("id").autoincrement().primaryKey(),
+  projetoStandId: int("projeto_stand_id").notNull(),
+  numeroVersao: int("numero_versao").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  status: varchar("status", { length: 40 }).notNull().default("rascunho"),
+  subtotalCusto: decimal("subtotal_custo", { precision: 14, scale: 2 }).notNull().default("0"),
+  subtotalVenda: decimal("subtotal_venda", { precision: 14, scale: 2 }).notNull().default("0"),
+  desconto: decimal("desconto", { precision: 14, scale: 2 }).notNull().default("0"),
+  valorVendaFinal: decimal("valor_venda_final", { precision: 14, scale: 2 }).notNull().default("0"),
+  margem: decimal("margem", { precision: 14, scale: 2 }).notNull().default("0"),
+  margemPercentual: decimal("margem_percentual", { precision: 9, scale: 4 }),
+  observacoes: text("observacoes"),
+  criadoPor: int("criado_por").notNull(),
+  criadoPorNome: varchar("criado_por_nome", { length: 255 }),
+  aprovadoPor: int("aprovado_por"),
+  aprovadoPorNome: varchar("aprovado_por_nome", { length: 255 }),
+  aprovadoEm: timestamp("aprovado_em"),
+  enviadoEm: timestamp("enviado_em"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_orcamentos_tecnicos_projeto_versao_unique").on(table.projetoStandId, table.numeroVersao),
+  index("crm_orcamentos_tecnicos_projeto_idx").on(table.projetoStandId),
+  index("crm_orcamentos_tecnicos_status_idx").on(table.status),
+]);
+
+/** Itens da composição de cada versão; totais são gravados em centavos pelo servidor. */
+export const crmOrcamentosTecnicosItens = mysqlTable("crm_orcamentos_tecnicos_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  orcamentoTecnicoId: int("orcamento_tecnico_id").notNull(),
+  categoria: varchar("categoria", { length: 80 }).notNull().default("outros"),
+  descricao: varchar("descricao", { length: 500 }).notNull(),
+  quantidade: decimal("quantidade", { precision: 14, scale: 3 }).notNull().default("1"),
+  custoUnitario: decimal("custo_unitario", { precision: 14, scale: 2 }).notNull().default("0"),
+  precoUnitario: decimal("preco_unitario", { precision: 14, scale: 2 }).notNull().default("0"),
+  custoTotal: decimal("custo_total", { precision: 14, scale: 2 }).notNull().default("0"),
+  valorTotal: decimal("valor_total", { precision: 14, scale: 2 }).notNull().default("0"),
+  ordem: int("ordem").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_orcamentos_tecnicos_itens_orcamento_idx").on(table.orcamentoTecnicoId),
+]);
+
+export type CrmOrcamentoTecnico = typeof crmOrcamentosTecnicos.$inferSelect;
+export type InsertCrmOrcamentoTecnico = typeof crmOrcamentosTecnicos.$inferInsert;
+export type CrmOrcamentoTecnicoItem = typeof crmOrcamentosTecnicosItens.$inferSelect;
+export type InsertCrmOrcamentoTecnicoItem = typeof crmOrcamentosTecnicosItens.$inferInsert;
+
+/**
  * Regra aprovada para distribuir uma despesa compartilhada de evento sem
  * modificar a transação de origem. Cada despesa pode ter no máximo uma regra.
  */

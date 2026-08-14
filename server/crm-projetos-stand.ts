@@ -8,6 +8,9 @@ type CrmSession = { userId: number; role: string; name: string };
 const PROJECT_STATUSES = new Set(["planejado", "em_orcamento", "contratado", "em_producao", "em_montagem", "concluido", "cancelado"]);
 const FINANCE_MANAGER_ROLES = new Set(["admin", "administrador", "manager", "gerente", "gerencia", "desenvolvedor", "developer", "financeiro"]);
 const COMMERCIAL_STATUSES = new Set(["prospecto", "em_negociacao", "ganho", "perdido", "cancelado"]);
+const BUDGET_EDITOR_ROLES = new Set(Array.from(FINANCE_MANAGER_ROLES).concat(["vendedor", "comercial"]));
+const BUDGET_STATUSES = new Set(["rascunho", "em_revisao", "enviada", "aprovada", "recusada", "substituida"]);
+const BUDGET_ITEM_CATEGORIES = new Set(["marcenaria", "metalurgia", "comunicacao_visual", "mobiliario", "eletrica", "iluminacao", "audiovisual", "logistica", "montagem", "desmontagem", "hospedagem", "terceiros", "taxas", "outros"]);
 
 let pool: mysql.Pool | null = null;
 function getPool() {
@@ -56,6 +59,13 @@ function requireFinanceManager(req: Request, res: Response, next: () => void) {
     next();
   });
 }
+function requireBudgetEditor(req: Request, res: Response, next: () => void) {
+  requireCrmAuth(req, res, () => {
+    const role = String((req as any).crmUser?.role || "").trim().toLowerCase();
+    if (!BUDGET_EDITOR_ROLES.has(role)) return res.status(403).json({ error: "Acesso restrito à elaboração de orçamentos" });
+    next();
+  });
+}
 async function audit(user: CrmSession, action: string, projectId: number | null, details: Record<string, unknown>) {
   try {
     await db(
@@ -83,6 +93,63 @@ async function validateRelations(eventoId: number, clienteId: number | null, lea
 }
 function generatedCode(eventoId: number, clienteId: number) {
   return `PS-${eventoId}-${clienteId}-${Date.now().toString(36).toUpperCase()}`;
+}
+function normalizeDecimal(value: unknown) {
+  let raw = String(value ?? "").trim().replace(/\s/g, "");
+  if (!raw) return null;
+  if (raw.includes(",")) raw = raw.replace(/\./g, "").replace(",", ".");
+  if (!/^-?\d+(?:\.\d+)?$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function moneyToCents(value: unknown, maxCents = 999999999999) {
+  const parsed = normalizeDecimal(value);
+  if (parsed === null || parsed < 0) throw new Error("VALOR_INVALIDO");
+  const cents = Math.round(parsed * 100);
+  if (!Number.isSafeInteger(cents) || cents > maxCents) throw new Error("VALOR_INVALIDO");
+  return cents;
+}
+function quantityToMilli(value: unknown) {
+  const parsed = normalizeDecimal(value);
+  if (parsed === null || parsed <= 0) throw new Error("QUANTIDADE_INVALIDA");
+  const milli = Math.round(parsed * 1000);
+  if (!Number.isSafeInteger(milli) || milli > 100000000) throw new Error("QUANTIDADE_INVALIDA");
+  return milli;
+}
+function centsToDb(value: number) { return (value / 100).toFixed(2); }
+function milliToDb(value: number) { return (value / 1000).toFixed(3); }
+function safeBudgetStatus(value: unknown, fallback = "rascunho") {
+  const status = text(value || fallback, 40).toLowerCase();
+  if (!BUDGET_STATUSES.has(status)) throw new Error("STATUS_ORCAMENTO_INVALIDO");
+  return status;
+}
+function isLockedBudget(status: unknown) {
+  return ["enviada", "aprovada", "recusada", "substituida"].includes(String(status || "").toLowerCase());
+}
+function calculateBudget(rawItems: unknown, rawDiscount: unknown) {
+  if (!Array.isArray(rawItems) || rawItems.length > 250) throw new Error("ITENS_INVALIDOS");
+  const items = rawItems.map((raw: any, index: number) => {
+    const category = text(raw?.categoria || "outros", 80).toLowerCase();
+    const description = text(raw?.descricao, 500);
+    if (!BUDGET_ITEM_CATEGORIES.has(category) || !description) throw new Error("ITEM_INVALIDO");
+    const quantityMilli = quantityToMilli(raw?.quantidade ?? 1);
+    const costCents = moneyToCents(raw?.custoUnitario ?? raw?.custo_unitario ?? 0);
+    const priceCents = moneyToCents(raw?.precoUnitario ?? raw?.preco_unitario ?? 0);
+    return { category, description, quantityMilli, costCents, priceCents, costTotalCents: Math.round((costCents * quantityMilli) / 1000), saleTotalCents: Math.round((priceCents * quantityMilli) / 1000), order: index };
+  });
+  const subtotalCostCents = items.reduce((sum, item) => sum + item.costTotalCents, 0);
+  const subtotalSaleCents = items.reduce((sum, item) => sum + item.saleTotalCents, 0);
+  const discountCents = moneyToCents(rawDiscount ?? 0);
+  if (discountCents > subtotalSaleCents) throw new Error("DESCONTO_INVALIDO");
+  const finalSaleCents = subtotalSaleCents - discountCents;
+  const marginCents = finalSaleCents - subtotalCostCents;
+  return { items, subtotalCostCents, subtotalSaleCents, discountCents, finalSaleCents, marginCents, marginPct: finalSaleCents ? (marginCents / finalSaleCents) * 100 : null };
+}
+async function getBudgetWithItems(projetoId: number, budgetId: number) {
+  const budget = await db<any>("SELECT * FROM crm_orcamentos_tecnicos WHERE id = ? AND projeto_stand_id = ?", [budgetId, projetoId]);
+  if (!budget[0]) return null;
+  const items = await db<any>("SELECT * FROM crm_orcamentos_tecnicos_itens WHERE orcamento_tecnico_id = ? ORDER BY ordem ASC, id ASC", [budgetId]);
+  return { orcamento: budget[0], itens: items };
 }
 
 export function registerProjetosStandRoutes(app: any) {
@@ -314,6 +381,129 @@ export function registerProjetosStandRoutes(app: any) {
       console.error("[ProjetosStand] erro ao excluir", error);
       res.status(500).json({ error: "Não foi possível excluir o Projeto de Stand" });
     }
+  });
+
+  r.get("/:id/orcamentos", requireCrmAuth, async (req, res) => {
+    try {
+      const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
+      const projeto = await dbOne<any>("SELECT id, nome, codigo, evento_id, cliente_id, lead_id FROM crm_projetos_stand WHERE id = ?", [projetoId]);
+      if (!projeto) return res.status(404).json({ error: "Projeto de Stand não encontrado" });
+      const data = await db<any>(`SELECT o.*, COUNT(i.id) AS itens_total
+        FROM crm_orcamentos_tecnicos o LEFT JOIN crm_orcamentos_tecnicos_itens i ON i.orcamento_tecnico_id = o.id
+        WHERE o.projeto_stand_id = ? GROUP BY o.id ORDER BY o.numero_versao DESC`, [projetoId]);
+      res.json({ projeto, data });
+    } catch (error) { console.error("[ProjetosStand] erro ao listar orçamentos", error); res.status(500).json({ error: "Não foi possível carregar os orçamentos técnicos" }); }
+  });
+
+  r.get("/:id/orcamentos/:orcamentoId", requireCrmAuth, async (req, res) => {
+    try {
+      const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
+      const budgetId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
+      const detail = await getBudgetWithItems(projetoId, budgetId);
+      if (!detail) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
+      res.json(detail);
+    } catch (error) { console.error("[ProjetosStand] erro ao obter orçamento", error); res.status(500).json({ error: "Não foi possível carregar a versão de orçamento" }); }
+  });
+
+  r.post("/:id/orcamentos", requireBudgetEditor, async (req, res) => {
+    const connection = await getPool().getConnection();
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
+      const projeto = await dbOne<any>("SELECT id, nome FROM crm_projetos_stand WHERE id = ?", [projetoId]);
+      if (!projeto) return res.status(404).json({ error: "Projeto de Stand não encontrado" });
+      const title = text(req.body.titulo || `Orçamento técnico — ${projeto.nome}`, 255);
+      if (!title) return res.status(400).json({ error: "Informe o título do orçamento" });
+      const calculation = calculateBudget(req.body.itens ?? [], req.body.desconto ?? 0);
+      await connection.beginTransaction();
+      const [versionRows] = await connection.execute<any[]>("SELECT COALESCE(MAX(numero_versao), 0) + 1 AS proxima FROM crm_orcamentos_tecnicos WHERE projeto_stand_id = ? FOR UPDATE", [projetoId]);
+      const version = Number(versionRows?.[0]?.proxima || 1);
+      const [result] = await connection.execute<any>(`INSERT INTO crm_orcamentos_tecnicos
+        (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, observacoes, criado_por, criado_por_nome)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, nullableText(req.body.observacoes, 4000), user.userId, user.name || null]);
+      const budgetId = Number(result.insertId);
+      for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens
+        (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
+      await connection.commit();
+      await audit(user, "CREATE_TECHNICAL_BUDGET", projetoId, { budgetId, version, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents });
+      res.status(201).json({ ok: true, id: budgetId, numeroVersao: version });
+    } catch (error: any) {
+      await connection.rollback();
+      const messages: Record<string, string> = { VALOR_INVALIDO: "Valor de item inválido", QUANTIDADE_INVALIDA: "Quantidade de item inválida", ITEM_INVALIDO: "Categoria ou descrição de item inválida", ITENS_INVALIDOS: "Itens de orçamento inválidos", DESCONTO_INVALIDO: "O desconto não pode superar o valor de venda" };
+      if (messages[error?.message]) return res.status(400).json({ error: messages[error.message] });
+      console.error("[ProjetosStand] erro ao criar orçamento", error); res.status(500).json({ error: "Não foi possível criar a versão de orçamento" });
+    } finally { connection.release(); }
+  });
+
+  r.put("/:id/orcamentos/:orcamentoId", requireBudgetEditor, async (req, res) => {
+    const connection = await getPool().getConnection();
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
+      const budgetId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
+      const detail = await getBudgetWithItems(projetoId, budgetId);
+      if (!detail) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
+      if (isLockedBudget(detail.orcamento.status)) return res.status(409).json({ error: "Esta versão está bloqueada. Duplique-a para criar uma nova revisão." });
+      const calculation = calculateBudget(req.body.itens ?? [], req.body.desconto ?? detail.orcamento.desconto ?? 0);
+      const title = text(req.body.titulo ?? detail.orcamento.titulo, 255); if (!title) return res.status(400).json({ error: "Informe o título do orçamento" });
+      const status = safeBudgetStatus(req.body.status ?? detail.orcamento.status); if (isLockedBudget(status)) return res.status(400).json({ error: "Use as ações específicas para enviar, aprovar ou recusar uma versão" });
+      await connection.beginTransaction();
+      await connection.execute(`UPDATE crm_orcamentos_tecnicos SET titulo=?, status=?, subtotal_custo=?, subtotal_venda=?, desconto=?, valor_venda_final=?, margem=?, margem_percentual=?, observacoes=? WHERE id=?`, [title, status, centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, nullableText(req.body.observacoes ?? detail.orcamento.observacoes, 4000), budgetId]);
+      await connection.execute("DELETE FROM crm_orcamentos_tecnicos_itens WHERE orcamento_tecnico_id = ?", [budgetId]);
+      for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens
+        (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
+      await connection.commit();
+      await audit(user, "UPDATE_TECHNICAL_BUDGET", projetoId, { budgetId, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents });
+      res.json({ ok: true, id: budgetId });
+    } catch (error: any) {
+      await connection.rollback();
+      const messages: Record<string, string> = { VALOR_INVALIDO: "Valor de item inválido", QUANTIDADE_INVALIDA: "Quantidade de item inválida", ITEM_INVALIDO: "Categoria ou descrição de item inválida", ITENS_INVALIDOS: "Itens de orçamento inválidos", DESCONTO_INVALIDO: "O desconto não pode superar o valor de venda", STATUS_ORCAMENTO_INVALIDO: "Status de orçamento inválido" };
+      if (messages[error?.message]) return res.status(400).json({ error: messages[error.message] });
+      console.error("[ProjetosStand] erro ao atualizar orçamento", error); res.status(500).json({ error: "Não foi possível atualizar a versão de orçamento" });
+    } finally { connection.release(); }
+  });
+
+  r.post("/:id/orcamentos/:orcamentoId/duplicar", requireBudgetEditor, async (req, res) => {
+    const connection = await getPool().getConnection();
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER);
+      const sourceId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
+      const source = await getBudgetWithItems(projetoId, sourceId);
+      if (!source) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
+      const calculation = calculateBudget(source.itens.map((item) => ({ categoria: item.categoria, descricao: item.descricao, quantidade: item.quantidade, custoUnitario: item.custo_unitario, precoUnitario: item.preco_unitario })), source.orcamento.desconto);
+      await connection.beginTransaction();
+      const [versionRows] = await connection.execute<any[]>("SELECT COALESCE(MAX(numero_versao), 0) + 1 AS proxima FROM crm_orcamentos_tecnicos WHERE projeto_stand_id = ? FOR UPDATE", [projetoId]);
+      const version = Number(versionRows?.[0]?.proxima || 1); const title = text(req.body.titulo || `${source.orcamento.titulo} — revisão`, 255);
+      const [result] = await connection.execute<any>(`INSERT INTO crm_orcamentos_tecnicos (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, observacoes, criado_por, criado_por_nome) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, source.orcamento.observacoes, user.userId, user.name || null]);
+      const budgetId = Number(result.insertId);
+      for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
+      await connection.commit(); await audit(user, "DUPLICATE_TECHNICAL_BUDGET", projetoId, { sourceId, budgetId, version });
+      res.status(201).json({ ok: true, id: budgetId, numeroVersao: version });
+    } catch (error) { await connection.rollback(); console.error("[ProjetosStand] erro ao duplicar orçamento", error); res.status(500).json({ error: "Não foi possível duplicar a versão de orçamento" }); }
+    finally { connection.release(); }
+  });
+
+  r.post("/:id/orcamentos/:orcamentoId/enviar", requireBudgetEditor, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER); const budgetId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
+      const detail = await getBudgetWithItems(projetoId, budgetId); if (!detail) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
+      if (isLockedBudget(detail.orcamento.status)) return res.status(409).json({ error: "Esta versão está bloqueada" });
+      if (!detail.itens.length || Number(detail.orcamento.valor_venda_final || 0) <= 0) return res.status(400).json({ error: "Inclua ao menos um item e um valor de venda antes de enviar" });
+      await db("UPDATE crm_orcamentos_tecnicos SET status='enviada', enviado_em=NOW() WHERE id=?", [budgetId]); await audit(user, "SEND_TECHNICAL_BUDGET", projetoId, { budgetId }); res.json({ ok: true });
+    } catch (error) { console.error("[ProjetosStand] erro ao enviar orçamento", error); res.status(500).json({ error: "Não foi possível marcar o orçamento como enviado" }); }
+  });
+
+  r.post("/:id/orcamentos/:orcamentoId/aprovar", requireFinanceManager, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER); const budgetId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
+      const detail = await getBudgetWithItems(projetoId, budgetId); if (!detail) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
+      if (detail.orcamento.status !== "enviada") return res.status(409).json({ error: "Somente uma versão enviada pode ser aprovada" });
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme a revisão de custos, preço, desconto e margem antes de aprovar" });
+      await db("UPDATE crm_orcamentos_tecnicos SET status='aprovada', aprovado_por=?, aprovado_por_nome=?, aprovado_em=NOW() WHERE id=?", [user.userId, user.name || null, budgetId]);
+      await db("UPDATE crm_orcamentos_tecnicos SET status='substituida' WHERE projeto_stand_id=? AND id<>? AND status='aprovada'", [projetoId, budgetId]);
+      await audit(user, "APPROVE_TECHNICAL_BUDGET", projetoId, { budgetId, finalSale: detail.orcamento.valor_venda_final, margin: detail.orcamento.margem }); res.json({ ok: true });
+    } catch (error) { console.error("[ProjetosStand] erro ao aprovar orçamento", error); res.status(500).json({ error: "Não foi possível aprovar a versão de orçamento" }); }
   });
 
   app.use("/api/crm/projetos-stand", r);

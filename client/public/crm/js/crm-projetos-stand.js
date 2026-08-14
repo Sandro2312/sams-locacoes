@@ -109,7 +109,7 @@
                   <td class="px-4 py-3 text-right text-sm font-medium text-orange-700">${money(item.custos_rateados)}</td>
                   <td class="px-4 py-3 text-right text-sm font-medium text-gray-900">${money(Number(item.custos_diretos || 0) + Number(item.custos_rateados || 0))}</td>
                   <td class="px-4 py-3"><div><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusClass(item.status)}">${escapeHtml(statusLabel(item.status))}</span></div><div class="mt-1"><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${commercialClass(item.situacao_comercial)}">${escapeHtml(commercialLabel(item.situacao_comercial))}</span></div></td>
-                  ${manage ? `<td class="px-4 py-3 text-right"><button type="button" class="projeto-stand-edit text-sm font-medium text-indigo-700 hover:text-indigo-900" data-id="${item.id}">Editar</button><button type="button" class="projeto-stand-delete ml-3 text-sm font-medium text-rose-700 hover:text-rose-900" data-id="${item.id}">Excluir</button></td>` : ''}
+                  ${manage ? `<td class="px-4 py-3 text-right"><button type="button" class="projeto-stand-budget text-sm font-medium text-violet-700 hover:text-violet-900" data-id="${item.id}">Orçamento</button><button type="button" class="projeto-stand-edit ml-3 text-sm font-medium text-indigo-700 hover:text-indigo-900" data-id="${item.id}">Editar</button><button type="button" class="projeto-stand-delete ml-3 text-sm font-medium text-rose-700 hover:text-rose-900" data-id="${item.id}">Excluir</button></td>` : ''}
                 </tr>`).join('') : `<tr><td colspan="${manage ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500">Nenhum Projeto de Stand encontrado. ${manage ? 'Crie o primeiro projeto para começar a vincular novos lançamentos.' : ''}</td></tr>`}
             </tbody>
           </table>
@@ -199,6 +199,7 @@
     document.getElementById('projeto-stand-lead-filter')?.addEventListener('change', (event) => { state.filters.leadId = event.target.value; load(); });
     document.getElementById('projeto-stand-situacao-filter')?.addEventListener('change', (event) => { state.filters.situacaoComercial = event.target.value; load(); });
     document.querySelectorAll('.projeto-stand-edit').forEach((button) => button.addEventListener('click', () => openForm(projectFromId(button.dataset.id))));
+    document.querySelectorAll('.projeto-stand-budget').forEach((button) => button.addEventListener('click', () => window.OrcamentosTecnicosModule?.openForProject?.(button.dataset.id)));
     document.querySelectorAll('.projeto-stand-delete').forEach((button) => button.addEventListener('click', async () => {
       const project = projectFromId(button.dataset.id);
       if (!project || !window.confirm(`Excluir o Projeto de Stand "${project.nome}"? Esta ação só é permitida quando não há lançamentos vinculados.`)) return;

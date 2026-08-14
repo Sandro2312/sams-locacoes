@@ -596,3 +596,10 @@
 - [x] Comparar a operação com boas práticas de vendas, projetos, montagem, financeiro e pós-venda
 - [x] Priorizar lacunas, riscos operacionais e próximos investimentos funcionais
 - [x] Documentar o diagnóstico executivo e o roteiro de evolução
+
+## Implementação — Orçamento Técnico Versionado (Ago/2026)
+- [x] Definir modelo de versões, itens, custo, preço, desconto, margem, status e aprovação
+- [x] Criar migração e APIs auditáveis ligadas ao Projeto de Stand sem alterar financeiro ou contratos existentes
+- [x] Construir interface responsiva para criar, comparar, editar e aprovar versões de orçamento
+- [x] Validar cálculos em centavos, permissões, histórico, desktop/mobile e regressões
+- [x] Atualizar documentação, cache-busters e checkpoint da implementação
