@@ -556,3 +556,11 @@
 - [x] Identificar dados locais, recargas manuais e riscos de edição simultânea
 - [x] Propor atualização gradual entre navegadores, celular e desktop
 - [x] Definir estratégia de conflito, indicadores visuais e operação segura
+
+## Implementação — Sincronização adaptativa multiusuário (Ago/2026)
+- [x] Definir os módulos prioritários, intervalo adaptativo e regras de não sobrescrever formulários ativos
+- [x] Criar infraestrutura de atualização por foco, visibilidade e intervalo seguro
+- [x] Integrar Leads, Kanban e Agenda com indicador de última sincronização
+- [x] Integrar Financeiro, Eventos e Jurídico com proteção de edição em andamento
+- [x] Validar simultaneidade, desempenho, desktop/mobile e regressões
+- [x] Atualizar cache-busters, documentação técnica e salvar checkpoint

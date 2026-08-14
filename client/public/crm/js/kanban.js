@@ -43,7 +43,7 @@ const KanbanSystem = {
         this.syncCapturedLeadTasks().catch(() => {});
     },
 
-    async syncCapturedLeadTasks() {
+    async syncServerTasks(options = {}) {
         try {
             if (typeof ModuleSystem === 'undefined' || !ModuleSystem.data) return;
             const current = this.getCurrentUser();
@@ -52,8 +52,12 @@ const KanbanSystem = {
             const payload = await resp.json().catch(() => null);
             const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
             if (!resp.ok || !Array.isArray(rows)) return;
-            const captured = rows.filter(t => t && String(t.modulo || t.origem_modulo || '') === 'captacao_site');
-            if (!captured.length) return;
+            const onlyCaptured = options.onlyCaptured === true;
+            const persisted = rows.filter(t => {
+                const origem = String(t && (t.modulo || t.origem_modulo || '')).toLowerCase();
+                return onlyCaptured ? origem === 'captacao_site' : (origem === 'captacao_site' || origem === 'kanban');
+            });
+            if (!persisted.length && onlyCaptured) return;
             this.normalizeKanbanData(false);
             const tasks = ModuleSystem.data.kanban.tasks;
             const fallbackBoardId = this.currentBoard || ModuleSystem.data.kanban.boards?.[0]?.id;
@@ -64,14 +68,15 @@ const KanbanSystem = {
                 if (s === 'em_andamento') return 'doing';
                 return 'todo';
             };
-            for (const item of captured) {
+            for (const item of persisted) {
                 const serverId = Number(item.id);
                 if (!Number.isFinite(serverId) || serverId <= 0) continue;
+                const origem = String(item.modulo || item.origem_modulo || '').toLowerCase();
                 const mapped = {
-                    id: `captacao-${serverId}`,
+                    id: origem === 'captacao_site' ? `captacao-${serverId}` : `kanban-${serverId}`,
                     tarefasAdminId: serverId,
                     boardId: fallbackBoardId,
-                    titulo: String(item.titulo || 'Novo lead do site'),
+                    titulo: String(item.titulo || (origem === 'captacao_site' ? 'Novo lead do site' : 'Tarefa do Kanban')),
                     descricao: item.descricao ? String(item.descricao) : '',
                     status: mapStatus(item.status),
                     prioridade: String(item.prioridade || 'media'),
@@ -79,9 +84,9 @@ const KanbanSystem = {
                     responsavelId: item.responsavel_id != null ? String(item.responsavel_id) : null,
                     dataVencimento: item.data_vencimento || null,
                     dataCriacao: item.created_at || new Date().toISOString(),
-                    origemModulo: 'captacao_site',
+                    origemModulo: origem || 'kanban',
                     origemId: item.referencia_id != null ? item.referencia_id : null,
-                    tags: ['captação', 'site']
+                    tags: origem === 'captacao_site' ? ['captação', 'site'] : ['kanban', 'compartilhada']
                 };
                 const index = tasks.findIndex(t => t && Number(t.tarefasAdminId) === serverId);
                 if (index >= 0) {
@@ -97,6 +102,10 @@ const KanbanSystem = {
                 if (board) this.renderBoard();
             }
         } catch {}
+    },
+
+    async syncCapturedLeadTasks() {
+        return this.syncServerTasks({ onlyCaptured: true });
     },
 
     // Inicializar dados do Kanban

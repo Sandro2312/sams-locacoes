@@ -1,55 +1,58 @@
 # Sincronização Multiusuário do CRM
 
-## Diagnóstico atual
+## Situação implementada
 
-> **Conclusão principal:** os dados dos módulos críticos são gravados no servidor, porém a tela de cada colaborador não recebe uma notificação automática quando outro colaborador cria ou altera um registro. Portanto, a persistência é compartilhada; a visualização, em regra, ainda depende de recarga do módulo, retorno à tela ou abertura de uma nova sessão.
+O CRM passou a adotar **atualização adaptativa de listas críticas**, sem recarregar o navegador inteiro. O gerenciador `CrmSyncManager` é carregado após a navegação do CRM e consulta novamente os dados persistidos quando o usuário retorna à aba, volta a focar a janela, altera dados em outra aba do mesmo navegador, conclui um salvamento local ou permanece na tela por um ciclo de 60 segundos.
 
-O CRM inicia com um cache local por navegador em `localStorage` e, aproximadamente 800 milissegundos depois, sincroniza clientes, eventos, contas a receber, transações, leads e Projetos de Stand a partir do servidor. Esse desenho reduz o tempo de abertura, mas permite que uma tela já aberta permaneça temporariamente desatualizada. A persistência local também continua presente em partes legadas do CRM, o que não é adequado como fonte de verdade para colaboração entre dispositivos. [1] [2]
+O mecanismo é intencionalmente limitado às áreas com maior impacto operacional. Ele funciona somente em sessão autenticada e em tela visível; assim, reduz consultas desnecessárias em dispositivos móveis e não executa atualizações em segundo plano quando a pessoa está em outra aba.
 
-| Situação | Comportamento atual | Impacto para 7 colaboradores |
-|---|---|---|
-| Cadastro em módulo conectado ao servidor | O registro é salvo no banco e o autor normalmente recarrega a própria página/módulo. | Os demais usuários não veem a alteração até atualizar ou reabrir a tela. |
-| Tela aberta por longo período | Não há canal global de atualização em tempo real, nem atualização automática ao retornar ao foco. | Listas, dashboards e agendas podem ficar defasados. |
-| Cache local do navegador | A aplicação lê `sams_module_data` primeiro e depois sincroniza parte dos dados no bootstrap. | O cache pode exibir informação antiga até a sincronização; não deve ser tratado como fonte compartilhada. |
-| Edição simultânea do mesmo registro | Não há controle de versão obrigatório nas edições legadas. | A última gravação pode substituir uma alteração anterior sem aviso explícito. |
-| Dados locais legados | O `CrudManager` mantém alguns registros no armazenamento do navegador. | Esses registros não acompanham outro navegador, aparelho ou colaborador. |
-
-## Resposta objetiva à operação diária
-
-Hoje, **não é necessário recarregar o navegador inteiro a cada inclusão**, mas o colaborador que está em outra sessão geralmente precisa usar o botão **Atualizar** do módulo, mudar e retornar à tela, ou recarregar a página para ver dados criados por outra pessoa. O autor da alteração já costuma receber a lista atualizada após salvar. Isso explica por que duas pessoas podem observar conteúdos diferentes por alguns instantes mesmo com o mesmo CRM aberto.
-
-## Riscos a tratar antes de acelerar a atualização
-
-O principal risco não é apenas a demora visual; é o conflito. Se Vera estiver alterando uma tarefa enquanto Martina editar a mesma tarefa em outro navegador, a atualização silenciosa não deve apagar o formulário que está sendo preenchido. A solução precisa separar **atualização de listas** de **atualização de formulários em edição**.
-
-| Risco | Regra recomendada |
+| Área do CRM | Atualização segura aplicada |
 |---|---|
-| Registro criado por outro usuário | Inserir ou sinalizar o novo item na lista sem interromper a tela atual. |
-| Registro alterado por outro usuário | Exibir aviso discreto: “este registro foi atualizado por outro colaborador”. |
-| Formulário em edição local | Não sobrescrever campos preenchidos. Oferecer “Recarregar dados”, “Comparar” ou “Salvar minha versão”. |
-| Dois salvamentos do mesmo registro | Usar coluna de versão/`updated_at` enviada pelo cliente; o servidor rejeita uma versão desatualizada com instrução de revisão. |
-| Dados meramente locais | Migrar gradualmente os módulos colaborativos para APIs e banco; `localStorage` permanece somente como cache/rascunho de interface. |
+| Dashboard e Agenda/Tarefas | Atualiza tarefas administrativas e redesenha a agenda antes de recarregar a visão atual. |
+| Marketing | Atualiza as listas de Leads e Contatos. |
+| Kanban | Importa tarefas persistidas do Kanban e cartões de captação do site, preservando os cartões locais que não forem retornados pelo recorte da API. |
+| Comercial | Atualiza a lista de Eventos. |
+| Financeiro | Recarrega transações e a página financeira em uso. |
+| Jurídico | Atualiza a lista de Processos nas páginas de processos e prazos. |
 
-## Alternativas de evolução
+## Experiência para a equipe
 
-| Abordagem | Resultado para a equipe | Pontos de atenção | Custo e complexidade |
-|---|---|---|---|
-| **A. Atualização assistida** | Botão Atualizar padronizado, indicador de “última sincronização”, atualização ao voltar para a aba e a cada 60 segundos em listas críticas. | Não é instantânea; alterações podem levar até o próximo ciclo para aparecer. | Baixa; sem serviço contínuo adicional. |
-| **B. Atualização adaptativa de listas** | Enquanto a aba estiver visível, as listas críticas consultam alterações recentes em intervalos curtos; avisos surgem sem recarregar o navegador inteiro. | Exige controle de edição e versionamento para não interromper formulários. | Média; adequada ao CRM atual e aos sete colaboradores. |
-| **C. Atualização por eventos em tempo real** | Novos leads, tarefas, agendas e alterações chegam imediatamente em todas as sessões conectadas. | Requer serviço contínuo de comunicação, observabilidade e proteção adicional contra reconexões/conflitos. | Maior; envolve infraestrutura persistente e operação contínua. |
+Em módulos prioritários, uma etiqueta flutuante no canto superior direito informa o estado da atualização. O botão pode ser acionado para uma atualização manual. Ele exibe “Sincronizando dados…”, o horário de sucesso ou uma mensagem de nova tentativa caso a consulta falhe.
 
-## Escopo gradual sugerido
+> **Proteção de edição:** o CRM não recarrega listas enquanto há modal aberto, formulário ativo ou campo de texto, seleção ou data em foco. Nesse caso, apresenta “Novos dados disponíveis — conclua a edição para atualizar”. Campos de busca foram excluídos dessa proteção para que a pesquisa não bloqueie a atualização por tempo indeterminado.
 
-O primeiro recorte deve cobrir os módulos nos quais o atraso traz efeito operacional imediato: **Leads e Kanban**, **Agenda/Tarefas**, **Eventos**, **Financeiro** e **Processos Jurídicos**. Cada página deve mostrar a hora da última sincronização, ter atualização manual explícita e realizar atualização segura quando o usuário voltar à aba. Em seguida, a segunda etapa pode habilitar atualização adaptativa das listas e o controle de versão nas edições.
+| Gatilho | Regra operacional |
+|---|---|
+| Abertura do CRM | Primeira verificação aproximadamente 1,8 segundo após a inicialização. |
+| Retorno à aba ou foco da janela | Atualiza após intervalo mínimo de 15 segundos desde a última sincronização, evitando consultas repetidas. |
+| Alteração em outra aba | Reavalia as listas quando o cache local compartilhado do navegador muda. |
+| Salvamento local | Solicita atualização após 1,2 segundo para absorver a persistência do servidor. |
+| Tela ativa por longo período | Verifica os módulos prioritários a cada 60 segundos. |
+| Edição em curso | Adia a atualização; não substitui o formulário aberto. |
 
-Uma terceira etapa somente deve adotar comunicação instantânea para eventos que realmente justificam isso, como novo lead do site, prazo jurídico próximo, novo ticket ou tarefa repassada. Essa separação mantém o CRM rápido no mobile e evita transformar todo salvamento em uma atualização invasiva para os sete colaboradores.
+## Limites e evolução recomendada
 
-## Decisão necessária
+Esta etapa mantém o banco de dados e as APIs como fonte de verdade para os módulos conectados, enquanto o `localStorage` permanece apenas como cache de interface e suporte a componentes legados. A solução não é um canal instantâneo por WebSocket ou SSE: uma alteração pode aparecer no próximo gatilho de atualização, no máximo após o ciclo de 60 segundos enquanto a tela estiver visível.
 
-Antes de implementar, a direção deve escolher entre as abordagens A, B ou C. A alternativa A é a mais leve; B melhora muito a colaboração sem exigir serviço contínuo; C oferece experiência imediata, mas requer uma operação de infraestrutura mais robusta. Independentemente da escolha, o controle de versão e os avisos de conflito devem ser tratados como requisito de segurança, não como detalhe visual.
+Também não foi introduzido bloqueio pessimista nem controle de versão obrigatório para todos os formulários legados. Portanto, dois usuários ainda devem evitar editar o mesmo registro ao mesmo tempo; a proteção atual impede que a atualização automática apague uma edição em andamento, mas não substitui a futura validação de `updated_at` ou versão no salvamento.
+
+| Próxima evolução | Objetivo |
+|---|---|
+| Controle de versão em APIs de edição | Rejeitar salvamentos sobre um registro alterado por outra pessoa e orientar a revisão. |
+| Aviso de atualização por registro | Mostrar que um item específico foi alterado por outro colaborador. |
+| Eventos em tempo real seletivos | Considerar WebSocket ou SSE apenas para novo lead, ticket, prazo jurídico e tarefa repassada, após avaliar operação contínua. |
+
+## Validação executada
+
+As sintaxes de `crm-sync.js` e `kanban.js` foram verificadas. A checagem TypeScript não apresentou erros e os testes específicos da sincronização passaram integralmente. A suíte geral registrou **94 testes aprovados**; as duas falhas restantes pertencem aos testes preexistentes de listagem de Contato e Orçamento, que esperam acesso administrativo incompatível com a regra atual de permissões e não são relacionadas à sincronização.
+
+O preview público e a tela de login do CRM foram carregados com sucesso. A validação visual autenticada de conteúdos internos permanece dependente de uma sessão de usuário, mas a proteção de modais, campos em edição, sessão e visibilidade está coberta por código e testes de regressão.
 
 ## Referências internas
 
-[1] `client/public/crm/js/modules.js`, inicialização, sincronização de dados de servidor e cache `sams_module_data`.
-
-[2] `client/public/crm/js/crud-manager.js`, persistência local de módulos legados e emissão de eventos locais.
+| Referência | Responsabilidade |
+|---|---|
+| `client/public/crm/js/crm-sync.js` | Gatilhos, proteção de edição, indicador e atualização por módulo. |
+| `client/public/crm/js/kanban.js` | Importação segura de tarefas persistidas de Kanban e captação. |
+| `server/crm-sync.test.ts` | Cobertura de gatilhos, proteção de edição e módulos prioritários. |
+| `server/captacao-site.test.ts` | Regressão da compatibilidade da captação com a sincronização do Kanban. |

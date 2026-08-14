@@ -38,8 +38,9 @@ describe("Captação do site para Leads e Kanban", () => {
   it("preserva movimentos de cards por atualização parcial e importa tarefas de captação", () => {
     expect(adminSource).toContain("const normalizeTaskStatus");
     expect(adminSource).toContain("const current = await dbOne<any>(\"SELECT * FROM crm_tarefas WHERE id=?\"");
+    expect(kanbanSource).toContain("async syncServerTasks(options = {})");
     expect(kanbanSource).toContain("async syncCapturedLeadTasks()");
-    expect(kanbanSource).toContain("String(t.modulo || t.origem_modulo || '') === 'captacao_site'");
+    expect(kanbanSource).toContain("origem === 'captacao_site'");
   });
 
   it("normaliza o contrato snake_case da API de tarefas para a Agenda do responsável", () => {
