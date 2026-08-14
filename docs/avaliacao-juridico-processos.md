@@ -143,6 +143,34 @@ A lista de documentos vinculados agora conta com **pré-visualização de PDFs e
 
 > **Compatibilidade:** os filtros funcionam localmente sobre os documentos já autorizados e carregados para o processo. Assim, não ampliam o acesso a processos sigilosos nem adicionam novas consultas ao banco enquanto a pessoa pesquisa.
 
+## Peticionamento Assistido, dossiê e IA supervisionada — agosto de 2026
+
+O detalhe do processo passou a disponibilizar a área **Peticionamento Assistido**. Ela funciona como ambiente interno de preparação e rastreabilidade: cria rascunhos versionados, organiza o dossiê, registra o checklist, documenta a aprovação e permite registrar posteriormente o recibo do protocolo. Ela não assina, não acessa certificados, não guarda credenciais e não transmite petições ao tribunal.
+
+| Etapa | Funcionamento implantado | Controle aplicado |
+|---|---|---|
+| Rascunho | Criação de peça por tipo, conteúdo, versão inicial e histórico de revisões. | Uma edição cria nova versão; peça marcada como protocolada não pode ser modificada. |
+| Checklist | Conferência de competência, prazo, partes, anexos e revisão profissional. | A aprovação é bloqueada enquanto houver item pendente. |
+| Aprovação | Ação explícita “Aprovar para protocolo”, com data, usuário e confirmação de revisão. | A aprovação exige perfil jurídico/administrativo autorizado e confirmação humana. |
+| Protocolo | Registro declaratório do número ou identificador do recibo após o ato externo. | O status somente muda após aprovação; o CRM informa que o protocolo ocorreu fora do sistema. |
+| Dossiê | Categoria e tags por documento, tanto no novo upload quanto em documentos já vinculados. | A organização é auditada e não altera o arquivo original do Acervo. |
+
+### Assistência por IA
+
+A IA só é liberada quando a pessoa registra expressamente a autorização no processo. As funções disponíveis são **resumo assistido de PDF/imagem** e **cronologia assistida** a partir dos documentos, prazos, consultas e resumos internos já autorizados. Cada resultado fica salvo com usuário, momento, modelo e fontes internas para revisão. Há limites de uso por usuário e por intervalo para reduzir risco operacional.
+
+> **Regra obrigatória:** resumos e cronologias são rascunhos informativos. Eles não constituem orientação jurídica, não validam prazo, não substituem leitura do documento ou consulta ao tribunal e não podem ser utilizados sem revisão profissional. A Recomendação OAB n. 001/2024 orienta que o julgamento profissional não seja realizado exclusivamente por IA e que saídas usadas em litígio sejam revisadas integralmente.[8]
+
+| Salvaguarda | Aplicação no módulo |
+|---|---|
+| Autorização por processo | Sem o marcador de autorização, as rotas de IA recusam a análise. |
+| Sigilo | A mesma regra de perfis autorizados aplicada a documentos também protege peças e IA. |
+| Minimização | O resumo recebe apenas o documento selecionado e os metadados necessários; a cronologia usa fontes internas estruturadas. |
+| Fontes e auditoria | A análise registra documentos, prazos ou dados internos de origem, usuário, modelo e ação de auditoria. |
+| Sem automação externa | Não há scraping, assinatura, armazenamento de certificado ou protocolo automatizado. |
+
+**Procedimento operacional:** abra um processo, acesse **Peticionamento Assistido**, crie o rascunho e mantenha o checklist atualizado. Depois de revisão profissional, aprove a peça, realize assinatura e protocolo no portal oficial e registre o identificador do recibo no CRM. Para a IA, autorize previamente o processo, selecione o documento PDF/imagem ou gere a cronologia e revise o resultado junto às fontes originais.
+
 ## Referências
 
 [1]: https://www.cnj.jus.br/sistemas/datajud/api-publica/ "CNJ — API Pública do Datajud"
@@ -152,3 +180,4 @@ A lista de documentos vinculados agora conta com **pré-visualização de PDFs e
 [5]: https://www.cnj.jus.br/tecnologia-da-informacao-e-comunicacao/justica-4-0/domicilio-judicial-eletronico/ "CNJ — Domicílio Judicial Eletrônico"
 [6]: https://www.cnj.jus.br/programas-e-acoes/processo-judicial-eletronico-pje/comunicacoes-processuais/ "CNJ — Comunicações Processuais"
 [7]: https://comunica.pje.jus.br/ "CNJ — Comunica PJe"
+[8]: https://diario.oab.org.br/pages/materia/842347 "Conselho Federal da OAB — Recomendação n. 001/2024"

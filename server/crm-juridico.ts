@@ -7,6 +7,7 @@ import path from "path";
 import { ENV } from "./_core/env";
 import { getSessionFromCrm } from "./crm";
 import { storagePut } from "./storage";
+import { invokeLLM } from "./_core/llm";
 
 type CrmSession = { userId: number; role: string; name: string };
 const RAMOS = new Set(["trabalhista", "civel"]);
@@ -22,6 +23,12 @@ const DATAJUD_ENDPOINTS: Record<string, string> = {
   trf3: "api_publica_trf3", trf4: "api_publica_trf4", trf5: "api_publica_trf5",
 };
 const DOCUMENT_CLASSIFICATIONS = new Set(["peticao", "citacao", "intimacao", "ata_audiencia", "decisao", "sentenca", "acordo", "procuracao", "comprovante", "outro"]);
+const DOSSIER_CATEGORIES = new Set(["dossie_geral", "prova", "peca", "jurisprudencia", "comunicacao", "recibo_protocolo", "contrato", "financeiro"]);
+const PIECE_TYPES = new Set(["peticao_inicial", "contestacao", "manifestacao", "replica", "recurso", "substabelecimento", "pedido_prazo", "peticao_intermediaria", "modelo_livre"]);
+const PIECE_STATUSES = new Set(["rascunho", "em_revisao", "aprovada_para_protocolo", "protocolada"]);
+const LEGAL_APPROVAL_ROLES = new Set(["admin", "administrador", "desenvolvedor", "developer", "juridico"]);
+const AI_FILE_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const legalAiRateLimits = new Map<string, { count: number; resetAt: number }>();
 const LEGAL_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf", "image/jpeg", "image/png", "image/webp", "application/zip", "application/x-zip-compressed",
   "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -63,6 +70,22 @@ function formatCnj(value: unknown) {
 }
 function generatedCode() { return `JUR-${Date.now().toString(36).toUpperCase()}`; }
 function safeFileName(value: unknown) { return path.basename(text(value, 180)).replace(/[^a-zA-Z0-9._-]/g, "_") || "documento"; }
+function boundedSetValue(value: unknown, allowed: Set<string>, fallback: string) { const normalized = text(value, 80).toLowerCase(); return allowed.has(normalized) ? normalized : fallback; }
+function normalizedTags(value: unknown) { return Array.from(new Set(String(value ?? "").split(",").map((tag) => tag.trim().toLowerCase().replace(/[^a-z0-9áàâãéêíóôõúç_-]+/gi, "-").replace(/^-+|-+$/g, "")).filter(Boolean))).slice(0, 20).join(","); }
+function parseJson(value: unknown, fallback: any = null) { try { return value ? JSON.parse(String(value)) : fallback; } catch { return fallback; } }
+function consumeLegalAiLimit(userId: number, action: string, limit = 4, windowMs = 10 * 60_000) {
+  const key = `${userId}:${action}`; const now = Date.now(); const current = legalAiRateLimits.get(key);
+  if (!current || current.resetAt <= now) { legalAiRateLimits.set(key, { count: 1, resetAt: now + windowMs }); return true; }
+  if (current.count >= limit) return false;
+  current.count += 1; return true;
+}
+function requireProcessAiAuthorization(processo: any, user: CrmSession) {
+  if (!canAccessProcessDocuments(processo, user.role)) throw new Error("Este processo sigiloso exige perfil autorizado.");
+  if (Number(processo.ia_autorizada) !== 1) throw new Error("A IA ainda não foi autorizada para este processo. Registre a autorização no cadastro do processo antes de usar esta função.");
+}
+function sanitizeProcessForAi(processo: any) {
+  return { codigo: processo.codigo, titulo: processo.titulo, ramo: processo.ramo_processual, tribunal: processo.tribunal, comarca: processo.comarca, classe: processo.classe_processual, assunto: processo.assunto, distribuicao: processo.data_distribuicao, proximoPrazo: processo.proximo_prazo };
+}
 function canAccessProcessDocuments(processo: any, role: string) {
   return Number(processo?.sigiloso) !== 1 || SENSITIVE_ROLES.has(String(role || "").toLowerCase());
 }
@@ -130,6 +153,7 @@ function processPayload(body: any, current: any = {}) {
     titulo, ramo, status, numeroCnj, clienteId: clienteId || null, leadId: leadId || null, fornecedorId: fornecedorId || null,
     eventoId: eventoId || null, contratoId: contratoId || null, responsavelId: responsavelId || null,
     sigiloso: body.sigiloso === true || body.sigiloso === 1 || body.sigiloso === "1" ? 1 : 0,
+    iaAutorizada: body.iaAutorizada === true || body.iaAutorizada === 1 || body.iaAutorizada === "1" || (body.iaAutorizada === undefined && Number(current.ia_autorizada) === 1) ? 1 : 0,
     tribunal: nullableText(body.tribunal ?? current.tribunal, 120), uf: nullableText(body.uf ?? current.uf, 2)?.toUpperCase() || null,
     comarca: nullableText(body.comarca ?? current.comarca, 120), vara: nullableText(body.vara ?? current.vara, 180),
     grau: nullableText(body.grau ?? current.grau, 40), classeProcessual: nullableText(body.classeProcessual ?? body.classe_processual ?? current.classe_processual, 180),
@@ -176,17 +200,19 @@ export function registerJuridicoRoutes(app: any) {
         LEFT JOIN crm_clientes c ON c.id = p.cliente_id LEFT JOIN crm_leads l ON l.id = p.lead_id WHERE p.id = ?`, [id]);
       if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
       const documentosRestritos = !canAccessProcessDocuments(processo, String(user.role || "").toLowerCase());
-      const documentosPromise = documentosRestritos ? Promise.resolve<any[]>([]) : db<any>(`SELECT d.id AS vinculo_id, d.classificacao, d.observacao, d.created_at AS anexado_em, d.anexado_por_nome,
+      const documentosPromise = documentosRestritos ? Promise.resolve<any[]>([]) : db<any>(`SELECT d.id AS vinculo_id, d.classificacao, d.categoria_dossie, d.tags_dossie, d.observacao, d.created_at AS anexado_em, d.anexado_por_nome,
         a.id AS acervo_id, a.nome, a.descricao, a.tipo_doc, a.url_arquivo, a.url_drive, a.nome_arquivo_original, a.tamanho_bytes, a.mime_type, a.tags
         FROM crm_processos_juridicos_documentos d JOIN crm_acervo a ON a.id = d.acervo_id
         WHERE d.processo_id = ? ORDER BY d.created_at DESC`, [id]);
-      const [prazos, consultas, documentos] = await Promise.all([
+      const [prazos, consultas, documentos, pecas, iaAnalises] = await Promise.all([
         db<any>("SELECT * FROM crm_processos_juridicos_prazos WHERE processo_id = ? ORDER BY data_prazo ASC", [id]),
         db<any>("SELECT id, fonte, numero_consultado, sucesso, resumo, consultado_em FROM crm_processos_juridicos_consultas WHERE processo_id = ? ORDER BY consultado_em DESC LIMIT 20", [id]),
         documentosPromise,
+        documentosRestritos ? Promise.resolve<any[]>([]) : db<any>("SELECT id, titulo, tipo, status, versao_atual, aprovado_por_nome, aprovado_em, protocolo_numero, protocolado_em, created_at, updated_at FROM crm_processos_juridicos_pecas WHERE processo_id = ? ORDER BY updated_at DESC", [id]),
+        documentosRestritos ? Promise.resolve<any[]>([]) : db<any>("SELECT id, documento_vinculo_id, tipo, status, resultado, fontes, modelo, gerado_por_nome, created_at FROM crm_processos_juridicos_ia_analises WHERE processo_id = ? ORDER BY created_at DESC LIMIT 20", [id]),
       ]);
       await audit(user, "VIEW", id, { sigiloso: Number(processo.sigiloso) === 1 });
-      res.json({ processo: maskSensitive(processo, String(user.role || "").toLowerCase()), prazos, consultas, documentos, documentosRestritos });
+      res.json({ processo: maskSensitive(processo, String(user.role || "").toLowerCase()), prazos, consultas, documentos, pecas, iaAnalises: iaAnalises.map((item) => ({ ...item, resultado: parseJson(item.resultado, {}), fontes: parseJson(item.fontes, []) })), documentosRestritos });
     } catch (error) { console.error("[Jurídico] detalhe", error); res.status(500).json({ error: "Não foi possível carregar o processo" }); }
   });
 
@@ -195,11 +221,11 @@ export function registerJuridicoRoutes(app: any) {
       const user = (req as any).crmUser as CrmSession; const payload = processPayload(req.body);
       const responsible = await validateRelations({ ...payload, clienteId: payload.clienteId || 0, leadId: payload.leadId || 0, fornecedorId: payload.fornecedorId || 0, eventoId: payload.eventoId || 0, contratoId: payload.contratoId || 0, responsavelId: payload.responsavelId || 0 });
       const codigo = text(req.body.codigo, 40) || generatedCode();
-      const [result] = await getPool().execute(`INSERT INTO crm_processos_juridicos (codigo, numero_cnj, titulo, ramo_processual, status, sigiloso, tribunal, uf, comarca, vara, grau, classe_processual, assunto, polo_empresa, valor_causa, cliente_id, lead_id, fornecedor_id, evento_id, contrato_id, parte_externa_nome, responsavel_id, responsavel_nome, data_distribuicao, proximo_prazo, observacoes, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-        codigo, payload.numeroCnj, payload.titulo, payload.ramo, payload.status, payload.sigiloso, payload.tribunal, payload.uf, payload.comarca, payload.vara, payload.grau, payload.classeProcessual, payload.assunto, payload.poloEmpresa, payload.valorCausa, payload.clienteId, payload.leadId, payload.fornecedorId, payload.eventoId, payload.contratoId, payload.parteExternaNome, payload.responsavelId, responsible?.name || null, payload.dataDistribuicao, payload.proximoPrazo, payload.observacoes, user.userId,
+      const [result] = await getPool().execute(`INSERT INTO crm_processos_juridicos (codigo, numero_cnj, titulo, ramo_processual, status, sigiloso, tribunal, uf, comarca, vara, grau, classe_processual, assunto, polo_empresa, valor_causa, cliente_id, lead_id, fornecedor_id, evento_id, contrato_id, parte_externa_nome, responsavel_id, responsavel_nome, data_distribuicao, proximo_prazo, ia_autorizada, ia_autorizada_em, ia_autorizada_por, observacoes, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+        codigo, payload.numeroCnj, payload.titulo, payload.ramo, payload.status, payload.sigiloso, payload.tribunal, payload.uf, payload.comarca, payload.vara, payload.grau, payload.classeProcessual, payload.assunto, payload.poloEmpresa, payload.valorCausa, payload.clienteId, payload.leadId, payload.fornecedorId, payload.eventoId, payload.contratoId, payload.parteExternaNome, payload.responsavelId, responsible?.name || null, payload.dataDistribuicao, payload.proximoPrazo, payload.iaAutorizada, payload.iaAutorizada ? new Date() : null, payload.iaAutorizada ? user.userId : null, payload.observacoes, user.userId,
       ]);
       const id = Number((result as any).insertId);
-      await audit(user, "CREATE", id, { codigo, ramo: payload.ramo, numeroCnj: payload.numeroCnj, sigiloso: payload.sigiloso });
+      await audit(user, "CREATE", id, { codigo, ramo: payload.ramo, numeroCnj: payload.numeroCnj, sigiloso: payload.sigiloso, iaAutorizada: payload.iaAutorizada });
       res.status(201).json({ ok: true, id, codigo });
     } catch (error: any) {
       if (error?.code === "ER_DUP_ENTRY") return res.status(409).json({ error: "Já existe um processo com este número CNJ ou código" });
@@ -213,10 +239,12 @@ export function registerJuridicoRoutes(app: any) {
       if (!current) return res.status(404).json({ error: "Processo não encontrado" });
       const payload = processPayload(req.body, current);
       const responsible = await validateRelations({ ...payload, clienteId: payload.clienteId || 0, leadId: payload.leadId || 0, fornecedorId: payload.fornecedorId || 0, eventoId: payload.eventoId || 0, contratoId: payload.contratoId || 0, responsavelId: payload.responsavelId || 0 });
-      await getPool().execute(`UPDATE crm_processos_juridicos SET numero_cnj=?, titulo=?, ramo_processual=?, status=?, sigiloso=?, tribunal=?, uf=?, comarca=?, vara=?, grau=?, classe_processual=?, assunto=?, polo_empresa=?, valor_causa=?, cliente_id=?, lead_id=?, fornecedor_id=?, evento_id=?, contrato_id=?, parte_externa_nome=?, responsavel_id=?, responsavel_nome=?, data_distribuicao=?, proximo_prazo=?, observacoes=? WHERE id=?`, [
-        payload.numeroCnj, payload.titulo, payload.ramo, payload.status, payload.sigiloso, payload.tribunal, payload.uf, payload.comarca, payload.vara, payload.grau, payload.classeProcessual, payload.assunto, payload.poloEmpresa, payload.valorCausa, payload.clienteId, payload.leadId, payload.fornecedorId, payload.eventoId, payload.contratoId, payload.parteExternaNome, payload.responsavelId, responsible?.name || null, payload.dataDistribuicao, payload.proximoPrazo, payload.observacoes, id,
+      const iaAuthorizedNow = Number(current.ia_autorizada) !== 1 && payload.iaAutorizada === 1;
+      const iaRevokedNow = Number(current.ia_autorizada) === 1 && payload.iaAutorizada !== 1;
+      await getPool().execute(`UPDATE crm_processos_juridicos SET numero_cnj=?, titulo=?, ramo_processual=?, status=?, sigiloso=?, tribunal=?, uf=?, comarca=?, vara=?, grau=?, classe_processual=?, assunto=?, polo_empresa=?, valor_causa=?, cliente_id=?, lead_id=?, fornecedor_id=?, evento_id=?, contrato_id=?, parte_externa_nome=?, responsavel_id=?, responsavel_nome=?, data_distribuicao=?, proximo_prazo=?, ia_autorizada=?, ia_autorizada_em=?, ia_autorizada_por=?, observacoes=? WHERE id=?`, [
+        payload.numeroCnj, payload.titulo, payload.ramo, payload.status, payload.sigiloso, payload.tribunal, payload.uf, payload.comarca, payload.vara, payload.grau, payload.classeProcessual, payload.assunto, payload.poloEmpresa, payload.valorCausa, payload.clienteId, payload.leadId, payload.fornecedorId, payload.eventoId, payload.contratoId, payload.parteExternaNome, payload.responsavelId, responsible?.name || null, payload.dataDistribuicao, payload.proximoPrazo, payload.iaAutorizada, iaAuthorizedNow ? new Date() : iaRevokedNow ? null : current.ia_autorizada_em, iaAuthorizedNow ? user.userId : iaRevokedNow ? null : current.ia_autorizada_por, payload.observacoes, id,
       ]);
-      await audit(user, "UPDATE", id, { ramo: payload.ramo, status: payload.status, sigiloso: payload.sigiloso });
+      await audit(user, "UPDATE", id, { ramo: payload.ramo, status: payload.status, sigiloso: payload.sigiloso, iaAutorizada: payload.iaAutorizada });
       res.json({ ok: true });
     } catch (error: any) { if (error?.code === "ER_DUP_ENTRY") return res.status(409).json({ error: "Já existe um processo com este número CNJ" }); res.status(400).json({ error: error?.message || "Não foi possível atualizar o processo" }); }
   });
@@ -234,6 +262,8 @@ export function registerJuridicoRoutes(app: any) {
 
       const classificacaoRaw = text(req.body.classificacao, 60).toLowerCase();
       const classificacao = DOCUMENT_CLASSIFICATIONS.has(classificacaoRaw) ? classificacaoRaw : "outro";
+      const categoriaDossie = boundedSetValue(req.body.categoriaDossie ?? req.body.categoria_dossie, DOSSIER_CATEGORIES, "dossie_geral");
+      const tagsDossie = normalizedTags(req.body.tagsDossie ?? req.body.tags_dossie);
       const nome = text(req.body.nome, 500) || file.originalname;
       const observacao = nullableText(req.body.observacao, 4000);
       const extension = path.extname(file.originalname || "").toLowerCase();
@@ -248,8 +278,8 @@ export function registerJuridicoRoutes(app: any) {
         stored.url, file.originalname, file.size, file.mimetype, stored.key, tags, user.userId, user.name || null,
       ]);
       const acervoId = Number((acervoResult as any).insertId);
-      const [linkResult] = await getPool().execute("INSERT INTO crm_processos_juridicos_documentos (processo_id, acervo_id, classificacao, observacao, anexado_por, anexado_por_nome) VALUES (?,?,?,?,?,?)", [processoId, acervoId, classificacao, observacao, user.userId, user.name || null]);
-      await audit(user, "ATTACH_DOCUMENT", processoId, { vinculoId: Number((linkResult as any).insertId), acervoId, classificacao, nomeArquivo: file.originalname, tamanhoBytes: file.size });
+      const [linkResult] = await getPool().execute("INSERT INTO crm_processos_juridicos_documentos (processo_id, acervo_id, classificacao, categoria_dossie, tags_dossie, observacao, anexado_por, anexado_por_nome) VALUES (?,?,?,?,?,?,?,?)", [processoId, acervoId, classificacao, categoriaDossie, tagsDossie || null, observacao, user.userId, user.name || null]);
+      await audit(user, "ATTACH_DOCUMENT", processoId, { vinculoId: Number((linkResult as any).insertId), acervoId, classificacao, categoriaDossie, tagsDossie: tagsDossie ? tagsDossie.split(",") : [], nomeArquivo: file.originalname, tamanhoBytes: file.size });
       res.status(201).json({ ok: true, vinculoId: Number((linkResult as any).insertId), acervoId, nome, urlArquivo: stored.url });
     } catch (error: any) {
       console.error("[Jurídico] anexar documento", error);
@@ -270,6 +300,188 @@ export function registerJuridicoRoutes(app: any) {
       await audit(user, "DETACH_DOCUMENT", processoId, { vinculoId, acervoId: vinculo.acervo_id });
       res.json({ ok: true, message: "Documento desvinculado do processo. O registro original foi preservado no Acervo." });
     } catch (error) { console.error("[Jurídico] desvincular documento", error); res.status(500).json({ error: "Não foi possível desvincular o documento." }); }
+  });
+
+  r.patch("/processos/:id/documentos/:vinculoId/organizacao", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const vinculoId = safeInt(req.params.vinculoId);
+      const processo = await dbOne<any>("SELECT id, sigiloso FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Documentos deste processo sigiloso são restritos ao perfil autorizado." });
+      const vinculo = await dbOne<any>("SELECT id FROM crm_processos_juridicos_documentos WHERE id = ? AND processo_id = ?", [vinculoId, processoId]);
+      if (!vinculo) return res.status(404).json({ error: "Documento vinculado não encontrado" });
+      const categoriaDossie = boundedSetValue(req.body?.categoriaDossie ?? req.body?.categoria_dossie, DOSSIER_CATEGORIES, "dossie_geral");
+      const tagsDossie = normalizedTags(req.body?.tagsDossie ?? req.body?.tags_dossie);
+      await getPool().execute("UPDATE crm_processos_juridicos_documentos SET categoria_dossie = ?, tags_dossie = ? WHERE id = ? AND processo_id = ?", [categoriaDossie, tagsDossie || null, vinculoId, processoId]);
+      await audit(user, "ORGANIZE_DOCUMENT", processoId, { vinculoId, categoriaDossie, tagsDossie: tagsDossie ? tagsDossie.split(",") : [] });
+      res.json({ ok: true, categoriaDossie, tagsDossie });
+    } catch (error) { console.error("[Jurídico] organizar documento", error); res.status(500).json({ error: "Não foi possível atualizar a organização do documento." }); }
+  });
+
+  r.get("/processos/:id/pecas/:pecaId", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const pecaId = safeInt(req.params.pecaId);
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Peças deste processo sigiloso são restritas ao perfil autorizado." });
+      const peca = await dbOne<any>("SELECT * FROM crm_processos_juridicos_pecas WHERE id = ? AND processo_id = ?", [pecaId, processoId]);
+      if (!peca) return res.status(404).json({ error: "Peça não encontrada" });
+      const versoes = await db<any>("SELECT id, versao, conteudo, resumo_alteracoes, created_by_nome, created_at FROM crm_processos_juridicos_pecas_versoes WHERE peca_id = ? ORDER BY versao DESC", [pecaId]);
+      res.json({ peca: { ...peca, checklist: parseJson(peca.checklist, []) }, versoes });
+    } catch (error) { console.error("[Jurídico] detalhe peça", error); res.status(500).json({ error: "Não foi possível abrir a peça." }); }
+  });
+
+  r.post("/processos/:id/pecas", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id);
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Peças deste processo sigiloso são restritas ao perfil autorizado." });
+      const titulo = text(req.body?.titulo, 255); const tipo = boundedSetValue(req.body?.tipo, PIECE_TYPES, "peticao_intermediaria"); const conteudo = text(req.body?.conteudo, 60_000);
+      if (!titulo) return res.status(400).json({ error: "Informe o título da peça." });
+      const checklist = Array.isArray(req.body?.checklist) ? req.body.checklist.map((item: any) => ({ id: text(item?.id, 60), titulo: text(item?.titulo, 180), concluido: Boolean(item?.concluido) })).filter((item: any) => item.id && item.titulo).slice(0, 30) : [];
+      const [result] = await getPool().execute("INSERT INTO crm_processos_juridicos_pecas (processo_id, titulo, tipo, conteudo, checklist, created_by, created_by_nome) VALUES (?,?,?,?,?,?,?)", [processoId, titulo, tipo, conteudo || null, JSON.stringify(checklist), user.userId, user.name || null]);
+      const pecaId = Number((result as any).insertId);
+      await getPool().execute("INSERT INTO crm_processos_juridicos_pecas_versoes (peca_id, versao, conteudo, resumo_alteracoes, created_by, created_by_nome) VALUES (?,?,?,?,?,?)", [pecaId, 1, conteudo || "", "Criação do rascunho", user.userId, user.name || null]);
+      await audit(user, "CREATE_DRAFT", processoId, { pecaId, tipo, titulo });
+      res.status(201).json({ ok: true, id: pecaId, versao: 1 });
+    } catch (error) { console.error("[Jurídico] criar peça", error); res.status(500).json({ error: "Não foi possível criar o rascunho." }); }
+  });
+
+  r.put("/processos/:id/pecas/:pecaId", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const pecaId = safeInt(req.params.pecaId);
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Peças deste processo sigiloso são restritas ao perfil autorizado." });
+      const peca = await dbOne<any>("SELECT * FROM crm_processos_juridicos_pecas WHERE id = ? AND processo_id = ?", [pecaId, processoId]);
+      if (!peca) return res.status(404).json({ error: "Peça não encontrada" });
+      if (peca.status === "protocolada") return res.status(409).json({ error: "A peça já está marcada como protocolada e não pode ser alterada." });
+      const expectedVersion = safeInt(req.body?.versaoAtual ?? req.body?.versao_atual);
+      if (!expectedVersion || expectedVersion !== Number(peca.versao_atual)) return res.status(409).json({ error: "Esta peça foi atualizada por outra pessoa. Reabra o rascunho antes de salvar." });
+      const titulo = text(req.body?.titulo, 255) || peca.titulo; const tipo = boundedSetValue(req.body?.tipo, PIECE_TYPES, peca.tipo); const conteudo = text(req.body?.conteudo, 60_000);
+      const status = boundedSetValue(req.body?.status, PIECE_STATUSES, peca.status);
+      if (["aprovada_para_protocolo", "protocolada"].includes(status)) return res.status(400).json({ error: "Use as ações de aprovação e protocolo após a revisão profissional." });
+      const checklist = Array.isArray(req.body?.checklist) ? req.body.checklist.map((item: any) => ({ id: text(item?.id, 60), titulo: text(item?.titulo, 180), concluido: Boolean(item?.concluido) })).filter((item: any) => item.id && item.titulo).slice(0, 30) : parseJson(peca.checklist, []);
+      const nextVersion = Number(peca.versao_atual) + 1;
+      await getPool().execute("UPDATE crm_processos_juridicos_pecas SET titulo=?, tipo=?, status=?, conteudo=?, checklist=?, versao_atual=? WHERE id=? AND processo_id=?", [titulo, tipo, status, conteudo || null, JSON.stringify(checklist), nextVersion, pecaId, processoId]);
+      await getPool().execute("INSERT INTO crm_processos_juridicos_pecas_versoes (peca_id, versao, conteudo, resumo_alteracoes, created_by, created_by_nome) VALUES (?,?,?,?,?,?)", [pecaId, nextVersion, conteudo || "", nullableText(req.body?.resumoAlteracoes, 500) || "Revisão do rascunho", user.userId, user.name || null]);
+      await audit(user, "UPDATE_DRAFT", processoId, { pecaId, versao: nextVersion, status });
+      res.json({ ok: true, versao: nextVersion });
+    } catch (error) { console.error("[Jurídico] atualizar peça", error); res.status(500).json({ error: "Não foi possível salvar o rascunho." }); }
+  });
+
+  r.post("/processos/:id/pecas/:pecaId/aprovar", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const pecaId = safeInt(req.params.pecaId);
+      if (!LEGAL_APPROVAL_ROLES.has(String(user.role || "").toLowerCase())) return res.status(403).json({ error: "Seu perfil não pode aprovar peças para protocolo." });
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme que a revisão profissional foi concluída antes de aprovar." });
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]); const peca = await dbOne<any>("SELECT * FROM crm_processos_juridicos_pecas WHERE id = ? AND processo_id = ?", [pecaId, processoId]);
+      if (!processo || !peca) return res.status(404).json({ error: "Processo ou peça não encontrados" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Peças deste processo sigiloso são restritas ao perfil autorizado." });
+      if (peca.status === "protocolada") return res.status(409).json({ error: "A peça já foi protocolada." });
+      const checklist = parseJson(peca.checklist, []); if (Array.isArray(checklist) && checklist.some((item: any) => !item?.concluido)) return res.status(400).json({ error: "Conclua o checklist antes de aprovar a peça." });
+      await getPool().execute("UPDATE crm_processos_juridicos_pecas SET status='aprovada_para_protocolo', aprovado_por=?, aprovado_por_nome=?, aprovado_em=CURRENT_TIMESTAMP WHERE id=? AND processo_id=?", [user.userId, user.name || null, pecaId, processoId]);
+      await audit(user, "APPROVE_DRAFT", processoId, { pecaId, confirmacaoRevisao: true });
+      res.json({ ok: true, message: "Peça aprovada para protocolo manual no portal oficial." });
+    } catch (error) { console.error("[Jurídico] aprovar peça", error); res.status(500).json({ error: "Não foi possível aprovar a peça." }); }
+  });
+
+  r.post("/processos/:id/pecas/:pecaId/protocolar", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const pecaId = safeInt(req.params.pecaId); const numero = text(req.body?.protocoloNumero, 120);
+      const peca = await dbOne<any>("SELECT * FROM crm_processos_juridicos_pecas WHERE id = ? AND processo_id = ?", [pecaId, processoId]);
+      if (!peca) return res.status(404).json({ error: "Peça não encontrada" });
+      if (peca.status !== "aprovada_para_protocolo") return res.status(400).json({ error: "A peça deve ser aprovada antes do registro do protocolo." });
+      if (!numero) return res.status(400).json({ error: "Informe o número ou identificador do recibo de protocolo." });
+      await getPool().execute("UPDATE crm_processos_juridicos_pecas SET status='protocolada', protocolo_numero=?, protocolado_em=CURRENT_TIMESTAMP WHERE id=? AND processo_id=?", [numero, pecaId, processoId]);
+      await audit(user, "RECORD_MANUAL_FILING", processoId, { pecaId, protocoloNumero: numero, aviso: "Registro declaratório; protocolo ocorreu fora do CRM." });
+      res.json({ ok: true, message: "Protocolo manual registrado. Anexe o recibo ao dossiê para completar a evidência." });
+    } catch (error) { console.error("[Jurídico] registrar protocolo", error); res.status(500).json({ error: "Não foi possível registrar o protocolo." }); }
+  });
+
+  r.post("/processos/:id/ia/resumir-documento", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const vinculoId = safeInt(req.body?.vinculoId ?? req.body?.vinculo_id);
+      if (!vinculoId) return res.status(400).json({ error: "Selecione o documento a resumir." });
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme que o resumo será revisado por um profissional antes do uso." });
+      if (!consumeLegalAiLimit(user.userId, "resumo_documento")) return res.status(429).json({ error: "Limite temporário de análises atingido. Aguarde alguns minutos antes de tentar novamente." });
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      requireProcessAiAuthorization(processo, user);
+      const documento = await dbOne<any>(`SELECT d.id AS vinculo_id, d.classificacao, d.categoria_dossie, d.tags_dossie, d.observacao,
+        a.nome, a.nome_arquivo_original, a.url_arquivo, a.mime_type, a.tamanho_bytes FROM crm_processos_juridicos_documentos d
+        JOIN crm_acervo a ON a.id = d.acervo_id WHERE d.id = ? AND d.processo_id = ?`, [vinculoId, processoId]);
+      if (!documento) return res.status(404).json({ error: "Documento vinculado não encontrado" });
+      if (!AI_FILE_MIME_TYPES.has(String(documento.mime_type || "").toLowerCase())) return res.status(400).json({ error: "O resumo por IA está disponível nesta etapa somente para PDFs e imagens. O documento permanece acessível no dossiê." });
+      if (!documento.url_arquivo) return res.status(400).json({ error: "O arquivo deste documento não está disponível para análise." });
+      const model = "gpt-5-mini";
+      const result = await invokeLLM({
+        model,
+        maxTokens: 2400,
+        messages: [
+          { role: "system", content: "Você é assistente de análise documental jurídica em pt-BR. Resuma exclusivamente o documento e os metadados recebidos. Não produza orientação jurídica, não conclua prazo, não invente fatos, valores, normas ou citações. Quando algo não estiver explícito, declare que não foi localizado. A saída será revisada por advogado e não é uma petição." },
+          { role: "user", content: [{ type: "text", text: `Contexto interno do processo: ${JSON.stringify(sanitizeProcessForAi(processo))}\nDocumento vinculado #${vinculoId}: ${JSON.stringify({ nome: documento.nome, arquivo: documento.nome_arquivo_original, classificacao: documento.classificacao, categoria: documento.categoria_dossie, tags: documento.tags_dossie, observacao: documento.observacao })}` }, { type: "file_url", file_url: { url: documento.url_arquivo, mime_type: documento.mime_type } }] as any },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "ResumoDocumentoJuridico",
+            strict: true,
+            schema: { type: "object", additionalProperties: false, properties: {
+              resumo: { type: "string" }, fatosRelevantes: { type: "array", items: { type: "string" } }, datasMencionadas: { type: "array", items: { type: "string" } }, pendenciasParaRevisao: { type: "array", items: { type: "string" } }, avisoRevisao: { type: "string" },
+            }, required: ["resumo", "fatosRelevantes", "datasMencionadas", "pendenciasParaRevisao", "avisoRevisao"] },
+          },
+        },
+      });
+      const content = result?.choices?.[0]?.message?.content; const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      const fontes = [{ tipo: "documento", vinculoId, nome: documento.nome || documento.nome_arquivo_original }];
+      const [saved] = await getPool().execute("INSERT INTO crm_processos_juridicos_ia_analises (processo_id, documento_vinculo_id, tipo, resultado, fontes, modelo, gerado_por, gerado_por_nome) VALUES (?,?,?,?,?,?,?,?)", [processoId, vinculoId, "resumo_documento", JSON.stringify(parsed), JSON.stringify(fontes), model, user.userId, user.name || null]);
+      await audit(user, "AI_DOCUMENT_SUMMARY", processoId, { analiseId: Number((saved as any).insertId), vinculoId, modelo: model, revisaoObrigatoria: true });
+      res.status(201).json({ ok: true, id: Number((saved as any).insertId), resultado: parsed, fontes, aviso: "Resultado assistivo. Revise o documento original antes de usar qualquer informação." });
+    } catch (error: any) { console.error("[Jurídico] resumo por IA", error); res.status(error?.message?.includes("autorizada") ? 403 : 500).json({ error: error?.message || "Não foi possível gerar o resumo assistido." }); }
+  });
+
+  r.post("/processos/:id/ia/cronologia", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id);
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme que a cronologia será revisada por um profissional antes do uso." });
+      if (!consumeLegalAiLimit(user.userId, "cronologia_processo", 3)) return res.status(429).json({ error: "Limite temporário de cronologias atingido. Aguarde alguns minutos antes de tentar novamente." });
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      requireProcessAiAuthorization(processo, user);
+      const [documentos, prazos, consultas, resumos] = await Promise.all([
+        db<any>("SELECT d.id AS vinculo_id, d.classificacao, d.categoria_dossie, d.tags_dossie, d.created_at AS anexado_em, a.nome FROM crm_processos_juridicos_documentos d JOIN crm_acervo a ON a.id = d.acervo_id WHERE d.processo_id = ? ORDER BY d.created_at ASC", [processoId]),
+        db<any>("SELECT id, titulo, tipo, data_prazo, status, created_at FROM crm_processos_juridicos_prazos WHERE processo_id = ? ORDER BY data_prazo ASC", [processoId]),
+        db<any>("SELECT id, fonte, sucesso, resumo, consultado_em FROM crm_processos_juridicos_consultas WHERE processo_id = ? ORDER BY consultado_em ASC LIMIT 20", [processoId]),
+        db<any>("SELECT id, documento_vinculo_id, resultado, fontes, created_at FROM crm_processos_juridicos_ia_analises WHERE processo_id = ? AND tipo = 'resumo_documento' ORDER BY created_at ASC LIMIT 20", [processoId]),
+      ]);
+      const context = { processo: sanitizeProcessForAi(processo), documentos: documentos.map((item) => ({ fonte: `documento:${item.vinculo_id}`, nome: item.nome, classificacao: item.classificacao, categoria: item.categoria_dossie, tags: item.tags_dossie, anexadoEm: item.anexado_em })), prazos: prazos.map((item) => ({ fonte: `prazo:${item.id}`, titulo: item.titulo, tipo: item.tipo, data: item.data_prazo, status: item.status, criadoEm: item.created_at })), consultas: consultas.map((item) => ({ fonte: `consulta:${item.id}`, tipo: item.fonte, sucesso: item.sucesso, resumo: parseJson(item.resumo, {}), consultadoEm: item.consultado_em })), resumos: resumos.map((item) => ({ fonte: `analise:${item.id}`, documentoVinculoId: item.documento_vinculo_id, resumo: parseJson(item.resultado, {}), criadoEm: item.created_at })) };
+      const model = "gpt-5-mini";
+      const result = await invokeLLM({
+        model,
+        maxTokens: 2800,
+        messages: [
+          { role: "system", content: "Você organiza uma cronologia interna de processo jurídico em pt-BR exclusivamente a partir do JSON recebido. Não invente fatos, datas, movimentações, prazos, fundamentos ou atos. Use data nula quando a fonte não trouxer data. Identifique cada item com ao menos uma fonte interna fornecida. A cronologia é assistiva, requer revisão humana e não substitui consulta ao tribunal." },
+          { role: "user", content: JSON.stringify(context) },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "CronologiaJuridicaAssistida",
+            strict: true,
+            schema: { type: "object", additionalProperties: false, properties: {
+              resumo: { type: "string" }, itens: { type: "array", items: { type: "object", additionalProperties: false, properties: { data: { type: ["string", "null"] }, evento: { type: "string" }, fontes: { type: "array", items: { type: "string" } }, revisaoNecessaria: { type: "boolean" } }, required: ["data", "evento", "fontes", "revisaoNecessaria"] } }, alertas: { type: "array", items: { type: "string" } }, avisoRevisao: { type: "string" },
+            }, required: ["resumo", "itens", "alertas", "avisoRevisao"] },
+          },
+        },
+      });
+      const content = result?.choices?.[0]?.message?.content; const parsed = typeof content === "string" ? JSON.parse(content) : content;
+      const fontes = [{ tipo: "metadados_processo", processoId }, ...documentos.map((item) => ({ tipo: "documento", vinculoId: item.vinculo_id })), ...prazos.map((item) => ({ tipo: "prazo", prazoId: item.id }))];
+      const [saved] = await getPool().execute("INSERT INTO crm_processos_juridicos_ia_analises (processo_id, tipo, resultado, fontes, modelo, gerado_por, gerado_por_nome) VALUES (?,?,?,?,?,?,?)", [processoId, "cronologia", JSON.stringify(parsed), JSON.stringify(fontes), model, user.userId, user.name || null]);
+      await audit(user, "AI_PROCESS_TIMELINE", processoId, { analiseId: Number((saved as any).insertId), documentos: documentos.length, prazos: prazos.length, modelo: model, revisaoObrigatoria: true });
+      res.status(201).json({ ok: true, id: Number((saved as any).insertId), resultado: parsed, fontes, aviso: "Cronologia assistiva. Confirme datas e atos no documento original e no canal oficial." });
+    } catch (error: any) { console.error("[Jurídico] cronologia por IA", error); res.status(error?.message?.includes("autorizada") ? 403 : 500).json({ error: error?.message || "Não foi possível gerar a cronologia assistida." }); }
   });
 
   r.post("/processos/:id/prazos", requireLegalAccess, async (req, res) => {

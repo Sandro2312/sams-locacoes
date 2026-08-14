@@ -173,6 +173,9 @@ export const crmProcessosJuridicos = mysqlTable("crm_processos_juridicos", {
   proximoPrazo: date("proximo_prazo"),
   ultimaFonteConsulta: varchar("ultima_fonte_consulta", { length: 60 }),
   ultimaConsultaEm: timestamp("ultima_consulta_em"),
+  iaAutorizada: int("ia_autorizada").notNull().default(0),
+  iaAutorizadaEm: timestamp("ia_autorizada_em"),
+  iaAutorizadaPor: int("ia_autorizada_por"),
   observacoes: text("observacoes"),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -223,6 +226,8 @@ export const crmProcessosJuridicosDocumentos = mysqlTable("crm_processos_juridic
   processoId: int("processo_id").notNull(),
   acervoId: int("acervo_id").notNull(),
   classificacao: varchar("classificacao", { length: 60 }).notNull().default("outro"),
+  categoriaDossie: varchar("categoria_dossie", { length: 60 }).notNull().default("dossie_geral"),
+  tagsDossie: text("tags_dossie"),
   observacao: text("observacao"),
   anexadoPor: int("anexado_por").notNull(),
   anexadoPorNome: varchar("anexado_por_nome", { length: 255 }),
@@ -236,6 +241,68 @@ export const crmProcessosJuridicosDocumentos = mysqlTable("crm_processos_juridic
 export type CrmProcessoJuridico = typeof crmProcessosJuridicos.$inferSelect;
 export type InsertCrmProcessoJuridico = typeof crmProcessosJuridicos.$inferInsert;
 export type CrmProcessoJuridicoDocumento = typeof crmProcessosJuridicosDocumentos.$inferSelect;
+
+/** Peça preparada no CRM para revisão e protocolo manual no tribunal competente. */
+export const crmProcessosJuridicosPecas = mysqlTable("crm_processos_juridicos_pecas", {
+  id: int("id").autoincrement().primaryKey(),
+  processoId: int("processo_id").notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  tipo: varchar("tipo", { length: 60 }).notNull().default("peticao_intermediaria"),
+  status: varchar("status", { length: 40 }).notNull().default("rascunho"),
+  conteudo: text("conteudo"),
+  checklist: text("checklist"),
+  versaoAtual: int("versao_atual").notNull().default(1),
+  aprovadoPor: int("aprovado_por"),
+  aprovadoPorNome: varchar("aprovado_por_nome", { length: 255 }),
+  aprovadoEm: timestamp("aprovado_em"),
+  protocoloNumero: varchar("protocolo_numero", { length: 120 }),
+  protocoladoEm: timestamp("protocolado_em"),
+  reciboAcervoId: int("recibo_acervo_id"),
+  createdBy: int("created_by").notNull(),
+  createdByNome: varchar("created_by_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_pecas_processo_status_idx").on(table.processoId, table.status),
+  index("crm_pecas_processo_atualizado_idx").on(table.processoId, table.updatedAt),
+]);
+
+/** Histórico imutável das revisões de uma peça jurídica. */
+export const crmProcessosJuridicosPecasVersoes = mysqlTable("crm_processos_juridicos_pecas_versoes", {
+  id: int("id").autoincrement().primaryKey(),
+  pecaId: int("peca_id").notNull(),
+  versao: int("versao").notNull(),
+  conteudo: text("conteudo").notNull(),
+  resumoAlteracoes: varchar("resumo_alteracoes", { length: 500 }),
+  createdBy: int("created_by").notNull(),
+  createdByNome: varchar("created_by_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_pecas_versoes_peca_versao_unique").on(table.pecaId, table.versao),
+  index("crm_pecas_versoes_peca_idx").on(table.pecaId, table.createdAt),
+]);
+
+/** Resultados rastreáveis de IA assistiva; não são atos processuais nem decisões. */
+export const crmProcessosJuridicosIaAnalises = mysqlTable("crm_processos_juridicos_ia_analises", {
+  id: int("id").autoincrement().primaryKey(),
+  processoId: int("processo_id").notNull(),
+  documentoVinculoId: int("documento_vinculo_id"),
+  tipo: varchar("tipo", { length: 40 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("gerado"),
+  resultado: text("resultado").notNull(),
+  fontes: text("fontes"),
+  modelo: varchar("modelo", { length: 120 }),
+  geradoPor: int("gerado_por").notNull(),
+  geradoPorNome: varchar("gerado_por_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("crm_ia_analises_processo_tipo_idx").on(table.processoId, table.tipo, table.createdAt),
+  index("crm_ia_analises_documento_idx").on(table.documentoVinculoId),
+]);
+
+export type CrmProcessoJuridicoPeca = typeof crmProcessosJuridicosPecas.$inferSelect;
+export type CrmProcessoJuridicoPecaVersao = typeof crmProcessosJuridicosPecasVersoes.$inferSelect;
+export type CrmProcessoJuridicoIaAnalise = typeof crmProcessosJuridicosIaAnalises.$inferSelect;
 
 export const crmTickets = mysqlTable("crm_tickets", {
   id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),

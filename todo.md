@@ -582,3 +582,11 @@
 - [x] Pesquisar boas práticas, limites profissionais e segurança para peticionamento e IA assistiva
 - [x] Propor áreas de trabalho, prioridades e salvaguardas sem alterar o fluxo jurídico existente
 - [x] Documentar a recomendação e os próximos passos de implantação gradual
+
+## Implementação — Peticionamento Assistido e Dossiê Jurídico (Ago/2026)
+- [x] Definir modelo persistente, permissões e trilha de auditoria para peças, versões, checklist e aprovação
+- [x] Criar APIs e migração não destrutiva para peças, versões e tags de documentos jurídicos
+- [x] Construir interface responsiva de Peticionamento Assistido, checklist, aprovação e dossiê organizado
+- [x] Implementar resumos documentais e cronologia por IA com revisão humana e fontes internas
+- [x] Validar segurança, permissões, desktop/mobile, sintaxe, tipos e regressões
+- [x] Atualizar documentação, cache-busters e checkpoint da implementação
