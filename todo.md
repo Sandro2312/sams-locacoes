@@ -570,3 +570,10 @@
 - [x] Criar anexo contextual ao processo, com vínculo persistente, feedback e acesso seguro
 - [x] Validar upload, visualização, permissões, desktop/mobile e regressões
 - [x] Atualizar cache-busters, documentação e checkpoint da melhoria
+
+## Evolução — Experiência de Documentos Jurídicos (Ago/2026)
+- [x] Adicionar pré-visualização segura no detalhe do processo para PDFs e imagens
+- [x] Implementar busca e filtros por classificação e data nos documentos vinculados
+- [x] Exibir barra de progresso e confirmação animada no upload de documentos
+- [x] Validar responsividade, permissões, upload, filtros e regressões
+- [x] Atualizar cache-buster, documentação e checkpoint da evolução

@@ -31,4 +31,15 @@ describe("documentos de processos jurídicos", () => {
     expect(clientSource).toContain('Desvincular');
     expect(clientSource).toContain('O arquivo continuará preservado no Acervo.');
   });
+
+  it("oferece pré-visualização segura, filtros locais e progresso do upload", () => {
+    expect(clientSource).toContain('Pré-visualização protegida do documento vinculado ao processo');
+    expect(clientSource).toContain('data-juridico-previsualizar-documento');
+    expect(clientSource).toContain('data-juridico-documento-busca');
+    expect(clientSource).toContain('data-juridico-documento-tipo');
+    expect(clientSource).toContain('data-juridico-documento-data-inicial');
+    expect(clientSource).toContain('uploadWithProgress');
+    expect(clientSource).toContain('juridico-upload-progress-bar');
+    expect(clientSource).toContain('Documento anexado com sucesso.');
+  });
 });

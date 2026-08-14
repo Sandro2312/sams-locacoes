@@ -128,6 +128,21 @@ O fluxo de documentos foi aprimorado para que a pessoa não precise abrir o Acer
 
 > **Procedimento operacional:** abra o processo, escolha **Documentos do processo** e depois **Anexar documento**. Se o arquivo já estiver no Acervo, ele permanece preservado; o novo fluxo evita duplicação ao anexar arquivos diretamente a partir do processo.
 
+### Experiência de consulta e envio
+
+A lista de documentos vinculados agora conta com **pré-visualização de PDFs e imagens** dentro do próprio processo. A visualização abre em uma camada protegida da interface e mantém a ação “Abrir” para casos em que a pessoa precise acessar o arquivo em outra aba. Documentos de Word, Excel, PowerPoint e ZIP continuam disponíveis para abertura ou download, sem tentativa de renderização inadequada no navegador.
+
+| Recurso | Comportamento |
+|---|---|
+| Busca | Pesquisa por nome do documento, nome do arquivo, classificação, observação e tags. |
+| Filtro por tipo | Restringe a lista às classificações disponíveis no próprio processo. |
+| Período | Permite filtrar pela data de anexo inicial e final. |
+| Pré-visualização | Exibida somente para PDF e imagem anexados ao processo, respeitando a permissão já validada pela API. |
+| Progresso de upload | Barra de progresso acessível mostra o percentual durante o envio e informa o processamento do vínculo. |
+| Confirmação | Ao concluir, uma confirmação animada identifica o arquivo vinculado antes de atualizar a lista. |
+
+> **Compatibilidade:** os filtros funcionam localmente sobre os documentos já autorizados e carregados para o processo. Assim, não ampliam o acesso a processos sigilosos nem adicionam novas consultas ao banco enquanto a pessoa pesquisa.
+
 ## Referências
 
 [1]: https://www.cnj.jus.br/sistemas/datajud/api-publica/ "CNJ — API Pública do Datajud"
