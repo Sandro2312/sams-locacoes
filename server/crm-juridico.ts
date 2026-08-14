@@ -1,8 +1,12 @@
 import { Request, Response, Router } from "express";
 import mysql from "mysql2/promise";
 import { parse as parseCookieHeader } from "cookie";
+import multer from "multer";
+import crypto from "crypto";
+import path from "path";
 import { ENV } from "./_core/env";
 import { getSessionFromCrm } from "./crm";
+import { storagePut } from "./storage";
 
 type CrmSession = { userId: number; role: string; name: string };
 const RAMOS = new Set(["trabalhista", "civel"]);
@@ -17,6 +21,32 @@ const DATAJUD_ENDPOINTS: Record<string, string> = {
   trf1: "api_publica_trf1", trf2: "api_publica_trf2",
   trf3: "api_publica_trf3", trf4: "api_publica_trf4", trf5: "api_publica_trf5",
 };
+const DOCUMENT_CLASSIFICATIONS = new Set(["peticao", "citacao", "intimacao", "ata_audiencia", "decisao", "sentenca", "acordo", "procuracao", "comprovante", "outro"]);
+const LEGAL_DOCUMENT_MIME_TYPES = new Set([
+  "application/pdf", "image/jpeg", "image/png", "image/webp", "application/zip", "application/x-zip-compressed",
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
+const legalDocumentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    const extension = path.extname(file.originalname || "").toLowerCase();
+    const allowedExtension = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip"].includes(extension);
+    if (LEGAL_DOCUMENT_MIME_TYPES.has(String(file.mimetype || "").toLowerCase()) || allowedExtension) return callback(null, true);
+    callback(new Error("Tipo de arquivo não permitido. Envie PDF, imagem, Word, Excel, PowerPoint ou ZIP."));
+  },
+});
+function legalUploadMiddleware(req: Request, res: Response, next: () => void) {
+  legalDocumentUpload.single("arquivo")(req, res, (error: any) => {
+    if (!error) return next();
+    const message = error?.code === "LIMIT_FILE_SIZE"
+      ? "O documento excede o limite de 25 MB."
+      : (error?.message || "Não foi possível processar o documento.");
+    res.status(400).json({ error: message });
+  });
+}
 
 let pool: mysql.Pool | null = null;
 function getPool() { if (!pool) pool = mysql.createPool(ENV.databaseUrl); return pool; }
@@ -32,6 +62,10 @@ function formatCnj(value: unknown) {
   return n.length === 20 ? `${n.slice(0, 7)}-${n.slice(7, 9)}.${n.slice(9, 13)}.${n.slice(13, 14)}.${n.slice(14, 16)}.${n.slice(16, 20)}` : null;
 }
 function generatedCode() { return `JUR-${Date.now().toString(36).toUpperCase()}`; }
+function safeFileName(value: unknown) { return path.basename(text(value, 180)).replace(/[^a-zA-Z0-9._-]/g, "_") || "documento"; }
+function canAccessProcessDocuments(processo: any, role: string) {
+  return Number(processo?.sigiloso) !== 1 || SENSITIVE_ROLES.has(String(role || "").toLowerCase());
+}
 function getSessionToken(req: Request) {
   const cookie = parseCookieHeader(req.headers.cookie || "");
   const candidate = String(cookie.crm_session || req.headers.authorization || req.headers["x-crm-token"] || "").trim();
@@ -141,12 +175,18 @@ export function registerJuridicoRoutes(app: any) {
       const processo = await dbOne<any>(`SELECT p.*, c.nome AS cliente_nome, l.nome AS lead_nome FROM crm_processos_juridicos p
         LEFT JOIN crm_clientes c ON c.id = p.cliente_id LEFT JOIN crm_leads l ON l.id = p.lead_id WHERE p.id = ?`, [id]);
       if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
-      const [prazos, consultas] = await Promise.all([
+      const documentosRestritos = !canAccessProcessDocuments(processo, String(user.role || "").toLowerCase());
+      const documentosPromise = documentosRestritos ? Promise.resolve<any[]>([]) : db<any>(`SELECT d.id AS vinculo_id, d.classificacao, d.observacao, d.created_at AS anexado_em, d.anexado_por_nome,
+        a.id AS acervo_id, a.nome, a.descricao, a.tipo_doc, a.url_arquivo, a.url_drive, a.nome_arquivo_original, a.tamanho_bytes, a.mime_type, a.tags
+        FROM crm_processos_juridicos_documentos d JOIN crm_acervo a ON a.id = d.acervo_id
+        WHERE d.processo_id = ? ORDER BY d.created_at DESC`, [id]);
+      const [prazos, consultas, documentos] = await Promise.all([
         db<any>("SELECT * FROM crm_processos_juridicos_prazos WHERE processo_id = ? ORDER BY data_prazo ASC", [id]),
         db<any>("SELECT id, fonte, numero_consultado, sucesso, resumo, consultado_em FROM crm_processos_juridicos_consultas WHERE processo_id = ? ORDER BY consultado_em DESC LIMIT 20", [id]),
+        documentosPromise,
       ]);
       await audit(user, "VIEW", id, { sigiloso: Number(processo.sigiloso) === 1 });
-      res.json({ processo: maskSensitive(processo, String(user.role || "").toLowerCase()), prazos, consultas });
+      res.json({ processo: maskSensitive(processo, String(user.role || "").toLowerCase()), prazos, consultas, documentos, documentosRestritos });
     } catch (error) { console.error("[Jurídico] detalhe", error); res.status(500).json({ error: "Não foi possível carregar o processo" }); }
   });
 
@@ -179,6 +219,57 @@ export function registerJuridicoRoutes(app: any) {
       await audit(user, "UPDATE", id, { ramo: payload.ramo, status: payload.status, sigiloso: payload.sigiloso });
       res.json({ ok: true });
     } catch (error: any) { if (error?.code === "ER_DUP_ENTRY") return res.status(409).json({ error: "Já existe um processo com este número CNJ" }); res.status(400).json({ error: error?.message || "Não foi possível atualizar o processo" }); }
+  });
+
+  r.post("/processos/:id/documentos", requireLegalAccess, legalUploadMiddleware, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const processoId = safeInt(req.params.id);
+      const processo = await dbOne<any>(`SELECT p.*, c.nome AS cliente_nome, e.nome AS evento_nome FROM crm_processos_juridicos p
+        LEFT JOIN crm_clientes c ON c.id = p.cliente_id LEFT JOIN crm_eventos e ON e.id = p.evento_id WHERE p.id = ?`, [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Documentos deste processo sigiloso são restritos ao perfil autorizado." });
+      const file = (req as any).file;
+      if (!file) return res.status(400).json({ error: "Selecione um documento para anexar." });
+
+      const classificacaoRaw = text(req.body.classificacao, 60).toLowerCase();
+      const classificacao = DOCUMENT_CLASSIFICATIONS.has(classificacaoRaw) ? classificacaoRaw : "outro";
+      const nome = text(req.body.nome, 500) || file.originalname;
+      const observacao = nullableText(req.body.observacao, 4000);
+      const extension = path.extname(file.originalname || "").toLowerCase();
+      const storageKey = `juridico/processo-${processoId}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeFileName(file.originalname)}${extension && !safeFileName(file.originalname).toLowerCase().endsWith(extension) ? extension : ""}`;
+      const stored = await storagePut(storageKey, file.buffer, file.mimetype);
+      const ano = processo.data_distribuicao ? Number(String(processo.data_distribuicao).slice(0, 4)) : new Date().getFullYear();
+      const tags = ["juridico", "processo", processo.codigo, classificacao].filter(Boolean).join(",");
+      const [acervoResult] = await getPool().execute(`INSERT INTO crm_acervo
+        (nome, descricao, tipo_doc, evento_id, evento_nome, cliente_id, cliente_nome, ano, url_arquivo, nome_arquivo_original, tamanho_bytes, mime_type, s3_key, tags, criado_por, criado_por_nome)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+        nome, observacao, "outro", processo.evento_id || null, processo.evento_nome || null, processo.cliente_id || null, processo.cliente_nome || null, ano,
+        stored.url, file.originalname, file.size, file.mimetype, stored.key, tags, user.userId, user.name || null,
+      ]);
+      const acervoId = Number((acervoResult as any).insertId);
+      const [linkResult] = await getPool().execute("INSERT INTO crm_processos_juridicos_documentos (processo_id, acervo_id, classificacao, observacao, anexado_por, anexado_por_nome) VALUES (?,?,?,?,?,?)", [processoId, acervoId, classificacao, observacao, user.userId, user.name || null]);
+      await audit(user, "ATTACH_DOCUMENT", processoId, { vinculoId: Number((linkResult as any).insertId), acervoId, classificacao, nomeArquivo: file.originalname, tamanhoBytes: file.size });
+      res.status(201).json({ ok: true, vinculoId: Number((linkResult as any).insertId), acervoId, nome, urlArquivo: stored.url });
+    } catch (error: any) {
+      console.error("[Jurídico] anexar documento", error);
+      res.status(500).json({ error: "Não foi possível anexar o documento ao processo." });
+    }
+  });
+
+  r.delete("/processos/:id/documentos/:vinculoId", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const processoId = safeInt(req.params.id); const vinculoId = safeInt(req.params.vinculoId);
+      const processo = await dbOne<any>("SELECT id, sigiloso FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Documentos deste processo sigiloso são restritos ao perfil autorizado." });
+      const vinculo = await dbOne<any>("SELECT id, acervo_id FROM crm_processos_juridicos_documentos WHERE id = ? AND processo_id = ?", [vinculoId, processoId]);
+      if (!vinculo) return res.status(404).json({ error: "Vínculo de documento não encontrado" });
+      await getPool().execute("DELETE FROM crm_processos_juridicos_documentos WHERE id = ? AND processo_id = ?", [vinculoId, processoId]);
+      await audit(user, "DETACH_DOCUMENT", processoId, { vinculoId, acervoId: vinculo.acervo_id });
+      res.json({ ok: true, message: "Documento desvinculado do processo. O registro original foi preservado no Acervo." });
+    } catch (error) { console.error("[Jurídico] desvincular documento", error); res.status(500).json({ error: "Não foi possível desvincular o documento." }); }
   });
 
   r.post("/processos/:id/prazos", requireLegalAccess, async (req, res) => {

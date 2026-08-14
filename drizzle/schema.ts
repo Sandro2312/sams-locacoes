@@ -217,8 +217,25 @@ export const crmProcessosJuridicosConsultas = mysqlTable("crm_processos_juridico
   index("crm_processos_consultas_processo_data_idx").on(table.processoId, table.consultadoEm),
 ]);
 
+/** Relação não destrutiva entre processo jurídico e documento mantido no Acervo. */
+export const crmProcessosJuridicosDocumentos = mysqlTable("crm_processos_juridicos_documentos", {
+  id: int("id").autoincrement().primaryKey(),
+  processoId: int("processo_id").notNull(),
+  acervoId: int("acervo_id").notNull(),
+  classificacao: varchar("classificacao", { length: 60 }).notNull().default("outro"),
+  observacao: text("observacao"),
+  anexadoPor: int("anexado_por").notNull(),
+  anexadoPorNome: varchar("anexado_por_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_processos_documentos_processo_acervo_unique").on(table.processoId, table.acervoId),
+  index("crm_processos_documentos_processo_idx").on(table.processoId, table.createdAt),
+  index("crm_processos_documentos_acervo_idx").on(table.acervoId),
+]);
+
 export type CrmProcessoJuridico = typeof crmProcessosJuridicos.$inferSelect;
 export type InsertCrmProcessoJuridico = typeof crmProcessosJuridicos.$inferInsert;
+export type CrmProcessoJuridicoDocumento = typeof crmProcessosJuridicosDocumentos.$inferSelect;
 
 export const crmTickets = mysqlTable("crm_tickets", {
   id: bigint("id", { mode: "number" }).autoincrement().primaryKey(),

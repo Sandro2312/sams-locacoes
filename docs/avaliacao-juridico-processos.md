@@ -106,12 +106,27 @@ Em 13 de agosto de 2026, a primeira etapa da alternativa B foi implantada no CRM
 | Processos e prazos persistentes | Os registros deixam de depender do navegador/localStorage e passam a ser compartilhados entre sessões autorizadas. |
 | Agenda Jurídica | Exibe prazos pendentes vinculados ao processo e permite registrar novos prazos no detalhe do processo. |
 | Sigilo e perfis | Dados de processos marcados como sigilosos são reduzidos para perfis não privilegiados; operações são protegidas e auditáveis. |
-| Documentos | O detalhe direciona ao Acervo, evitando cópias de arquivos e mantendo o repositório documental único. |
+| Documentos | O detalhe do processo permite abrir a lista de documentos vinculados e anexar diretamente um novo arquivo, mantendo o Acervo como repositório documental único. |
 | Consulta Datajud | A busca é acionada manualmente por processo, registra fonte/data e apresenta somente uma sugestão para revisão humana. Nenhum dado consultado sobrescreve o cadastro automaticamente. |
 
 > **Limite operacional mantido:** a consulta Datajud não é prova de ciência de intimação/citação e não substitui a conferência do responsável jurídico no Domicílio Judicial Eletrônico, DJEN ou tribunal competente.
 
 Antes de cadastrar dados reais, o responsável deve confirmar o número CNJ, o ramo processual e o indicador de sigilo. A chave da API Datajud permanece exclusivamente na configuração segura do servidor e não é enviada ao navegador.
+
+## Anexos contextuais em processos — agosto de 2026
+
+O fluxo de documentos foi aprimorado para que a pessoa não precise abrir o Acervo genérico e tentar inferir manualmente a qual processo o arquivo pertence. Na ficha de cada processo, o botão **Documentos do processo** exibe apenas os anexos daquele processo e o botão **Anexar documento** abre um formulário contextual. O arquivo enviado passa a ter um vínculo persistente e auditável com o processo, preservando também seu registro no Acervo.
+
+| Aspecto | Regra implantada |
+|---|---|
+| Arquivos aceitos | PDF, imagens, Word, Excel, PowerPoint e ZIP, com limite de 25 MB por anexo. |
+| Classificação | Petição, citação, intimação, ata de audiência, decisão, sentença, acordo, procuração, comprovante ou outro. |
+| Persistência | O arquivo é armazenado no repositório de documentos e recebe vínculo único com o processo na tabela `crm_processos_juridicos_documentos`. |
+| Segurança | As rotas exigem sessão e permissão jurídica. Em processo sigiloso, os documentos somente são exibidos e alterados por perfis autorizados. |
+| Auditoria | Anexar e desvincular geram registros de auditoria associados ao processo. |
+| Desvinculação | Remover o vínculo da ficha não apaga o documento original do Acervo, evitando perda acidental de evidência. |
+
+> **Procedimento operacional:** abra o processo, escolha **Documentos do processo** e depois **Anexar documento**. Se o arquivo já estiver no Acervo, ele permanece preservado; o novo fluxo evita duplicação ao anexar arquivos diretamente a partir do processo.
 
 ## Referências
 

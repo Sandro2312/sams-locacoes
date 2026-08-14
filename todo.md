@@ -564,3 +564,9 @@
 - [x] Integrar Financeiro, Eventos e Jurídico com proteção de edição em andamento
 - [x] Validar simultaneidade, desempenho, desktop/mobile e regressões
 - [x] Atualizar cache-busters, documentação técnica e salvar checkpoint
+
+## Melhoria — Anexos em Processos Jurídicos (Ago/2026)
+- [x] Diagnosticar o fluxo atual de upload no Acervo e o vínculo com processos jurídicos
+- [x] Criar anexo contextual ao processo, com vínculo persistente, feedback e acesso seguro
+- [x] Validar upload, visualização, permissões, desktop/mobile e regressões
+- [x] Atualizar cache-busters, documentação e checkpoint da melhoria
