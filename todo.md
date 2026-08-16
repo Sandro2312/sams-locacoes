@@ -610,3 +610,9 @@
 - [x] Planejar clipes, locução e referências visuais de cada etapa
 - [x] Produzir vídeo, áudio e materiais de apresentação
 - [x] Validar a entrega final e o roteiro de apoio aos colaboradores
+
+## Correção — Vídeo de Tour Funcional do CRM (Ago/2026)
+- [x] Definir a sequência de telas e os fluxos reais a demonstrar com o perfil Desenvolvedor autorizado
+- [x] Capturar a navegação autenticada do perfil Desenvolvedor para o tour funcional
+- [x] Montar vídeo com gravações de tela, destaques visuais e locução que explique as funcionalidades reais
+- [x] Validar tecnicamente o conteúdo funcional e entregar a versão revisada para revisão da equipe
