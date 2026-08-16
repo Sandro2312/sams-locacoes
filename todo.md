@@ -621,3 +621,8 @@
 - [x] Refazer a linha do tempo com uma única faixa de locução por cena, sem sobreposição
 - [x] Combinar imagens reais do site e telas do CRM em uma apresentação visual dinâmica
 - [x] Validar a sincronização de voz, transições, duração e entrega revisada
+
+## Evolução — Apresentação Premium do Site e CRM (Ago/2026)
+- [x] Definir duração, estilo e elementos de impacto da versão premium
+- [x] Criar mosaicos, destaques de interface, vinhetas e transições sobre telas reais
+- [x] Montar e validar a apresentação premium com áudio sincronizado
