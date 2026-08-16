@@ -616,3 +616,8 @@
 - [x] Capturar a navegação autenticada do perfil Desenvolvedor para o tour funcional
 - [x] Montar vídeo com gravações de tela, destaques visuais e locução que explique as funcionalidades reais
 - [x] Validar tecnicamente o conteúdo funcional e entregar a versão revisada para revisão da equipe
+
+## Correção — Show Visual do Site e CRM (Ago/2026)
+- [x] Refazer a linha do tempo com uma única faixa de locução por cena, sem sobreposição
+- [x] Combinar imagens reais do site e telas do CRM em uma apresentação visual dinâmica
+- [x] Validar a sincronização de voz, transições, duração e entrega revisada
