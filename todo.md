@@ -643,3 +643,10 @@
 - [x] Preparar acesso controlado ao ambiente de desenvolvimento para capturar o caso MM
 - [x] Produzir complemento visual do treinamento com o caso MM
 - [x] Validar privacidade, narrativa e entrega antes da apresentação à equipe
+
+## Complemento — Orçamento Comercial MM Expoagas 2026 (Ago/2026)
+- [x] Adicionar sinalização persistente de composição interna pendente no orçamento técnico
+- [x] Registrar a versão comercial contratada de R$ 38.900,00 no Orçamento Técnico do Projeto MM
+- [x] Manter custo previsto e margem como pendentes até composição interna validada
+- [x] Atualizar o complemento de treinamento para explicar previsão comercial versus custos internos
+- [x] Validar o registro, a privacidade e a apresentação atualizada

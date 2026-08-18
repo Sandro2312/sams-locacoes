@@ -45,6 +45,15 @@ describe("orçamento técnico versionado", () => {
     expect(serverSource).toContain('APPROVE_TECHNICAL_BUDGET');
   });
 
+  it("sinaliza composição interna pendente e bloqueia aprovação até a conferência de custos", () => {
+    expect(schemaSource).toContain('composicaoPendente: tinyint("composicao_pendente")');
+    expect(serverSource).toContain('function pendingComposition');
+    expect(serverSource).toContain('composicao_pendente');
+    expect(serverSource).toContain('Conclua e confira a composição interna de custos antes de aprovar este orçamento');
+    expect(budgetClientSource).toContain('Composição interna pendente');
+    expect(budgetClientSource).toContain('Aguardando custos internos');
+  });
+
   it("oferece acesso responsivo por Projeto de Stand, itens, totais e comparação de versões", () => {
     expect(projectClientSource).toContain('projeto-stand-budget');
     expect(budgetClientSource).toContain('Orçamento Técnico Versionado');

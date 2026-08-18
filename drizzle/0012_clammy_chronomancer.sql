@@ -1,0 +1,1 @@
+ALTER TABLE `crm_orcamentos_tecnicos` ADD `composicao_pendente` tinyint DEFAULT 0 NOT NULL;

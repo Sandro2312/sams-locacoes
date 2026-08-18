@@ -1,4 +1,4 @@
-import { bigint, date, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, date, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, tinyint, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -118,6 +118,7 @@ export const crmOrcamentosTecnicos = mysqlTable("crm_orcamentos_tecnicos", {
   valorVendaFinal: decimal("valor_venda_final", { precision: 14, scale: 2 }).notNull().default("0"),
   margem: decimal("margem", { precision: 14, scale: 2 }).notNull().default("0"),
   margemPercentual: decimal("margem_percentual", { precision: 9, scale: 4 }),
+  composicaoPendente: tinyint("composicao_pendente").notNull().default(0),
   observacoes: text("observacoes"),
   criadoPor: int("criado_por").notNull(),
   criadoPorNome: varchar("criado_por_nome", { length: 255 }),

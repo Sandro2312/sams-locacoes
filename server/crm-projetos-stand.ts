@@ -126,6 +126,9 @@ function safeBudgetStatus(value: unknown, fallback = "rascunho") {
 function isLockedBudget(status: unknown) {
   return ["enviada", "aprovada", "recusada", "substituida"].includes(String(status || "").toLowerCase());
 }
+function pendingComposition(value: unknown) {
+  return value === true || value === 1 || value === "1" || String(value || "").toLowerCase() === "true" ? 1 : 0;
+}
 function calculateBudget(rawItems: unknown, rawDiscount: unknown) {
   if (!Array.isArray(rawItems) || rawItems.length > 250) throw new Error("ITENS_INVALIDOS");
   const items = rawItems.map((raw: any, index: number) => {
@@ -415,17 +418,18 @@ export function registerProjetosStandRoutes(app: any) {
       const title = text(req.body.titulo || `Orçamento técnico — ${projeto.nome}`, 255);
       if (!title) return res.status(400).json({ error: "Informe o título do orçamento" });
       const calculation = calculateBudget(req.body.itens ?? [], req.body.desconto ?? 0);
+      const composicaoPendente = pendingComposition(req.body.composicaoPendente ?? req.body.composicao_pendente);
       await connection.beginTransaction();
       const [versionRows] = await connection.execute<any[]>("SELECT COALESCE(MAX(numero_versao), 0) + 1 AS proxima FROM crm_orcamentos_tecnicos WHERE projeto_stand_id = ? FOR UPDATE", [projetoId]);
       const version = Number(versionRows?.[0]?.proxima || 1);
       const [result] = await connection.execute<any>(`INSERT INTO crm_orcamentos_tecnicos
-        (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, observacoes, criado_por, criado_por_nome)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, nullableText(req.body.observacoes, 4000), user.userId, user.name || null]);
+        (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, composicao_pendente, observacoes, criado_por, criado_por_nome)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, composicaoPendente, nullableText(req.body.observacoes, 4000), user.userId, user.name || null]);
       const budgetId = Number(result.insertId);
       for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens
         (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
       await connection.commit();
-      await audit(user, "CREATE_TECHNICAL_BUDGET", projetoId, { budgetId, version, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents });
+      await audit(user, "CREATE_TECHNICAL_BUDGET", projetoId, { budgetId, version, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents, composicaoPendente: Boolean(composicaoPendente) });
       res.status(201).json({ ok: true, id: budgetId, numeroVersao: version });
     } catch (error: any) {
       await connection.rollback();
@@ -447,13 +451,14 @@ export function registerProjetosStandRoutes(app: any) {
       const calculation = calculateBudget(req.body.itens ?? [], req.body.desconto ?? detail.orcamento.desconto ?? 0);
       const title = text(req.body.titulo ?? detail.orcamento.titulo, 255); if (!title) return res.status(400).json({ error: "Informe o título do orçamento" });
       const status = safeBudgetStatus(req.body.status ?? detail.orcamento.status); if (isLockedBudget(status)) return res.status(400).json({ error: "Use as ações específicas para enviar, aprovar ou recusar uma versão" });
+      const composicaoPendente = pendingComposition(req.body.composicaoPendente ?? req.body.composicao_pendente ?? detail.orcamento.composicao_pendente);
       await connection.beginTransaction();
-      await connection.execute(`UPDATE crm_orcamentos_tecnicos SET titulo=?, status=?, subtotal_custo=?, subtotal_venda=?, desconto=?, valor_venda_final=?, margem=?, margem_percentual=?, observacoes=? WHERE id=?`, [title, status, centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, nullableText(req.body.observacoes ?? detail.orcamento.observacoes, 4000), budgetId]);
+      await connection.execute(`UPDATE crm_orcamentos_tecnicos SET titulo=?, status=?, subtotal_custo=?, subtotal_venda=?, desconto=?, valor_venda_final=?, margem=?, margem_percentual=?, composicao_pendente=?, observacoes=? WHERE id=?`, [title, status, centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, composicaoPendente, nullableText(req.body.observacoes ?? detail.orcamento.observacoes, 4000), budgetId]);
       await connection.execute("DELETE FROM crm_orcamentos_tecnicos_itens WHERE orcamento_tecnico_id = ?", [budgetId]);
       for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens
         (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
       await connection.commit();
-      await audit(user, "UPDATE_TECHNICAL_BUDGET", projetoId, { budgetId, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents });
+      await audit(user, "UPDATE_TECHNICAL_BUDGET", projetoId, { budgetId, itemCount: calculation.items.length, finalSaleCents: calculation.finalSaleCents, marginCents: calculation.marginCents, composicaoPendente: Boolean(composicaoPendente) });
       res.json({ ok: true, id: budgetId });
     } catch (error: any) {
       await connection.rollback();
@@ -475,7 +480,7 @@ export function registerProjetosStandRoutes(app: any) {
       await connection.beginTransaction();
       const [versionRows] = await connection.execute<any[]>("SELECT COALESCE(MAX(numero_versao), 0) + 1 AS proxima FROM crm_orcamentos_tecnicos WHERE projeto_stand_id = ? FOR UPDATE", [projetoId]);
       const version = Number(versionRows?.[0]?.proxima || 1); const title = text(req.body.titulo || `${source.orcamento.titulo} — revisão`, 255);
-      const [result] = await connection.execute<any>(`INSERT INTO crm_orcamentos_tecnicos (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, observacoes, criado_por, criado_por_nome) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, source.orcamento.observacoes, user.userId, user.name || null]);
+      const [result] = await connection.execute<any>(`INSERT INTO crm_orcamentos_tecnicos (projeto_stand_id, numero_versao, titulo, status, subtotal_custo, subtotal_venda, desconto, valor_venda_final, margem, margem_percentual, composicao_pendente, observacoes, criado_por, criado_por_nome) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [projetoId, version, title, "rascunho", centsToDb(calculation.subtotalCostCents), centsToDb(calculation.subtotalSaleCents), centsToDb(calculation.discountCents), centsToDb(calculation.finalSaleCents), centsToDb(calculation.marginCents), calculation.marginPct, Number(source.orcamento.composicao_pendente || 0), source.orcamento.observacoes, user.userId, user.name || null]);
       const budgetId = Number(result.insertId);
       for (const item of calculation.items) await connection.execute(`INSERT INTO crm_orcamentos_tecnicos_itens (orcamento_tecnico_id, categoria, descricao, quantidade, custo_unitario, preco_unitario, custo_total, valor_total, ordem) VALUES (?,?,?,?,?,?,?,?,?)`, [budgetId, item.category, item.description, milliToDb(item.quantityMilli), centsToDb(item.costCents), centsToDb(item.priceCents), centsToDb(item.costTotalCents), centsToDb(item.saleTotalCents), item.order]);
       await connection.commit(); await audit(user, "DUPLICATE_TECHNICAL_BUDGET", projetoId, { sourceId, budgetId, version });
@@ -499,6 +504,7 @@ export function registerProjetosStandRoutes(app: any) {
       const user = (req as any).crmUser as CrmSession; const projetoId = safeInt(req.params.id, 0, 1, Number.MAX_SAFE_INTEGER); const budgetId = safeInt(req.params.orcamentoId, 0, 1, Number.MAX_SAFE_INTEGER);
       const detail = await getBudgetWithItems(projetoId, budgetId); if (!detail) return res.status(404).json({ error: "Versão de orçamento não encontrada" });
       if (detail.orcamento.status !== "enviada") return res.status(409).json({ error: "Somente uma versão enviada pode ser aprovada" });
+      if (Number(detail.orcamento.composicao_pendente || 0)) return res.status(409).json({ error: "Conclua e confira a composição interna de custos antes de aprovar este orçamento" });
       if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme a revisão de custos, preço, desconto e margem antes de aprovar" });
       await db("UPDATE crm_orcamentos_tecnicos SET status='aprovada', aprovado_por=?, aprovado_por_nome=?, aprovado_em=NOW() WHERE id=?", [user.userId, user.name || null, budgetId]);
       await db("UPDATE crm_orcamentos_tecnicos SET status='substituida' WHERE projeto_stand_id=? AND id<>? AND status='aprovada'", [projetoId, budgetId]);

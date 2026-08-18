@@ -57,3 +57,9 @@ Antes da filmagem complementar, o sistema deve verificar se o cliente, evento e 
 Após autorização explícita da gestão, o caso foi registrado no CRM com o código **PS-EXPOAGAS-2026-MM-214** e identificador interno **90001**. O cadastro criou somente o cliente, o evento e o Projeto de Stand, com situação comercial `ganho` e status operacional `em_montagem`. A criação ficou associada ao perfil Desenvolvedor e possui trilha de auditoria.
 
 Nenhuma conta a receber, despesa, custo, rateio, contrato financeiro ou versão de orçamento técnico foi criada. Essa decisão preserva a integridade financeira enquanto a data da primeira parcela é confirmada. Os documentos continuam como fonte de referência autorizada para o complemento visual e deverão ser anexados ao Acervo pelo fluxo autenticado, sem cópias ou registros financeiros inferidos.
+
+## Referência comercial no Orçamento Técnico
+
+Após a confirmação da gestão de que o valor consta no contrato, foi incluída a versão **V1 — Referência comercial: Contrato MM Expoagas 2026** no Projeto de Stand. Ela registra o valor contratado de **R$ 38.900,00** como venda comercial de referência e recebe o indicador persistente `composição interna pendente`.
+
+O indicador faz com que o sistema apresente **“A compor”** para custo e **“Aguardando custos internos”** para margem. Além disso, bloqueia a aprovação da versão enquanto a composição de custo não estiver preenchida e conferida. A versão fica preservada como `enviada`, permitindo que Comercial consulte o marco contratual sem que o CRM transforme venda em margem aparente ou crie faturamento automaticamente.
