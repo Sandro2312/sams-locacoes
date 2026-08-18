@@ -633,7 +633,7 @@
 - [x] Conferir correspondência entre locução, tela exibida e mensagem operacional
 - [x] Consolidar ajustes e recomendação de uso antes da apresentação à equipe
 - [x] Redigir por completo dados pessoais do Kanban e substituir a cena exposta
-- [ ] Inserir cenas demonstrativas mais concretas de Orçamento Técnico, Projetos e Financeiro
+- [x] Inserir cenas demonstrativas mais concretas de Orçamento Técnico, Projetos e Financeiro
 - [x] Remover a repetição identificada na locução do trecho Jurídico
 
 ## Treinamento — Caso Real MM Expoagas 2026 (Ago/2026)
