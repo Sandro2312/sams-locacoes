@@ -635,3 +635,11 @@
 - [x] Redigir por completo dados pessoais do Kanban e substituir a cena exposta
 - [ ] Inserir cenas demonstrativas mais concretas de Orçamento Técnico, Projetos e Financeiro
 - [x] Remover a repetição identificada na locução do trecho Jurídico
+
+## Treinamento — Caso Real MM Expoagas 2026 (Ago/2026)
+- [x] Extrair dados de aprovação, memorial, contrato, faturamento e montagem dos arquivos autorizados
+- [x] Validar a sequência do caso e os limites de exposição no material interno
+- [x] Vincular o caso ao fluxo do Projeto de Stand sem criar lançamentos financeiros indevidos
+- [x] Preparar acesso controlado ao ambiente de desenvolvimento para capturar o caso MM
+- [x] Produzir complemento visual do treinamento com o caso MM
+- [x] Validar privacidade, narrativa e entrega antes da apresentação à equipe
