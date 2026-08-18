@@ -626,3 +626,12 @@
 - [x] Definir duração, estilo e elementos de impacto da versão premium
 - [x] Criar mosaicos, destaques de interface, vinhetas e transições sobre telas reais
 - [x] Montar e validar a apresentação premium com áudio sincronizado
+
+## Revisão — Apresentação para a Equipe (Ago/2026)
+- [x] Definir critérios de aceitação para legibilidade, sequência, cobertura e privacidade da apresentação
+- [x] Conferir legibilidade, sequência e cobertura das telas e funcionalidades apresentadas
+- [x] Conferir correspondência entre locução, tela exibida e mensagem operacional
+- [x] Consolidar ajustes e recomendação de uso antes da apresentação à equipe
+- [x] Redigir por completo dados pessoais do Kanban e substituir a cena exposta
+- [ ] Inserir cenas demonstrativas mais concretas de Orçamento Técnico, Projetos e Financeiro
+- [x] Remover a repetição identificada na locução do trecho Jurídico
