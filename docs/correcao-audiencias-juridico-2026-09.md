@@ -25,3 +25,16 @@ A audiência de **24/09/2026** foi registrada no processo de Ivan Cleber Araujo 
 ## Validação
 
 O registro persistido foi conferido diretamente no banco, com tipo `audiencia`, status pendente, data 24/09/2026, responsável definido e atualização do próximo prazo do processo. O teste específico do módulo Jurídico passou em **6 de 6 casos**, incluindo a cobertura de ação visível, classificação e bloqueio de duplicidade. A suíte geral ficou em **115 de 117 testes aprovados**; as duas falhas remanescentes são preexistentes nos testes administrativos de Contato e Orçamento e não se relacionam à correção jurídica.
+
+## Evolução complementar — gestão de audiências
+
+Em 19 de agosto de 2026, o controle de audiências foi ampliado sem alterar registros já existentes. O formulário passou a aceitar **local/endereço** e **link de audiência virtual**. O servidor aceita somente links `http` ou `https`, rejeitando protocolos inválidos antes da persistência.
+
+| Recurso | Comportamento |
+|---|---|
+| Alerta de proximidade | A Agenda Jurídica marca em vermelho audiências pendentes cuja data esteja entre hoje e os próximos sete dias. |
+| Local e link | Os detalhes são persistidos no prazo da audiência e reaparecem na ficha do processo, com abertura segura do link em nova aba. |
+| PDF contextual | O upload aceita exclusivamente PDF de até 25 MB. O arquivo é preservado no Acervo e recebe vínculo adicional, não destrutivo, com a audiência específica. |
+| Privacidade e auditoria | O fluxo mantém as mesmas permissões de documentos do processo e registra a ação `ATTACH_HEARING_DOCUMENT` na auditoria. |
+
+> O CRM organiza a informação operacional. A confirmação de local, link, data, horário e eventual alteração continua sob responsabilidade do profissional jurídico no canal oficial competente.

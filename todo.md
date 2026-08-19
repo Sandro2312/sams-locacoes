@@ -677,3 +677,10 @@
 - [x] Exibir confirmação, responsável e lembrete de audiência com clareza
 - [x] Validar salvamento, listagem, desktop/mobile e regressões jurídicas
 - [x] Atualizar documentação, cache-buster e checkpoint da correção
+
+## Evolução — Gestão de Audiências Jurídicas (Ago/2026)
+- [x] Definir alerta de audiência em até 7 dias, campos de local/link e vínculo documental seguro
+- [x] Criar persistência e APIs para detalhes e anexos PDF de audiência
+- [x] Implementar formulário, alerta visual e acesso aos anexos no processo
+- [x] Validar alertas, PDFs, permissões, mobile e regressões jurídicas
+- [x] Atualizar documentação, cache-buster e checkpoint da evolução

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const source = readFileSync(new URL("./crm-juridico.ts", import.meta.url), "utf8");
 const client = readFileSync(new URL("../client/public/crm/js/crm-juridico.js", import.meta.url), "utf8");
+const hearingsClient = readFileSync(new URL("../client/public/crm/js/crm-juridico-audiencias.js", import.meta.url), "utf8");
 
 describe("módulo Jurídico persistente", () => {
   it("mantém classificação obrigatória e não leva a chave Datajud ao navegador", () => {
@@ -44,5 +45,32 @@ describe("módulo Jurídico persistente", () => {
     expect(client).toContain('Registrar audiência ou prazo');
     expect(client).toContain('Registrar audiência');
     expect(client).toContain('prazoTypeLabel');
+  });
+
+  it("persiste local e link seguro na audiência", () => {
+    expect(source).toContain('local_audiencia');
+    expect(source).toContain('link_audiencia');
+    expect(source).toContain('function audienceLink(value: unknown)');
+    expect(source).toContain("['http:', 'https:'].includes(parsed.protocol)");
+    expect(source).toContain('link de audiência válido');
+    expect(source).toContain('res.status(error?.message?.includes("link de audiência válido") ? 400 : 500)');
+  });
+
+  it("vincula apenas PDF à audiência e preserva o documento no Acervo", () => {
+    expect(source).toContain('r.post("/processos/:id/prazos/:prazoId/documentos"');
+    expect(source).toContain('Anexe somente um arquivo PDF à audiência.');
+    expect(source).toContain('crm_processos_juridicos_prazos_documentos');
+    expect(source).toContain('ATTACH_HEARING_DOCUMENT');
+    expect(source).toContain('ata_audiencia');
+    expect(hearingsClient).toContain('accept="application/pdf,.pdf"');
+    expect(hearingsClient).toContain('/prazos/${encodeURIComponent(saved.id)}/documentos');
+  });
+
+  it("calcula e comunica o alerta visual de audiência em até sete dias", () => {
+    expect(source).toContain('AS audiencia_proxima');
+    expect(source).toContain('INTERVAL 7 DAY');
+    expect(hearingsClient).toContain('function isHearingSoon(value)');
+    expect(hearingsClient).toContain('Audiência em até 7 dias');
+    expect(hearingsClient).toContain('Em até 7 dias');
   });
 });

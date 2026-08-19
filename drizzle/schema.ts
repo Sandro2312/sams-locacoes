@@ -252,6 +252,8 @@ export const crmProcessosJuridicosPrazos = mysqlTable("crm_processos_juridicos_p
   status: varchar("status", { length: 30 }).notNull().default("pendente"),
   responsavelId: int("responsavel_id"),
   responsavelNome: varchar("responsavel_nome", { length: 255 }),
+  localAudiencia: varchar("local_audiencia", { length: 500 }),
+  linkAudiencia: varchar("link_audiencia", { length: 2000 }),
   observacoes: text("observacoes"),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -296,6 +298,19 @@ export const crmProcessosJuridicosDocumentos = mysqlTable("crm_processos_juridic
 export type CrmProcessoJuridico = typeof crmProcessosJuridicos.$inferSelect;
 export type InsertCrmProcessoJuridico = typeof crmProcessosJuridicos.$inferInsert;
 export type CrmProcessoJuridicoDocumento = typeof crmProcessosJuridicosDocumentos.$inferSelect;
+
+/** Liga documentos já preservados no Acervo a uma audiência ou prazo específico. */
+export const crmProcessosJuridicosPrazosDocumentos = mysqlTable("crm_processos_juridicos_prazos_documentos", {
+  id: int("id").autoincrement().primaryKey(),
+  prazoId: int("prazo_id").notNull(),
+  documentoVinculoId: int("documento_vinculo_id").notNull(),
+  anexadoPor: int("anexado_por").notNull(),
+  anexadoPorNome: varchar("anexado_por_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_prazos_documentos_unique").on(table.prazoId, table.documentoVinculoId),
+  index("crm_prazos_documentos_prazo_idx").on(table.prazoId),
+]);
 
 /** Peça preparada no CRM para revisão e protocolo manual no tribunal competente. */
 export const crmProcessosJuridicosPecas = mysqlTable("crm_processos_juridicos_pecas", {

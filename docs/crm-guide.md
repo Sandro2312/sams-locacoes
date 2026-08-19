@@ -219,6 +219,12 @@ Repositório de documentos jurídicos (contratos, procurações, certidões).
 
 Controle de prazos processuais e contratuais com alertas.
 
+### 9.4 Audiências
+
+Ao registrar uma audiência, selecione o tipo **Audiência**, informe o título e a data e, quando aplicável, registre o **local/endereço físico** ou o **link da sala virtual**. O link deve começar por `http://` ou `https://`; o sistema recusa outros protocolos para evitar redirecionamentos inseguros.
+
+Audiências pendentes que ocorrerão nos próximos sete dias recebem destaque vermelho na Agenda Jurídica. É possível anexar um PDF de pauta, intimação ou ata no próprio registro. O arquivo é armazenado no Acervo, permanece vinculado ao processo e é exibido junto aos detalhes daquela audiência; a equipe não deve substituir a conferência do ato no canal oficial do tribunal.
+
 ---
 
 ## 10. Kanban
