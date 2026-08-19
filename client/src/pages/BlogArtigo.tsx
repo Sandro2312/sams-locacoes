@@ -8,6 +8,36 @@ import { artigos } from "./Blog";
 import Breadcrumb from "@/components/Breadcrumb";
 
 const conteudos: Record<string, { html: string }> = {
+  "maio-2026-desafios-conquistas-sams": {
+    html: `
+      <p>Maio de 2026 foi um período de trabalho intenso para a <strong>SAMS Locações</strong>. A equipe participou de três feiras em São Paulo — BF Show, APAS Show e Feira Hospitalar —, com entregas que exigiram planejamento técnico, logística e acompanhamento próximo no pavilhão.</p>
+
+      <p>Foram cinco stands montados ao longo do mês. Mais do que uma sequência de entregas, o período mostrou por que cada projeto precisa reunir briefing, aprovação, documentos, cronograma e comunicação entre as áreas desde o início.</p>
+
+      <h2>Planejamento antes da montagem</h2>
+      <p>Em feiras, a montagem ocorre dentro de uma janela curta e com regras próprias de cada pavilhão. Por isso, o trabalho começa bem antes da chegada da equipe ao evento: confirmação do escopo, alinhamento do projeto, organização de materiais, logística e definição dos responsáveis.</p>
+
+      <p>Quando essas informações ficam registradas e acessíveis para Comercial, Projetos e Montagem, a equipe reduz o risco de retrabalho e consegue responder mais rapidamente a ajustes necessários durante a execução.</p>
+
+      <h2>Três feiras, necessidades diferentes</h2>
+      <p>BF Show, APAS Show e Feira Hospitalar reuniram públicos e objetivos distintos. Em cada evento, o stand precisou refletir a identidade da marca expositora, oferecer uma operação funcional e respeitar as características do espaço contratado.</p>
+
+      <ul>
+        <li><strong>Identidade visual:</strong> acabamentos, comunicação e exposição precisam reforçar a presença da marca.</li>
+        <li><strong>Fluxo de visitantes:</strong> circulação, atendimento e demonstração de produtos precisam funcionar no espaço real.</li>
+        <li><strong>Execução técnica:</strong> materiais, mobiliário, elétrica e montagem devem seguir o projeto aprovado.</li>
+        <li><strong>Prazo:</strong> a entrega precisa estar concluída antes da abertura da feira.</li>
+      </ul>
+
+      <h2>O que a experiência reforça</h2>
+      <p>Cada montagem deixa aprendizados para os próximos projetos. A organização do histórico de evento, documentos, tarefas e resultado ajuda a SAMS a manter a consistência de atendimento e a aprimorar sua operação a cada feira.</p>
+
+      <p>Para empresas expositoras, a principal mensagem é simples: um stand de impacto nasce de um processo bem coordenado. A SAMS Locações atende feiras e eventos em todo o Brasil com projetos personalizados, locação e execução completa.</p>
+
+      <h2>Planeje sua próxima participação</h2>
+      <p>Se sua empresa participará de uma feira ou evento corporativo, o ideal é iniciar o planejamento com antecedência. Assim, há tempo para entender objetivos, desenvolver o projeto, aprovar o escopo e preparar a montagem com segurança.</p>
+    `,
+  },
   "como-escolher-montadora-de-stands": {
     html: `
       <p>Participar de uma feira ou evento corporativo é uma oportunidade valiosa para a sua empresa gerar leads, fechar negócios e fortalecer a marca. Mas para aproveitar ao máximo esse investimento, a escolha da <strong>montadora de stands</strong> certa é fundamental.</p>
@@ -201,8 +231,8 @@ const conteudos: Record<string, { html: string }> = {
       <h3>INTERMODAL — São Paulo/SP (Setembro)</h3>
       <p>A maior feira de logística, transporte e comércio exterior da América Latina. Realizada no Expo Center Norte, reúne empresas de logística, transportadoras e operadores de comércio exterior.</p>
 
-      <h3>EXPOAGAS — Porto Alegre/RS (Outubro)</h3>
-      <p>A maior feira do setor supermercadista do Rio Grande do Sul. Realizada em Porto Alegre, é referência para fornecedores e varejistas do setor de alimentos e bebidas.</p>
+      <h3>EXPOAGAS — Porto Alegre/RS (Agosto)</h3>
+      <p>A Expoagas 2026 acontece de 18 a 20 de agosto, no Centro de Eventos FIERGS, em Porto Alegre. É uma referência do setor supermercadista gaúcho para fornecedores e varejistas de alimentos e bebidas.</p>
 
       <h2>Como se Preparar para as Feiras de 2026</h2>
       <p>Para aproveitar ao máximo cada evento, recomendamos:</p>

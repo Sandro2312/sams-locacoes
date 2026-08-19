@@ -650,3 +650,10 @@
 - [x] Manter custo previsto e margem como pendentes até composição interna validada
 - [x] Atualizar o complemento de treinamento para explicar previsão comercial versus custos internos
 - [x] Validar o registro, a privacidade e a apresentação atualizada
+
+## Avaliação — Blog da SAMS (Ago/2026)
+- [x] Mapear páginas, artigos, dados e disponibilidade atual do blog
+- [x] Corrigir artigo listado sem conteúdo individual e validar as rotas de leitura
+- [x] Corrigir a data da Expoagas no artigo de calendário, conforme documentação operacional atual
+- [x] Avaliar apresentação, SEO, conversão e aderência à estratégia comercial
+- [x] Documentar diagnóstico e prioridades recomendadas para evolução do blog
