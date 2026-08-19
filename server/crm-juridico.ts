@@ -13,6 +13,7 @@ type CrmSession = { userId: number; role: string; name: string };
 const RAMOS = new Set(["trabalhista", "civel"]);
 const STATUSES = new Set(["pre_processual", "em_andamento", "suspenso", "encerrado", "arquivado"]);
 const PRAZO_STATUSES = new Set(["pendente", "cumprido", "cancelado"]);
+const PRAZO_TYPES = new Set(["audiencia", "prazo_processual", "intimacao", "reuniao", "outro"]);
 const LEGAL_ROLES = new Set(["admin", "administrador", "manager", "gerente", "gerencia", "desenvolvedor", "developer", "juridico"]);
 const SENSITIVE_ROLES = new Set(["admin", "administrador", "desenvolvedor", "developer", "juridico"]);
 const DATAJUD_ENDPOINTS: Record<string, string> = {
@@ -487,14 +488,17 @@ export function registerJuridicoRoutes(app: any) {
   r.post("/processos/:id/prazos", requireLegalAccess, async (req, res) => {
     try {
       const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const processo = await dbOne<any>("SELECT id FROM crm_processos_juridicos WHERE id = ?", [processoId]);
-      const titulo = text(req.body.titulo, 255); const dataPrazo = isoDate(req.body.dataPrazo ?? req.body.data_prazo); const tipo = text(req.body.tipo || "prazo_processual", 60); const responsavelId = safeInt(req.body.responsavelId ?? req.body.responsavel_id);
+      const titulo = text(req.body.titulo, 255); const dataPrazo = isoDate(req.body.dataPrazo ?? req.body.data_prazo); const tipo = boundedSetValue(req.body.tipo, PRAZO_TYPES, "prazo_processual"); const responsavelId = safeInt(req.body.responsavelId ?? req.body.responsavel_id);
       if (!processo || !titulo || !dataPrazo) return res.status(400).json({ error: "Processo, título e data do prazo são obrigatórios" });
       const responsable = responsavelId ? await dbOne<any>("SELECT id, name FROM crm_users WHERE id = ? AND active = 1", [responsavelId]) : null;
       if (responsavelId && !responsable) return res.status(400).json({ error: "Responsável inválido" });
+      const duplicate = await dbOne<any>("SELECT id FROM crm_processos_juridicos_prazos WHERE processo_id = ? AND titulo = ? AND tipo = ? AND data_prazo = ? AND status = 'pendente'", [processoId, titulo, tipo, dataPrazo]);
+      if (duplicate) return res.status(409).json({ error: tipo === "audiencia" ? "Esta audiência já está registrada como pendente neste processo." : "Este prazo já está registrado como pendente neste processo." });
       const [result] = await getPool().execute("INSERT INTO crm_processos_juridicos_prazos (processo_id, titulo, tipo, data_prazo, responsavel_id, responsavel_nome, observacoes, created_by) VALUES (?,?,?,?,?,?,?,?)", [processoId, titulo, tipo, dataPrazo, responsavelId || null, responsable?.name || null, nullableText(req.body.observacoes, 4000), user.userId]);
       await getPool().execute("UPDATE crm_processos_juridicos SET proximo_prazo = LEAST(COALESCE(proximo_prazo, '9999-12-31'), ?) WHERE id = ?", [dataPrazo, processoId]);
-      await audit(user, "CREATE_DEADLINE", processoId, { prazoId: Number((result as any).insertId), dataPrazo, tipo });
-      res.status(201).json({ ok: true, id: Number((result as any).insertId) });
+      const prazoId = Number((result as any).insertId);
+      await audit(user, tipo === "audiencia" ? "CREATE_HEARING" : "CREATE_DEADLINE", processoId, { prazoId, dataPrazo, tipo, responsavelId: responsavelId || null });
+      res.status(201).json({ ok: true, id: prazoId, message: tipo === "audiencia" ? "Audiência registrada no processo e na Agenda Jurídica." : "Prazo registrado no processo e na Agenda Jurídica." });
     } catch (error) { console.error("[Jurídico] prazo", error); res.status(500).json({ error: "Não foi possível registrar o prazo" }); }
   });
 

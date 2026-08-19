@@ -36,4 +36,13 @@ describe("módulo Jurídico persistente", () => {
     expect(client).toContain('Salvar e novo');
     expect(client).toContain("saveMode === 'continue'");
   });
+
+  it("registra audiência como prazo com ação visível, classificação e proteção contra duplicidade", () => {
+    expect(source).toContain('const PRAZO_TYPES = new Set(["audiencia", "prazo_processual", "intimacao", "reuniao", "outro"])');
+    expect(source).toContain('CREATE_HEARING');
+    expect(source).toContain('Esta audiência já está registrada como pendente neste processo.');
+    expect(client).toContain('Registrar audiência ou prazo');
+    expect(client).toContain('Registrar audiência');
+    expect(client).toContain('prazoTypeLabel');
+  });
 });

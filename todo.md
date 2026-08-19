@@ -670,3 +670,10 @@
 - [x] Adicionar artigos relacionados no rodapé de cada post
 - [x] Validar conversão, atribuição, acessibilidade, mobile e regressões
 - [x] Atualizar documentação e salvar checkpoint da evolução
+
+## Correção — Registro de Audiências Jurídicas (Ago/2026)
+- [x] Diagnosticar por que o formulário de prazo não salva a audiência preenchida
+- [x] Corrigir o registro e a classificação de audiência sem alterar prazos existentes
+- [x] Exibir confirmação, responsável e lembrete de audiência com clareza
+- [x] Validar salvamento, listagem, desktop/mobile e regressões jurídicas
+- [x] Atualizar documentação, cache-buster e checkpoint da correção
