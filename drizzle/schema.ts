@@ -254,6 +254,7 @@ export const crmProcessosJuridicosPrazos = mysqlTable("crm_processos_juridicos_p
   responsavelNome: varchar("responsavel_nome", { length: 255 }),
   localAudiencia: varchar("local_audiencia", { length: 500 }),
   linkAudiencia: varchar("link_audiencia", { length: 2000 }),
+  horaAudiencia: varchar("hora_audiencia", { length: 5 }),
   observacoes: text("observacoes"),
   createdBy: int("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

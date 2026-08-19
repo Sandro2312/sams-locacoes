@@ -1,0 +1,1 @@
+ALTER TABLE `crm_processos_juridicos_prazos` ADD `hora_audiencia` varchar(5);

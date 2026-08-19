@@ -73,6 +73,12 @@ function audienceLink(value: unknown) {
     return parsed.toString();
   } catch { throw new Error('Informe um link de audiência válido, iniciado por http:// ou https://.'); }
 }
+function audienceTime(value: unknown) {
+  const raw = nullableText(value, 5);
+  if (!raw) return null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(raw)) throw new Error('Informe o horário da audiência no formato HH:MM.');
+  return raw;
+}
 function cnjDigits(value: unknown) { return text(value, 32).replace(/\D/g, "").slice(0, 20); }
 function formatCnj(value: unknown) {
   const n = cnjDigits(value);
@@ -505,25 +511,96 @@ export function registerJuridicoRoutes(app: any) {
     } catch (error: any) { console.error("[Jurídico] cronologia por IA", error); res.status(error?.message?.includes("autorizada") ? 403 : 500).json({ error: error?.message || "Não foi possível gerar a cronologia assistida." }); }
   });
 
+  r.post("/processos/:id/prazos/:prazoId/ia/extrair-audiencia", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const prazoId = safeInt(req.params.prazoId); const vinculoId = safeInt(req.body?.vinculoId ?? req.body?.vinculo_id);
+      if (!vinculoId) return res.status(400).json({ error: "Selecione o PDF da audiência para extrair os dados." });
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme que os dados extraídos serão revisados antes de preencher a audiência." });
+      if (!consumeLegalAiLimit(user.userId, "extracao_audiencia", 6)) return res.status(429).json({ error: "Limite temporário de extrações atingido. Aguarde alguns minutos antes de tentar novamente." });
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      requireProcessAiAuthorization(processo, user);
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Documentos deste processo sigiloso são restritos ao perfil autorizado." });
+      const prazo = await dbOne<any>("SELECT id, titulo, tipo, data_prazo, hora_audiencia, local_audiencia, link_audiencia, observacoes FROM crm_processos_juridicos_prazos WHERE id = ? AND processo_id = ?", [prazoId, processoId]);
+      if (!prazo || prazo.tipo !== "audiencia") return res.status(404).json({ error: "Audiência não encontrada neste processo." });
+      const documento = await dbOne<any>(`SELECT d.id AS vinculo_id, a.nome, a.nome_arquivo_original, a.url_arquivo, a.mime_type
+        FROM crm_processos_juridicos_prazos_documentos pd
+        JOIN crm_processos_juridicos_documentos d ON d.id = pd.documento_vinculo_id
+        JOIN crm_acervo a ON a.id = d.acervo_id
+        WHERE pd.prazo_id = ? AND d.id = ? AND d.processo_id = ?`, [prazoId, vinculoId, processoId]);
+      if (!documento || String(documento.mime_type || "").toLowerCase() !== "application/pdf" || !documento.url_arquivo) return res.status(400).json({ error: "Selecione um PDF contextual desta audiência para a extração." });
+      const model = "gpt-5-mini";
+      const result = await invokeLLM({
+        model,
+        maxTokens: 2200,
+        messages: [
+          { role: "system", content: "Você extrai dados explicitamente presentes em um PDF de audiência jurídica, em pt-BR. Não ofereça orientação jurídica, não conclua prazos, não invente dados e não altere registros. Para data use AAAA-MM-DD; para horário use HH:MM; para link, informe somente URL http/https escrita no documento; use null se não localizar com segurança. A resposta é apenas sugestão e exige revisão humana antes do preenchimento." },
+          { role: "user", content: [{ type: "text", text: `Contexto mínimo do processo: ${JSON.stringify(sanitizeProcessForAi(processo))}\nAudiência atual: ${JSON.stringify({ titulo: prazo.titulo, data: prazo.data_prazo, hora: prazo.hora_audiencia, local: prazo.local_audiencia, link: prazo.link_audiencia, observacoes: prazo.observacoes })}\nPDF vinculado: ${JSON.stringify({ vinculoId, nome: documento.nome, arquivo: documento.nome_arquivo_original })}` }, { type: "file_url", file_url: { url: documento.url_arquivo, mime_type: "application/pdf" } }] as any },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "ExtracaoDadosAudiencia",
+            strict: true,
+            schema: { type: "object", additionalProperties: false, properties: {
+              tituloSugerido: { type: ["string", "null"] }, dataAudiencia: { type: ["string", "null"] }, horaAudiencia: { type: ["string", "null"] }, localAudiencia: { type: ["string", "null"] }, linkAudiencia: { type: ["string", "null"] }, observacoes: { type: ["string", "null"] }, itensParaRevisao: { type: "array", items: { type: "string" } }, avisoRevisao: { type: "string" },
+            }, required: ["tituloSugerido", "dataAudiencia", "horaAudiencia", "localAudiencia", "linkAudiencia", "observacoes", "itensParaRevisao", "avisoRevisao"] },
+          },
+        },
+      });
+      const content = result?.choices?.[0]?.message?.content; const raw = typeof content === "string" ? JSON.parse(content) : content || {};
+      const extracted = {
+        tituloSugerido: nullableText(raw.tituloSugerido, 255), dataAudiencia: isoDate(raw.dataAudiencia), horaAudiencia: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(raw.horaAudiencia || "")) ? String(raw.horaAudiencia) : null,
+        localAudiencia: nullableText(raw.localAudiencia, 500), linkAudiencia: (() => { try { return audienceLink(raw.linkAudiencia); } catch { return null; } })(), observacoes: nullableText(raw.observacoes, 4000),
+        itensParaRevisao: Array.isArray(raw.itensParaRevisao) ? raw.itensParaRevisao.map((item: unknown) => text(item, 500)).filter(Boolean).slice(0, 12) : [], avisoRevisao: text(raw.avisoRevisao, 500) || "Sugestão assistida: revise o PDF original antes de aplicar.",
+      };
+      const fontes = [{ tipo: "documento_audiencia", vinculoId, prazoId, nome: documento.nome || documento.nome_arquivo_original }];
+      const [saved] = await getPool().execute("INSERT INTO crm_processos_juridicos_ia_analises (processo_id, documento_vinculo_id, tipo, resultado, fontes, modelo, gerado_por, gerado_por_nome) VALUES (?,?,?,?,?,?,?,?)", [processoId, vinculoId, "extracao_audiencia", JSON.stringify(extracted), JSON.stringify(fontes), model, user.userId, user.name || null]);
+      await audit(user, "AI_HEARING_EXTRACTION", processoId, { analiseId: Number((saved as any).insertId), prazoId, vinculoId, modelo: model, revisaoObrigatoria: true });
+      res.status(201).json({ ok: true, id: Number((saved as any).insertId), resultado: extracted, fontes, aviso: "Sugestões extraídas por IA. Revise o PDF e confirme os dados antes de aplicá-los." });
+    } catch (error: any) { console.error("[Jurídico] extração de audiência por IA", error); res.status(error?.message?.includes("autorizada") ? 403 : 500).json({ error: error?.message || "Não foi possível extrair os dados da audiência." }); }
+  });
+
+  r.patch("/processos/:id/prazos/:prazoId/audiencia-extraida", requireLegalAccess, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const prazoId = safeInt(req.params.prazoId);
+      if (req.body?.confirmacaoRevisao !== true) return res.status(400).json({ error: "Confirme a revisão humana do PDF antes de aplicar os dados à audiência." });
+      const processo = await dbOne<any>("SELECT * FROM crm_processos_juridicos WHERE id = ?", [processoId]);
+      if (!processo) return res.status(404).json({ error: "Processo não encontrado" });
+      requireProcessAiAuthorization(processo, user);
+      if (!canAccessProcessDocuments(processo, user.role)) return res.status(403).json({ error: "Documentos deste processo sigiloso são restritos ao perfil autorizado." });
+      const prazo = await dbOne<any>("SELECT id, tipo FROM crm_processos_juridicos_prazos WHERE id = ? AND processo_id = ?", [prazoId, processoId]);
+      if (!prazo || prazo.tipo !== "audiencia") return res.status(404).json({ error: "Audiência não encontrada neste processo." });
+      const titulo = text(req.body?.titulo ?? req.body?.tituloSugerido, 255); const dataPrazo = isoDate(req.body?.dataPrazo ?? req.body?.dataAudiencia); const horaAudiencia = audienceTime(req.body?.horaAudiencia ?? req.body?.hora_audiencia);
+      const localAudiencia = nullableText(req.body?.localAudiencia ?? req.body?.local_audiencia, 500); const linkAudiencia = audienceLink(req.body?.linkAudiencia ?? req.body?.link_audiencia); const observacoes = nullableText(req.body?.observacoes, 4000);
+      if (!titulo || !dataPrazo) return res.status(400).json({ error: "Título e data revisados são obrigatórios para aplicar a extração." });
+      await getPool().execute("UPDATE crm_processos_juridicos_prazos SET titulo = ?, data_prazo = ?, hora_audiencia = ?, local_audiencia = ?, link_audiencia = ?, observacoes = ? WHERE id = ? AND processo_id = ?", [titulo, dataPrazo, horaAudiencia, localAudiencia, linkAudiencia, observacoes, prazoId, processoId]);
+      await getPool().execute("UPDATE crm_processos_juridicos SET proximo_prazo = (SELECT MIN(data_prazo) FROM crm_processos_juridicos_prazos WHERE processo_id = ? AND status = 'pendente') WHERE id = ?", [processoId, processoId]);
+      await audit(user, "APPLY_HEARING_EXTRACTION", processoId, { prazoId, titulo, dataPrazo, horaAudiencia, localAudiencia, linkAudiencia: Boolean(linkAudiencia), revisaoConfirmada: true });
+      res.json({ ok: true, message: "Dados revisados aplicados à audiência." });
+    } catch (error: any) { console.error("[Jurídico] aplicar extração de audiência", error); res.status(error?.message?.includes("link de audiência válido") || error?.message?.includes("horário da audiência") ? 400 : 500).json({ error: error?.message || "Não foi possível aplicar os dados à audiência." }); }
+  });
+
   r.post("/processos/:id/prazos", requireLegalAccess, async (req, res) => {
     try {
       const user = (req as any).crmUser as CrmSession; const processoId = safeInt(req.params.id); const processo = await dbOne<any>("SELECT id FROM crm_processos_juridicos WHERE id = ?", [processoId]);
       const titulo = text(req.body.titulo, 255); const dataPrazo = isoDate(req.body.dataPrazo ?? req.body.data_prazo); const tipo = boundedSetValue(req.body.tipo, PRAZO_TYPES, "prazo_processual"); const responsavelId = safeInt(req.body.responsavelId ?? req.body.responsavel_id);
       const localAudiencia = tipo === "audiencia" ? nullableText(req.body.localAudiencia ?? req.body.local_audiencia, 500) : null;
       const linkAudiencia = tipo === "audiencia" ? audienceLink(req.body.linkAudiencia ?? req.body.link_audiencia) : null;
+      const horaAudiencia = tipo === "audiencia" ? audienceTime(req.body.horaAudiencia ?? req.body.hora_audiencia) : null;
       if (!processo || !titulo || !dataPrazo) return res.status(400).json({ error: "Processo, título e data do prazo são obrigatórios" });
       const responsable = responsavelId ? await dbOne<any>("SELECT id, name FROM crm_users WHERE id = ? AND active = 1", [responsavelId]) : null;
       if (responsavelId && !responsable) return res.status(400).json({ error: "Responsável inválido" });
       const duplicate = await dbOne<any>("SELECT id FROM crm_processos_juridicos_prazos WHERE processo_id = ? AND titulo = ? AND tipo = ? AND data_prazo = ? AND status = 'pendente'", [processoId, titulo, tipo, dataPrazo]);
       if (duplicate) return res.status(409).json({ error: tipo === "audiencia" ? "Esta audiência já está registrada como pendente neste processo." : "Este prazo já está registrado como pendente neste processo." });
-      const [result] = await getPool().execute("INSERT INTO crm_processos_juridicos_prazos (processo_id, titulo, tipo, data_prazo, responsavel_id, responsavel_nome, local_audiencia, link_audiencia, observacoes, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)", [processoId, titulo, tipo, dataPrazo, responsavelId || null, responsable?.name || null, localAudiencia, linkAudiencia, nullableText(req.body.observacoes, 4000), user.userId]);
+      const [result] = await getPool().execute("INSERT INTO crm_processos_juridicos_prazos (processo_id, titulo, tipo, data_prazo, responsavel_id, responsavel_nome, local_audiencia, link_audiencia, hora_audiencia, observacoes, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", [processoId, titulo, tipo, dataPrazo, responsavelId || null, responsable?.name || null, localAudiencia, linkAudiencia, horaAudiencia, nullableText(req.body.observacoes, 4000), user.userId]);
       await getPool().execute("UPDATE crm_processos_juridicos SET proximo_prazo = LEAST(COALESCE(proximo_prazo, '9999-12-31'), ?) WHERE id = ?", [dataPrazo, processoId]);
       const prazoId = Number((result as any).insertId);
-      await audit(user, tipo === "audiencia" ? "CREATE_HEARING" : "CREATE_DEADLINE", processoId, { prazoId, dataPrazo, tipo, responsavelId: responsavelId || null, localAudiencia, linkAudiencia: Boolean(linkAudiencia) });
+      await audit(user, tipo === "audiencia" ? "CREATE_HEARING" : "CREATE_DEADLINE", processoId, { prazoId, dataPrazo, tipo, responsavelId: responsavelId || null, localAudiencia, linkAudiencia: Boolean(linkAudiencia), horaAudiencia });
       res.status(201).json({ ok: true, id: prazoId, message: tipo === "audiencia" ? "Audiência registrada no processo e na Agenda Jurídica." : "Prazo registrado no processo e na Agenda Jurídica." });
     } catch (error: any) {
       console.error("[Jurídico] prazo", error);
-      res.status(error?.message?.includes("link de audiência válido") ? 400 : 500).json({ error: error?.message || "Não foi possível registrar o prazo" });
+      res.status(error?.message?.includes("link de audiência válido") || error?.message?.includes("horário da audiência") ? 400 : 500).json({ error: error?.message || "Não foi possível registrar o prazo" });
     }
   });
 

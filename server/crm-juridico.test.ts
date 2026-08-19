@@ -53,7 +53,7 @@ describe("módulo Jurídico persistente", () => {
     expect(source).toContain('function audienceLink(value: unknown)');
     expect(source).toContain("['http:', 'https:'].includes(parsed.protocol)");
     expect(source).toContain('link de audiência válido');
-    expect(source).toContain('res.status(error?.message?.includes("link de audiência válido") ? 400 : 500)');
+    expect(source).toContain('error?.message?.includes("link de audiência válido") || error?.message?.includes("horário da audiência") ? 400 : 500');
   });
 
   it("vincula apenas PDF à audiência e preserva o documento no Acervo", () => {
@@ -72,5 +72,33 @@ describe("módulo Jurídico persistente", () => {
     expect(hearingsClient).toContain('function isHearingSoon(value)');
     expect(hearingsClient).toContain('Audiência em até 7 dias');
     expect(hearingsClient).toContain('Em até 7 dias');
+  });
+
+  it("extrai dados de PDF de audiência somente com IA autorizada e revisão humana", () => {
+    expect(source).toContain('r.post("/processos/:id/prazos/:prazoId/ia/extrair-audiencia"');
+    expect(source).toContain('requireProcessAiAuthorization(processo, user)');
+    expect(source).toContain('confirmacaoRevisao !== true');
+    expect(source).toContain('ExtracaoDadosAudiencia');
+    expect(source).toContain('AI_HEARING_EXTRACTION');
+    expect(source).toContain('Não ofereça orientação jurídica');
+    expect(hearingsClient).toContain('Extrair sugestões do PDF desta audiência?');
+    expect(hearingsClient).toContain('Revisar dados extraídos');
+  });
+
+  it("aplica dados extraídos apenas após confirmação e mantém o próximo prazo coerente", () => {
+    expect(source).toContain('r.patch("/processos/:id/prazos/:prazoId/audiencia-extraida"');
+    expect(source).toContain('APPLY_HEARING_EXTRACTION');
+    expect(source).toContain('MIN(data_prazo) FROM crm_processos_juridicos_prazos');
+    expect(source).toContain('function audienceTime(value: unknown)');
+    expect(source).toContain('hora_audiencia');
+  });
+
+  it("oferece calendário interativo e modal de leitura rápida do PDF no detalhe da audiência", () => {
+    expect(hearingsClient).toContain('Calendário de audiências');
+    expect(hearingsClient).toContain('data-audiencia-calendar-prev');
+    expect(hearingsClient).toContain('data-audiencia-calendar-item');
+    expect(hearingsClient).toContain('juridico-preview-audiencia-pdf-modal');
+    expect(hearingsClient).toContain('Leitura rápida do documento contextual');
+    expect(hearingsClient).toContain('data-audiencia-preview-pdf');
   });
 });

@@ -225,6 +225,14 @@ Ao registrar uma audiência, selecione o tipo **Audiência**, informe o título 
 
 Audiências pendentes que ocorrerão nos próximos sete dias recebem destaque vermelho na Agenda Jurídica. É possível anexar um PDF de pauta, intimação ou ata no próprio registro. O arquivo é armazenado no Acervo, permanece vinculado ao processo e é exibido junto aos detalhes daquela audiência; a equipe não deve substituir a conferência do ato no canal oficial do tribunal.
 
+O painel da Agenda Jurídica inclui um **calendário mensal interativo**. Use as setas para mudar o mês e clique em uma audiência para consultar data, horário, responsável, local, sala virtual e PDFs contextuais. As audiências dos próximos sete dias permanecem identificadas em vermelho.
+
+Quando o processo estiver autorizado para IA assistiva e o usuário possuir perfil gestor ou jurídico, o botão **Extrair dados** aparece ao lado de cada PDF contextual. A IA pode sugerir título, data, horário, local, link e observações, mas não altera o registro automaticamente. Confira cada sugestão no documento original, marque a confirmação de revisão e só então aplique os dados. O sistema mantém auditoria da extração e da aplicação revisada.
+
+Para leitura imediata, use **Ler PDF** no detalhe da audiência ou no calendário. O modal abre o PDF contextual na própria tela e também oferece uma abertura controlada em nova aba.
+
+> **Importante:** a extração é apoio administrativo-documental. Ela não interpreta prazo, não produz orientação jurídica e não substitui a conferência no documento nem nos canais oficiais do tribunal.
+
 ---
 
 ## 10. Kanban

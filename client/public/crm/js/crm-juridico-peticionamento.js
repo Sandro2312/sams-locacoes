@@ -57,8 +57,10 @@
 
   function analysisRow(analysis) {
     const result = analysis.resultado || {};
-    const title = analysis.tipo === 'cronologia' ? 'Cronologia assistida' : 'Resumo documental assistido';
-    const summary = result.resumo || result.summary || 'Análise disponível para revisão.';
+    const title = analysis.tipo === 'cronologia' ? 'Cronologia assistida' : analysis.tipo === 'extracao_audiencia' ? 'Dados de audiência assistidos' : 'Resumo documental assistido';
+    const summary = analysis.tipo === 'extracao_audiencia'
+      ? [result.dataAudiencia ? `Data sugerida: ${result.dataAudiencia}` : '', result.horaAudiencia ? `horário ${result.horaAudiencia}` : '', result.localAudiencia ? `local: ${result.localAudiencia}` : ''].filter(Boolean).join(' · ') || 'Sugestões de audiência disponíveis para revisão.'
+      : (result.resumo || result.summary || 'Análise disponível para revisão.');
     return `<li class="rounded-lg border border-violet-100 bg-violet-50 p-3"><div class="flex flex-wrap items-center gap-2"><strong class="text-sm text-violet-950">${title}</strong><span class="text-xs text-violet-700">${dateLabel(analysis.created_at)} · ${escapeHtml(analysis.gerado_por_nome || 'Usuário')}</span></div><p class="mt-2 text-sm text-violet-900 break-words">${escapeHtml(summary)}</p><p class="mt-2 text-xs font-medium text-violet-700">Resultado assistivo: revise as fontes originais antes de usar.</p></li>`;
   }
 

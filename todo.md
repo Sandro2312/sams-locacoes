@@ -684,3 +684,15 @@
 - [x] Implementar formulário, alerta visual e acesso aos anexos no processo
 - [x] Validar alertas, PDFs, permissões, mobile e regressões jurídicas
 - [x] Atualizar documentação, cache-buster e checkpoint da evolução
+
+## Evolução — IA, Calendário e Leitura Rápida de Audiências (Ago/2026)
+- [x] Revisar os fluxos de documento, audiência, Agenda Jurídica e permissões para preservar sigilo
+- [x] Implementar extração assistida por IA de dados de PDF de audiência, com revisão humana antes do preenchimento
+- [x] Criar calendário interativo de audiências com alertas e navegação para o processo
+- [x] Implementar modal de visualização rápida do PDF contextual no detalhe da audiência
+- [x] Validar segurança, responsividade, sintaxe e testes de regressão; checkpoint pendente desta entrega
+
+## Correção — Login com Senha em Minúsculas (Ago/2026)
+- [x] Investigar a rejeição de senha válida em letras minúsculas sem expor credenciais
+- [x] Corrigir a validação de login preservando hash, sessão, bloqueios e compatibilidade mobile
+- [ ] Cobrir a regra em testes e confirmar o acesso no navegador
