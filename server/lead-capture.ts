@@ -2,7 +2,7 @@ import mysql from "mysql2/promise";
 import { ENV } from "./_core/env";
 
 export type SiteLeadCaptureInput = {
-  source: "site_contato" | "site_orcamento";
+  source: "site_contato" | "site_orcamento" | "blog_artigo";
   name: string;
   company?: string;
   email?: string;
@@ -71,8 +71,13 @@ async function resolveCommercialOwner(conn: mysql.PoolConnection) {
 }
 
 function buildSummary(input: SiteLeadCaptureInput) {
+  const sourceLabels = {
+    site_contato: "Formulário de contato no site",
+    site_orcamento: "Solicitação de orçamento no site",
+    blog_artigo: "Formulário contextual de artigo no blog",
+  } as const;
   const rows = [
-    `Origem: ${input.source === "site_orcamento" ? "Solicitação de orçamento no site" : "Formulário de contato no site"}`,
+    `Origem: ${sourceLabels[input.source]}`,
     input.company ? `Empresa: ${input.company}` : "",
     input.email ? `E-mail: ${input.email}` : "",
     input.phone ? `WhatsApp: ${input.phone}` : "",
@@ -160,7 +165,11 @@ export async function captureLeadFromSite(input: SiteLeadCaptureInput) {
     );
     let taskId = Number(openTaskRows?.[0]?.id || 0) || null;
     if (!taskId) {
-      const sourceLabel = input.source === "site_orcamento" ? "Orçamento do site" : "Contato do site";
+      const sourceLabel = input.source === "site_orcamento"
+        ? "Orçamento do site"
+        : input.source === "blog_artigo"
+          ? "Lead do Blog"
+          : "Contato do site";
       const [taskResult] = await conn.execute<any>(
         `INSERT INTO crm_tarefas
          (titulo, descricao, responsavel_id, status, prioridade, data_vencimento, modulo, referencia_id, created_by)

@@ -29,10 +29,18 @@ describe("Captação do site para Leads e Kanban", () => {
   });
 
   it("aciona a captação nos dois formulários públicos sem substituir seus registros originais", () => {
-    expect(routerSource).toContain('source: "site_contato"');
+    expect(routerSource).toContain("source: input.origemCaptacao");
+    expect(routerSource).toContain('default("site_contato")');
     expect(routerSource).toContain('source: "site_orcamento"');
     expect(routerSource).toContain("await db.insert(contatos).values");
     expect(routerSource).toContain("await db.insert(orcamentos).values");
+  });
+
+  it("identifica uma conversão pelo blog e cria tarefa comercial rastreável", () => {
+    expect(routerSource).toContain('z.enum(["site_contato", "blog_artigo"])');
+    expect(captureSource).toContain('"blog_artigo"');
+    expect(captureSource).toContain("Formulário contextual de artigo no blog");
+    expect(captureSource).toContain('"Lead do Blog"');
   });
 
   it("preserva movimentos de cards por atualização parcial e importa tarefas de captação", () => {

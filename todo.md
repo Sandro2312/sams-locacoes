@@ -663,3 +663,10 @@
 - [x] Adicionar autoria, filtros por categoria e dados estruturados ao blog
 - [x] Validar navegação, acessibilidade, SEO técnico e regressões
 - [x] Atualizar documentação e salvar checkpoint da evolução editorial
+
+## Evolução — Conversão e Engajamento do Blog (Ago/2026)
+- [x] Definir atribuição de origem do artigo, campos e regras de deduplicação do formulário
+- [x] Integrar formulário contextual à captação de leads e ao Kanban existente
+- [x] Adicionar artigos relacionados no rodapé de cada post
+- [x] Validar conversão, atribuição, acessibilidade, mobile e regressões
+- [x] Atualizar documentação e salvar checkpoint da evolução

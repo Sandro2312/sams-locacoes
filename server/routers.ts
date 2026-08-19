@@ -29,6 +29,7 @@ export const appRouter = router({
         tipoEvento: z.string().optional().default(""),
         metragem: z.string().optional().default(""),
         mensagem: z.string().optional().default(""),
+        origemCaptacao: z.enum(["site_contato", "blog_artigo"]).optional().default("site_contato"),
         utmSource: z.string().optional().default(""),
         utmMedium: z.string().optional().default(""),
         utmCampaign: z.string().optional().default(""),
@@ -48,7 +49,7 @@ export const appRouter = router({
         }
         try {
           await captureLeadFromSite({
-            source: "site_contato",
+            source: input.origemCaptacao,
             name: input.nome,
             company: input.empresa,
             email: input.email,
@@ -64,7 +65,7 @@ export const appRouter = router({
           console.warn("[Captação] O contato público foi salvo, mas a conversão em lead não foi concluída.");
         }
         await notifyOwner({
-          title: `Novo Contato - ${input.nome}`,
+          title: `${input.origemCaptacao === "blog_artigo" ? "Novo Lead do Blog" : "Novo Contato"} - ${input.nome}`,
           content: `**Nome:** ${input.nome}\n**Empresa:** ${input.empresa || "—"}\n**WhatsApp:** ${input.whatsapp}\n**E-mail:** ${input.email}\n**Tipo de Evento:** ${input.tipoEvento || "—"}\n**Metragem:** ${input.metragem || "—"}\n**Mensagem:** ${input.mensagem || "—"}`,
         });
         return { success: true };

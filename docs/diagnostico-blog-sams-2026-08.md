@@ -34,6 +34,23 @@ A validação visual no ambiente atualizado confirmou que os filtros de categori
 
 TypeScript foi validado sem erros e a cobertura específica do blog passou em **3 de 3 testes**: conteúdo para cada slug listado, CTA de orçamento e presença de autoria, filtros acessíveis e dados estruturados. A suíte completa registrou **112 de 114 testes aprovados**; as duas falhas restantes continuam restritas aos testes administrativos preexistentes de Contato e Orçamento, que esperam acesso sem a permissão administrativa hoje exigida e não se relacionam ao blog.
 
+## Validação de conversão e engajamento por artigo
+
+No ambiente atualizado, o artigo “Quanto Custa Montar um Stand em Feiras?” apresenta o formulário **“Quer transformar este planejamento em um stand?”** com os campos Nome, Empresa, E-mail e WhatsApp. A submissão envia a origem `blog_artigo`, a campanha com o slug e uma mensagem com o título/URL do post para o fluxo já existente de Contato, Leads, tarefa de captação e Kanban.
+
+A mesma página também exibe, após o conteúdo principal, três cartões em **“Artigos relacionados”** e um atalho para a biblioteca completa. A hierarquia de tela preserva CTA, formulário e leituras relacionadas antes do rodapé. O envio real não foi acionado durante a validação para não criar um lead de teste nos dados operacionais.
+
+### Medição operacional
+
+Cada envio do formulário do blog entra no mesmo fluxo de captação já utilizado pelo site. A origem registrada é `blog_artigo`; os campos UTM recebem `blog` como fonte, `artigo` como meio e o slug do conteúdo como campanha. A mensagem do lead também preserva o título e a URL do artigo. Dessa forma, a equipe pode localizar no CRM quais temas conduzem a um contato, enquanto a deduplicação por e-mail/telefone e a única tarefa aberta por lead permanecem ativas.
+
+| Elemento | Tratamento implantado |
+|---|---|
+| Formulário | Nome, Empresa, E-mail e WhatsApp, com rótulos, obrigatoriedade e estados de envio acessíveis. |
+| CRM/Kanban | Lead deduplicado, origem identificada e tarefa “Lead do Blog” para o responsável comercial configurado. |
+| Privacidade | Aviso de finalidade no formulário; nenhum lead de teste foi inserido durante a validação. |
+| Engajamento | Três artigos relacionados, priorizando a mesma categoria quando possível, além do acesso à biblioteca completa. |
+
 O conteúdo também traz experiência operacional real, sobretudo nos artigos de portfólio. Essa característica é importante porque as diretrizes do Google favorecem conteúdo útil, confiável e orientado às pessoas, com sinais de experiência e de autoria reconhecível. [1]
 
 Os CTAs existentes são claros e estão próximos do contexto de leitura. A prática é coerente com a recomendação de alinhar a oferta ao interesse do leitor e acompanhar desempenho por artigo ou grupo temático, em vez de buscar somente volume de visitas. [2]

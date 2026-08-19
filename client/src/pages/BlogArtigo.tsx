@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowLeft, Tag, ArrowRight } from "lucide-react";
 import { artigos } from "./Blog";
 import Breadcrumb from "@/components/Breadcrumb";
+import BlogLeadForm from "@/components/BlogLeadForm";
 
 const conteudos: Record<string, { html: string }> = {
   "maio-2026-desafios-conquistas-sams": {
@@ -272,6 +273,10 @@ export default function BlogArtigo() {
   }
 
   const outrosArtigos = artigos.filter((a) => a.slug !== slug).slice(0, 2);
+  const relatedArticles = artigos
+    .filter((candidate) => candidate.slug !== slug)
+    .sort((first, second) => Number(second.categoria === artigo.categoria) - Number(first.categoria === artigo.categoria))
+    .slice(0, 3);
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -387,6 +392,8 @@ export default function BlogArtigo() {
                   Solicitar Orçamento Gratuito
                 </button>
               </div>
+
+              <BlogLeadForm articleSlug={artigo.slug} articleTitle={artigo.titulo} />
             </motion.div>
 
             {/* Sidebar */}
@@ -443,6 +450,34 @@ export default function BlogArtigo() {
               </div>
             </motion.aside>
           </div>
+
+          <section aria-labelledby="related-articles-title" className="mt-16 border-t border-[oklch(0.90_0.01_240)] pt-12">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.75_0.14_75)]">Continue explorando</p>
+                <h2 id="related-articles-title" className="mt-2 font-display text-3xl font-bold text-[oklch(0.18_0.07_240)]">Artigos relacionados</h2>
+              </div>
+              <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-heading text-sm font-semibold text-[oklch(0.22_0.07_240)] hover:text-[oklch(0.75_0.14_75)]">
+                Ver todos os artigos <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="mt-7 grid grid-cols-1 gap-6 md:grid-cols-3">
+              {relatedArticles.map((related) => (
+                <button
+                  key={related.slug}
+                  onClick={() => navigate(`/blog/${related.slug}`)}
+                  className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.75_0.14_75)] focus-visible:ring-offset-4"
+                >
+                  <div className="aspect-[16/9] overflow-hidden bg-[oklch(0.18_0.07_240)]">
+                    <img src={related.imagem} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  <p className="mt-4 font-heading text-xs font-semibold uppercase tracking-wide text-[oklch(0.75_0.14_75)]">{related.categoria}</p>
+                  <h3 className="mt-2 font-display text-lg font-bold leading-tight text-[oklch(0.18_0.07_240)] transition-colors group-hover:text-[oklch(0.75_0.14_75)]">{related.titulo}</h3>
+                  <p className="mt-2 line-clamp-2 font-sans text-sm leading-relaxed text-[oklch(0.5_0.02_240)]">{related.resumo}</p>
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
 
