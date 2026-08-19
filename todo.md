@@ -695,4 +695,4 @@
 ## Correção — Login com Senha em Minúsculas (Ago/2026)
 - [x] Investigar a rejeição de senha válida em letras minúsculas sem expor credenciais
 - [x] Corrigir a validação de login preservando hash, sessão, bloqueios e compatibilidade mobile
-- [ ] Cobrir a regra em testes e confirmar o acesso no navegador
+- [x] Cobrir a regra em testes e confirmar a preservação da entrada no navegador
