@@ -14,6 +14,8 @@ export const artigos = [
     resumo: "Maio foi um mês desafiador e de grandes conquistas para a SAMS Locações. Montamos 5 stands em 3 feiras diferentes em São Paulo: BF Show, APAS Show e Feira Hospitalar. Conheça como nossa equipe superou todos os obstáculos com dedicação e profissionalismo.",
     categoria: "Portfólio",
     data: "26 de maio de 2026",
+    dataISO: "2026-05-26",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "6 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
     palavrasChave: ["maio 2026", "BF Show", "APAS Show", "Feira Hospitalar", "São Paulo", "stands personalizados"],
@@ -24,6 +26,8 @@ export const artigos = [
     resumo: "A SAMS Locações marcou presença na 43ª ExpoApras com 4 stands personalizados: Neugebauer, Aromasil, Popper e AlcaFoods. Confira os destaques de cada projeto no Expotrade Convention Center.",
     categoria: "Portfólio",
     data: "17 de abril de 2026",
+    dataISO: "2026-04-17",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "4 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
     palavrasChave: ["ExpoApras 2026", "stands supermercados", "Neugebauer", "Aromasil", "Popper", "AlcaFoods"],
@@ -34,6 +38,8 @@ export const artigos = [
     resumo: "Descubra os critérios essenciais para escolher a empresa certa para montar o stand da sua empresa em feiras e eventos corporativos. Experiência, portfólio e prazo são apenas o começo.",
     categoria: "Dicas",
     data: "28 de março de 2026",
+    dataISO: "2026-03-28",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "6 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/COIM-FIMEC2026_0b7df077.jpeg",
     palavrasChave: ["montadora de stands", "empresa de stands", "como escolher montadora"],
@@ -44,6 +50,8 @@ export const artigos = [
     resumo: "O mercado de stands evoluiu muito. Confira as principais tendências de design, materiais e tecnologia que vão dominar as feiras e eventos corporativos em 2026.",
     categoria: "Tendências",
     data: "25 de março de 2026",
+    dataISO: "2026-03-25",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "7 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/BIQ-FIMEC2026(2)_a2069f32.jpeg",
     palavrasChave: ["tendências stands 2026", "design de stands", "stands modernos"],
@@ -54,6 +62,8 @@ export const artigos = [
     resumo: "Entenda os fatores que influenciam o custo de montagem de stands para feiras: metragem, tipo de estrutura, serviços adicionais e como planejar seu orçamento com inteligência.",
     categoria: "Orçamento",
     data: "20 de março de 2026",
+    dataISO: "2026-03-20",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "8 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/Stickfran-FIMEC2026_9ae9b6ef.jpeg",
     palavrasChave: ["custo montagem stand", "preço stand feira", "orçamento stand"],
@@ -64,6 +74,8 @@ export const artigos = [
     resumo: "Calendário completo com as principais feiras e eventos corporativos do Brasil em 2026. Saiba onde e quando sua empresa deve marcar presença para gerar mais negócios.",
     categoria: "Eventos",
     data: "15 de março de 2026",
+    dataISO: "2026-03-15",
+    autor: "Equipe técnica da SAMS Locações",
     tempoLeitura: "5 min",
     imagem: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/stand-5_ea936cfd.jpg",
     palavrasChave: ["feiras de negócios 2026", "eventos corporativos Brasil", "calendário feiras 2026"],
@@ -72,6 +84,26 @@ export const artigos = [
 
 export default function Blog() {
   const [, navigate] = useLocation();
+  const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
+  const categorias = ["Todos", ...Array.from(new Set(artigos.map((artigo) => artigo.categoria)))];
+  const artigosVisiveis = categoriaAtiva === "Todos"
+    ? artigos
+    : artigos.filter((artigo) => artigo.categoria === categoriaAtiva);
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Blog SAMS Locações",
+    description: "Conteúdo especializado sobre montagem de stands, feiras e eventos corporativos.",
+    url: "https://samslocacoes.com.br/blog",
+    publisher: { "@type": "Organization", name: "SAMS Locações", url: "https://samslocacoes.com.br" },
+    blogPost: artigos.map((artigo) => ({
+      "@type": "BlogPosting",
+      headline: artigo.titulo,
+      url: `https://samslocacoes.com.br/blog/${artigo.slug}`,
+      datePublished: artigo.dataISO,
+      author: { "@type": "Organization", name: artigo.autor },
+    })),
+  };
 
   return (
     <>
@@ -79,6 +111,7 @@ export default function Blog() {
         <title>Blog | Dicas e Tendências sobre Montagem de Stands | SAMS Locações</title>
         <meta name="description" content="Artigos especializados sobre montagem de stands para feiras, tendências de design, orçamentos e eventos corporativos. Conteúdo da SAMS Locações." />
         <link rel="canonical" href="https://samslocacoes.com.br/blog" />
+        <script type="application/ld+json">{JSON.stringify(blogSchema)}</script>
       </Helmet>
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -113,15 +146,43 @@ export default function Blog() {
       {/* Grid de Artigos */}
       <section className="py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+          <div className="mb-10" aria-label="Filtrar por categoria">
+            <p className="font-heading text-xs font-bold uppercase tracking-[0.18em] text-[oklch(0.48_0.03_240)] mb-3">
+              Filtrar por categoria
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {categorias.map((categoria) => (
+                <button
+                  key={categoria}
+                  type="button"
+                  aria-pressed={categoriaAtiva === categoria}
+                  onClick={() => setCategoriaAtiva(categoria)}
+                  className={`rounded-full border px-4 py-2 text-sm font-heading font-semibold transition-colors ${categoriaAtiva === categoria
+                    ? "border-[oklch(0.75_0.14_75)] bg-[oklch(0.75_0.14_75)] text-[oklch(0.12_0.02_240)]"
+                    : "border-[oklch(0.87_0.01_240)] bg-white text-[oklch(0.36_0.04_240)] hover:border-[oklch(0.75_0.14_75)]"}`}
+                >
+                  {categoria}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {artigos.map((artigo, i) => (
+            {artigosVisiveis.map((artigo, i) => (
               <motion.article
                 key={artigo.slug}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="group cursor-pointer bg-white border border-[oklch(0.92_0.005_240)] rounded-sm overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="group cursor-pointer bg-white border border-[oklch(0.92_0.005_240)] rounded-sm overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[oklch(0.75_0.14_75)]"
+                role="link"
+                tabIndex={0}
                 onClick={() => navigate(`/blog/${artigo.slug}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/blog/${artigo.slug}`);
+                  }
+                }}
               >
                 {/* Imagem */}
                 <div className="aspect-[16/9] overflow-hidden">
@@ -158,6 +219,9 @@ export default function Blog() {
                   {/* Resumo */}
                   <p className="text-[oklch(0.5_0.02_240)] text-sm font-sans leading-relaxed mb-4">
                     {artigo.resumo}
+                  </p>
+                  <p className="text-xs font-sans text-[oklch(0.52_0.02_240)] mb-4">
+                    Por {artigo.autor}
                   </p>
 
                   {/* CTA */}

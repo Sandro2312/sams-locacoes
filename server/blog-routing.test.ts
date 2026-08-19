@@ -20,4 +20,13 @@ describe("rotas de artigos do blog", () => {
     expect(conteudo).toContain("Solicitar Orçamento Gratuito");
     expect(conteudo).toContain('navigate("/orcamento")');
   });
+
+  it("expõe autoria, filtros acessíveis e dados estruturados para os artigos", () => {
+    expect(catalogo).toContain("Equipe técnica da SAMS Locações");
+    expect(catalogo).toContain("Filtrar por categoria");
+    expect(catalogo).toContain("aria-pressed");
+    expect(catalogo).toContain('type="application/ld+json"');
+    expect(conteudo).toContain('type="application/ld+json"');
+    expect(conteudo).toContain("Conteúdo técnico revisado pela");
+  });
 });

@@ -657,3 +657,9 @@
 - [x] Corrigir a data da Expoagas no artigo de calendário, conforme documentação operacional atual
 - [x] Avaliar apresentação, SEO, conversão e aderência à estratégia comercial
 - [x] Documentar diagnóstico e prioridades recomendadas para evolução do blog
+
+## Evolução — Credibilidade e Navegação do Blog (Ago/2026)
+- [x] Definir autoria técnica, categorias e regras editoriais dos artigos publicados
+- [x] Adicionar autoria, filtros por categoria e dados estruturados ao blog
+- [x] Validar navegação, acessibilidade, SEO técnico e regressões
+- [x] Atualizar documentação e salvar checkpoint da evolução editorial

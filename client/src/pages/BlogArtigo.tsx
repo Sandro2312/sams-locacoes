@@ -272,6 +272,19 @@ export default function BlogArtigo() {
   }
 
   const outrosArtigos = artigos.filter((a) => a.slug !== slug).slice(0, 2);
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: artigo.titulo,
+    description: artigo.resumo,
+    image: artigo.imagem,
+    datePublished: artigo.dataISO,
+    dateModified: artigo.dataISO,
+    mainEntityOfPage: `https://samslocacoes.com.br/blog/${artigo.slug}`,
+    author: { "@type": "Organization", name: artigo.autor, url: "https://samslocacoes.com.br" },
+    publisher: { "@type": "Organization", name: "SAMS Locações", url: "https://samslocacoes.com.br" },
+    keywords: artigo.palavrasChave.join(", "),
+  };
 
   return (
     <>
@@ -284,6 +297,8 @@ export default function BlogArtigo() {
         <meta property="og:image" content={artigo.imagem} />
         <meta property="og:url" content={`https://samslocacoes.com.br/blog/${artigo.slug}`} />
         <meta property="og:type" content="article" />
+        <meta property="article:published_time" content={artigo.dataISO} />
+        <script type="application/ld+json">{JSON.stringify(articleSchema)}</script>
       </Helmet>
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -327,6 +342,9 @@ export default function BlogArtigo() {
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl text-white font-bold leading-tight">
               {artigo.titulo}
             </h1>
+            <p className="mt-4 text-sm font-sans text-white/70">
+              Conteúdo técnico revisado pela {artigo.autor}
+            </p>
           </motion.div>
         </div>
       </section>

@@ -28,6 +28,12 @@ Entretanto, a revisão encontrou um defeito importante de disponibilidade: o art
 
 O blog trata de dúvidas diretamente relacionadas à decisão de compra: escolha de montadora, orçamento, tendências, calendário de eventos e casos de portfólio. Essa escolha é adequada para uma empresa B2B de serviços, porque combina conteúdo de descoberta com páginas capazes de conduzir a uma solicitação de orçamento.
 
+A validação visual no ambiente atualizado confirmou que os filtros de categoria reduzem a grade de forma correta — por exemplo, o filtro **Orçamento** mostra somente o guia de custos correspondente — e que os cartões exibem a autoria editorial. A navegação por teclado também foi incluída nos cartões de artigo para preservar o acesso sem mouse.
+
+## Validação da evolução editorial
+
+TypeScript foi validado sem erros e a cobertura específica do blog passou em **3 de 3 testes**: conteúdo para cada slug listado, CTA de orçamento e presença de autoria, filtros acessíveis e dados estruturados. A suíte completa registrou **112 de 114 testes aprovados**; as duas falhas restantes continuam restritas aos testes administrativos preexistentes de Contato e Orçamento, que esperam acesso sem a permissão administrativa hoje exigida e não se relacionam ao blog.
+
 O conteúdo também traz experiência operacional real, sobretudo nos artigos de portfólio. Essa característica é importante porque as diretrizes do Google favorecem conteúdo útil, confiável e orientado às pessoas, com sinais de experiência e de autoria reconhecível. [1]
 
 Os CTAs existentes são claros e estão próximos do contexto de leitura. A prática é coerente com a recomendação de alinhar a oferta ao interesse do leitor e acompanhar desempenho por artigo ou grupo temático, em vez de buscar somente volume de visitas. [2]
