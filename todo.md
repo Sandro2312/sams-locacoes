@@ -736,3 +736,9 @@
 - [x] Corrigir a sincronização para exibir clientes recém-cadastrados em Contas a Receber e Despesas
 - [x] Implementar busca acessível e cadastro contextual de cliente sem perder o lançamento em edição
 - [x] Validar persistência, navegação, desktop/mobile, sintaxe e regressões; checkpoint salvo
+
+## Proposta — Assistente Guiado de Fechamento por Stand (Ago/2026)
+- [x] Mapear etapas e fontes atuais para receitas, parcelas, despesas, rateios, projetos e resultado por stand
+- [x] Definir checklist guiado, estados de pendência e regras de parcelamento sem lançamento automático
+- [x] Definir integração supervisionada com Veruska, permissões e trilha de auditoria
+- [x] Documentar o roteiro de implementação, riscos e critérios de aceite para decisão da gestão
