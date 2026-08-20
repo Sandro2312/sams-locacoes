@@ -765,3 +765,8 @@
 - [x] Exibir stands vinculados ao cliente encontrado e preservar o acesso direto ao checklist
 - [x] Criar atalho contextual para novo Projeto de Stand quando o cliente não possuir vínculo
 - [x] Validar pesquisa, criação, permissões, mobile, sintaxe e regressões; checkpoint salvo
+
+## Correção — Ação de Criar Stand no Guia (Ago/2026)
+- [x] Identificar por que o cliente sem stand não exibe ação de continuidade
+- [x] Renderizar e vincular o botão de criação contextual de Projeto de Stand
+- [x] Validar abertura, pré-preenchimento, retorno ao Financeiro, mobile e regressões; checkpoint pendente

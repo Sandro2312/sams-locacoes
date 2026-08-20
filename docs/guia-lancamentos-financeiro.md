@@ -33,3 +33,7 @@ A busca anterior tinha como fonte apenas Projetos de Stand. Por isso, ao digitar
 O guia agora consulta a base completa de Clientes em blocos, além da lista de Projetos de Stand. Quando encontra o cliente sem vínculo, apresenta o bloco **Cliente encontrado, mas sem Projeto de Stand vinculado** e oferece a ação **Criar Projeto de Stand para este cliente**. O formulário abre com o cliente já selecionado; a equipe informa o evento, o nome/referência do stand e o centro de custo antes de salvar. Após a criação, o usuário retorna ao Guia de Lançamentos no Financeiro e pode abrir o checklist do stand recém-criado.
 
 Esse passo preserva a regra operacional: os lançamentos continuam vinculados a um Projeto de Stand, mas a descoberta inicial parte do cadastro real de Clientes, não apenas de projetos que já existiam.
+
+## Ação obrigatória de continuidade
+
+Após a validação em uso real, o bloco de cliente sem stand recebeu uma ação visual independente e sempre disponível: **“Continuar: criar Projeto de Stand”**. Ela não depende do botão de abertura do checklist nem de um projeto já existente. Ao selecionar o cliente, o botão abre o cadastro contextual; caso nenhuma empresa esteja selecionada, o CRM informa a pendência e direciona o foco para o seletor. O botão foi desenhado dentro de um quadro próprio para permanecer perceptível em telas desktop e mobile.

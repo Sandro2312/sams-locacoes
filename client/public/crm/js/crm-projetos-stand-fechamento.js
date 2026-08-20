@@ -101,7 +101,7 @@
         <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Clientes e Projetos de Stand...</p></div>
         <label for="finance-guide-project-select" class="mt-5 block text-sm font-semibold text-slate-700">Projeto de Stand encontrado</label><select id="finance-guide-project-select" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-select disabled><option value="">Carregando projetos...</option></select>
         <button type="button" data-finance-guide-action="open" disabled class="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-list-check mr-2"></i>Abrir guia do stand selecionado</button>
-        <div id="finance-guide-client-without-project" class="mt-4 hidden rounded-lg border border-amber-200 bg-amber-50 p-4"><p class="text-sm font-semibold text-amber-950">Cliente encontrado, mas sem Projeto de Stand vinculado.</p><p class="mt-1 text-xs leading-5 text-amber-900">Crie o Projeto de Stand para definir Evento, nome do stand e centro de custo. Depois, o guia ficará disponível para os lançamentos.</p><label for="finance-guide-client-select" class="mt-3 block text-xs font-semibold text-amber-950">Cliente encontrado</label><select id="finance-guide-client-select" class="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-client-select></select><button type="button" data-finance-guide-action="create-project" disabled class="mt-3 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-plus mr-2"></i>Criar Projeto de Stand para este cliente</button></div>
+        <div id="finance-guide-client-without-project" class="mt-4 hidden rounded-lg border border-amber-200 bg-amber-50 p-4"><p class="text-sm font-semibold text-amber-950">Cliente encontrado, mas sem Projeto de Stand vinculado.</p><p class="mt-1 text-xs leading-5 text-amber-900">Para continuar os lançamentos, crie primeiro o Projeto de Stand com Evento, nome do stand e centro de custo.</p><label for="finance-guide-client-select" class="mt-3 block text-xs font-semibold text-amber-950">Cliente encontrado</label><select id="finance-guide-client-select" class="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-client-select></select><div class="mt-3 rounded-lg border border-amber-300 bg-white p-3"><p class="text-xs leading-5 text-amber-950">Próximo passo obrigatório: criar o Projeto de Stand vinculado à empresa selecionada.</p><button id="finance-guide-create-project" type="button" data-finance-guide-action="create-project" class="mt-3 w-full rounded-lg bg-amber-700 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"><i class="fas fa-plus mr-2"></i>Continuar: criar Projeto de Stand</button></div></div>
         <div class="mt-5 grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3"><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">1. Venda e parcelas</p><p class="mt-1 text-xs text-slate-600">Conferir orçamento aprovado e cadastrar recebimentos parcelados.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">2. Custos e rateios</p><p class="mt-1 text-xs text-slate-600">Registrar custos por categoria e revisar alocações compartilhadas.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">3. Revisão humana</p><p class="mt-1 text-xs text-slate-600">Classificar pendências e documentar divergências antes de fechar.</p></div></div>
       </div>
     </section>`;
@@ -124,13 +124,16 @@
     if (!term || !withoutProject.length) {
       box.classList.add('hidden');
       select.innerHTML = '<option value="">Nenhum cliente selecionado</option>';
-      create.disabled = true;
+      create.dataset.clientId = '';
+      create.setAttribute('aria-disabled', 'true');
       return;
     }
     const selected = withoutProject.length === 1 ? String(withoutProject[0].id) : String(select.value || '');
     select.innerHTML = `<option value="">Selecione o cliente para criar o stand</option>${withoutProject.map((client) => `<option value="${esc(client.id)}">${esc(clientLabel(client))}</option>`).join('')}`;
     select.value = withoutProject.some((client) => String(client.id) === selected) ? selected : '';
-    create.disabled = !select.value;
+    create.dataset.clientId = select.value || '';
+    create.setAttribute('aria-disabled', select.value ? 'false' : 'true');
+    create.classList.toggle('opacity-60', !select.value);
     box.classList.remove('hidden');
   }
   function paintFinanceProjects(query = '') {
@@ -174,7 +177,11 @@
       }
       if (clientSelect) {
         const create = document.querySelector('[data-finance-guide-action="create-project"]');
-        if (create) create.disabled = !clientSelect.value;
+        if (create) {
+          create.dataset.clientId = clientSelect.value || '';
+          create.setAttribute('aria-disabled', clientSelect.value ? 'false' : 'true');
+          create.classList.toggle('opacity-60', !clientSelect.value);
+        }
       }
     });
     document.addEventListener('click', (event) => {
@@ -186,10 +193,19 @@
       }
       if (action.dataset.financeGuideAction === 'create-project') {
         const clientSelect = document.querySelector('[data-finance-guide-client-select]');
-        const client = financeClients.find((item) => String(item.id) === String(clientSelect?.value || ''));
-        if (!client) return;
+        const selectedClientId = action.dataset.clientId || clientSelect?.value || '';
+        const client = financeClients.find((item) => String(item.id) === String(selectedClientId));
+        if (!client) {
+          message('Selecione o cliente antes de criar o Projeto de Stand.', 'error');
+          clientSelect?.focus();
+          return;
+        }
         window.__samsFinanceGuidePendingClientId = String(client.id);
-        window.ProjetosStandModule?.openForm?.({
+        if (!window.ProjetosStandModule?.openForm) {
+          message('O cadastro de Projeto de Stand ainda está carregando. Aguarde um instante e tente novamente.', 'error');
+          return;
+        }
+        window.ProjetosStandModule.openForm({
           cliente_id: client.id,
           clienteId: client.id,
           cliente_nome: clientLabel(client),
