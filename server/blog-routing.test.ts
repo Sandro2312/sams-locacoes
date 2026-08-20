@@ -34,6 +34,14 @@ describe("rotas de artigos do blog", () => {
     expect(conteudo).toContain('Marcas que aparecem em produtos, ilhas ou displays compartilhados não são tratadas como clientes independentes');
   });
 
+  it("incorpora o vídeo otimizado da Expoagas com controles e alternativa acessível", () => {
+    expect(conteudo).toContain('/manus-storage/expoagas-2026-stands-sams_200b1d06.mp4');
+    expect(conteudo).toContain('controls playsinline preload="metadata"');
+    expect(conteudo).toContain('poster="/manus-storage/expoagas-neugebauer_f12fc1e1.jpg"');
+    expect(conteudo).toContain('expoagas-video-description');
+    expect(conteudo).toContain('Abrir o vídeo em uma nova aba');
+  });
+
   it("preserva o CTA de orçamento na leitura individual", () => {
     expect(conteudo).toContain("Solicitar Orçamento Gratuito");
     expect(conteudo).toContain('navigate("/orcamento")');

@@ -711,3 +711,9 @@
 ## Encerramento — Instagram Expoagas 2026 (Ago/2026)
 - [x] Interromper o fluxo externo e confirmar que nenhum conteúdo foi publicado
 - [x] Preservar o rascunho local e documentar o bloqueio de autenticação sem armazenar credenciais
+
+## Publicação — Vídeo Expoagas no Blog (Ago/2026)
+- [x] Avaliar o vídeo autorizado e definir conversão web compatível com desktop e mobile
+- [x] Otimizar a mídia, preservar o original fora do projeto e enviar a versão web para a CDN
+- [x] Incorporar player acessível com capa, controles e alternativa textual no artigo da Expoagas
+- [x] Validar reprodução, responsividade, carregamento e regressões antes do checkpoint

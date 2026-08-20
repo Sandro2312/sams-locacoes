@@ -25,3 +25,9 @@ A página oficial da AGAS informa que a Expoagas 2026 ocorre de 18 a 20 de agost
 ## Validação de publicação
 
 A página pública `/blog/expoagas-2026-stands-sams-locacoes` foi carregada no ambiente de desenvolvimento após a atualização. O título, os sete clientes confirmados, as três imagens editoriais e o link oficial foram renderizados; o console do navegador não apresentou erros.
+
+## Vídeo incorporado
+
+O vídeo original autorizado, em formato MOV/HEVC, possui 96,25 segundos, resolução de 1080 × 1920 e aproximadamente 435 MB. Para a web, foi convertida uma cópia MP4/H.264 de 720 × 1280 com áudio AAC, carregamento progressivo e aproximadamente 15 MB. O arquivo original não foi alterado nem incluído no projeto web.
+
+O player foi inserido na cobertura com capa estática, controles nativos, reprodução sob demanda, suporte `playsinline` para mobile, descrição textual e link alternativo para abertura em nova aba. A página pública foi conferida visualmente após a alteração: o player exibe a capa, a duração de 1:36 e os controles de reprodução em layout responsivo.

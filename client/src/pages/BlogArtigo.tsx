@@ -20,6 +20,17 @@ const conteudos: Record<string, { html: string }> = {
         <figcaption class="px-4 py-3 text-sm text-slate-200">Registro audiovisual da SAMS Locações: stand da Neugebauer na Expoagas 2026.</figcaption>
       </figure>
 
+      <h2>Assista ao registro da montagem</h2>
+      <p>O vídeo reúne imagens dos stands finalizados no pavilhão. A reprodução inicia somente quando você aciona o controle, preservando dados móveis e permitindo acompanhar o conteúdo no seu ritmo.</p>
+      <figure class="my-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+        <video class="mx-auto block max-h-[760px] w-auto max-w-full bg-slate-900" controls playsinline preload="metadata" poster="/manus-storage/expoagas-neugebauer_f12fc1e1.jpg" aria-describedby="expoagas-video-description">
+          <source src="/manus-storage/expoagas-2026-stands-sams_200b1d06.mp4" type="video/mp4" />
+          Seu navegador não oferece suporte à reprodução de vídeo. Use o link alternativo abaixo para abrir o arquivo.
+        </video>
+        <figcaption class="px-4 py-3 text-sm text-slate-200">Registro audiovisual de 1 minuto e 36 segundos dos stands finalizados pela SAMS Locações na Expoagas 2026.</figcaption>
+      </figure>
+      <p id="expoagas-video-description" class="text-sm text-slate-600">O registro mostra stands de Neugebauer, Urano, Sandero, Ceasa, Alcafoods, Beer Bev e MM Hortifrutigranjeiros. <a href="/manus-storage/expoagas-2026-stands-sams_200b1d06.mp4" target="_blank" rel="noopener noreferrer">Abrir o vídeo em uma nova aba</a>.</p>
+
       <h2>Clientes confirmados na Expoagas 2026</h2>
       <ul>
         <li><strong>Neugebauer:</strong> espaço de grande porte com nichos iluminados para produtos, área de convivência e elemento interativo da linha mu-mu.</li>
