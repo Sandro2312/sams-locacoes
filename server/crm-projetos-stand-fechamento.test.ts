@@ -50,7 +50,7 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(formsSource).toContain('window.__samsGuiaStandDefaults?.transacoes');
     expect(receivableSource).toContain('window.__samsGuiaStandDefaults?.contasReceber');
     expect(indexSource).toContain('crm-projetos-stand.js?v=1787251200');
-    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787252100');
+    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787252500');
   });
 
   it("expõe o guia como entrada principal no Financeiro com busca de stand", () => {
@@ -66,6 +66,8 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(guideUiSource).toContain('/api/crm/clientes');
     expect(guideUiSource).toContain('Continuar: criar Projeto de Stand');
     expect(guideUiSource).toContain('data-finance-guide-action="create-project"');
+    expect(guideUiSource).toContain('role="button"');
+    expect(guideUiSource).toContain('display:flex!important');
     expect(guideUiSource).toContain('Selecione o cliente antes de criar o Projeto de Stand.');
     expect(guideUiSource).toContain('sams:projeto-stand-salvo');
     expect(projectUiSource).toContain('sams:projeto-stand-salvo');

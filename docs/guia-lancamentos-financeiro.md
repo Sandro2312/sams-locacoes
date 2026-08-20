@@ -37,3 +37,5 @@ Esse passo preserva a regra operacional: os lançamentos continuam vinculados a 
 ## Ação obrigatória de continuidade
 
 Após a validação em uso real, o bloco de cliente sem stand recebeu uma ação visual independente e sempre disponível: **“Continuar: criar Projeto de Stand”**. Ela não depende do botão de abertura do checklist nem de um projeto já existente. Ao selecionar o cliente, o botão abre o cadastro contextual; caso nenhuma empresa esteja selecionada, o CRM informa a pendência e direciona o foco para o seletor. O botão foi desenhado dentro de um quadro próprio para permanecer perceptível em telas desktop e mobile.
+
+Como alguns estilos globais do CRM suprimiram a renderização do controle original, a chamada foi convertida em um link com semântica de botão, estilos explícitos de visibilidade e o mesmo tratamento de clique delegado. Assim, ela preserva acessibilidade por teclado, mantém a ação contextual e não depende do comportamento visual padrão de botões inseridos dinamicamente.

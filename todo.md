@@ -770,3 +770,8 @@
 - [x] Identificar por que o cliente sem stand não exibe ação de continuidade
 - [x] Renderizar e vincular o botão de criação contextual de Projeto de Stand
 - [x] Validar abertura, pré-preenchimento, retorno ao Financeiro, mobile e regressões; checkpoint salvo
+
+## Correção — Controle de Continuidade Suprimido (Ago/2026)
+- [x] Identificar a regra que remove ou oculta a ação de criação no CRM publicado
+- [x] Substituir a ação por uma chamada visual isolada e vinculada à criação contextual de stand
+- [x] Validar renderização, clique, pré-preenchimento, mobile e regressões; checkpoint pendente
