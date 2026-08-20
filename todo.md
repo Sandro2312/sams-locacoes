@@ -729,4 +729,4 @@
 - [x] Criar metas e fechamento pós-evento sem alterar dados históricos
 - [x] Implementar APIs auditáveis de metas, consolidação e revisão pós-evento
 - [x] Construir painel responsivo com resultado comercial, financeiro e operacional por evento
-- [x] Validar cálculos, permissões, desktop/mobile e regressões; checkpoint pendente
+- [x] Validar cálculos, permissões, desktop/mobile e regressões; checkpoint salvo
