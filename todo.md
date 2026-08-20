@@ -696,3 +696,14 @@
 - [x] Investigar a rejeição de senha válida em letras minúsculas sem expor credenciais
 - [x] Corrigir a validação de login preservando hash, sessão, bloqueios e compatibilidade mobile
 - [x] Cobrir a regra em testes e confirmar a preservação da entrada no navegador
+
+## Atualização — Expoagas: Vídeo, Blog e Instagram (Ago/2026)
+- [x] Analisar o vídeo recebido e identificar clientes, stands e evidências utilizáveis
+- [x] Verificar clientes e dados públicos da Expoagas antes de citar nomes no site
+- [x] Atualizar o blog com a cobertura verificada da Expoagas e os créditos adequados
+- [x] Preparar texto e mídia recomendada para Instagram, aguardando confirmação antes da publicação
+- [x] Validar a atualização do site, documentar fontes e preparar checkpoint
+
+## Confirmação editorial — Clientes Expoagas 2026 (Ago/2026)
+- [x] Confirmar pelo usuário os sete clientes: Neugebauer, Alcafoods, MM Hortifrutigranjeiros, Sandero, Beer Bev, Urano e Ceasa
+- [x] Remover referências a expositores não confirmados e alinhar toda a cobertura à lista oficial

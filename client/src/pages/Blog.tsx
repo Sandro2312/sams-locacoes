@@ -9,6 +9,18 @@ import { useLocation } from "wouter";
 
 export const artigos = [
   {
+    slug: "expoagas-2026-stands-sams-locacoes",
+    titulo: "Expoagas 2026: 7 stands finalizados pela SAMS Locações em Porto Alegre",
+    resumo: "O registro audiovisual da SAMS na Expoagas 2026 apresenta os stands de Neugebauer, Urano, Sandero, Ceasa, Alcafoods, Beer Bev e MM Hortifrutigranjeiros. Veja os destaques da montagem no Centro de Eventos FIERGS.",
+    categoria: "Portfólio",
+    data: "19 de agosto de 2026",
+    dataISO: "2026-08-19",
+    autor: "Equipe técnica da SAMS Locações",
+    tempoLeitura: "5 min",
+    imagem: "/manus-storage/expoagas-neugebauer_f12fc1e1.jpg",
+    palavrasChave: ["Expoagas 2026", "stands Expoagas", "Neugebauer", "Urano", "Sandero", "Alcafoods", "Beer Bev", "Ceasa", "MM Hortifrutigranjeiros", "montagem de stands Porto Alegre"],
+  },
+  {
     slug: "maio-2026-desafios-conquistas-sams",
     titulo: "Maio 2026: Desafios Superados e Conquistas da SAMS Locações em 3 Feiras de SP",
     resumo: "Maio foi um mês desafiador e de grandes conquistas para a SAMS Locações. Montamos 5 stands em 3 feiras diferentes em São Paulo: BF Show, APAS Show e Feira Hospitalar. Conheça como nossa equipe superou todos os obstáculos com dedicação e profissionalismo.",

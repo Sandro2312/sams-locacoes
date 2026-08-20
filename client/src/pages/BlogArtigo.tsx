@@ -9,6 +9,50 @@ import Breadcrumb from "@/components/Breadcrumb";
 import BlogLeadForm from "@/components/BlogLeadForm";
 
 const conteudos: Record<string, { html: string }> = {
+  "expoagas-2026-stands-sams-locacoes": {
+    html: `
+      <p>A <strong>Expoagas 2026</strong> acontece de 18 a 20 de agosto no Centro de Eventos FIERGS, em Porto Alegre, reunindo fornecedores, varejistas e parceiros do setor supermercadista. No registro audiovisual fornecido pela SAMS Locações, a equipe apresenta sete stands finalizados para clientes da feira.</p>
+
+      <p>Para preservar a precisão dos créditos, a lista abaixo foi <strong>confirmada pela SAMS Locações</strong>. Marcas que aparecem em produtos, ilhas ou displays compartilhados não são tratadas como clientes independentes nesta publicação.</p>
+
+      <figure class="my-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+        <img src="/manus-storage/expoagas-neugebauer_f12fc1e1.jpg" alt="Stand da Neugebauer finalizado na Expoagas 2026, com área de convivência e exposição de produtos" class="block h-auto w-full" loading="lazy" />
+        <figcaption class="px-4 py-3 text-sm text-slate-200">Registro audiovisual da SAMS Locações: stand da Neugebauer na Expoagas 2026.</figcaption>
+      </figure>
+
+      <h2>Clientes confirmados na Expoagas 2026</h2>
+      <ul>
+        <li><strong>Neugebauer:</strong> espaço de grande porte com nichos iluminados para produtos, área de convivência e elemento interativo da linha mu-mu.</li>
+        <li><strong>Urano:</strong> composição corporativa para a apresentação de balanças eletrônicas, balcões de demonstração e painel digital.</li>
+        <li><strong>Sandero:</strong> projeto de visual merchandising com painéis iluminados e exposição organizada de itens de limpeza.</li>
+        <li><strong>Ceasa:</strong> ambiente de linguagem natural, com vegetação suspensa e exposição de hortifrúti em elementos que remetem a caixotes.</li>
+        <li><strong>Alcafoods:</strong> stand com foco na linha de cereais, prateleiras iluminadas e área objetiva de atendimento.</li>
+        <li><strong>Beer Bev:</strong> espaço inspirado em conveniência, com geladeiras expositoras e prateleiras para bebidas e outros produtos.</li>
+        <li><strong>MM Hortifrutigranjeiros:</strong> montagem com identidade verde e azul e apresentação de frutas e legumes em prateleiras de madeira.</li>
+      </ul>
+
+      <h2>O que cada projeto precisou resolver</h2>
+      <p>Apesar de compartilharem o mesmo pavilhão, os projetos apresentam objetivos muito diferentes: relacionamento, demonstração técnica, exposição intensiva de produtos, circulação, atendimento e fortalecimento de marca. A montagem precisa traduzir esses objetivos em uma estrutura funcional, compatível com o espaço contratado e pronta no prazo de abertura da feira.</p>
+
+      <figure class="my-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+        <img src="/manus-storage/expoagas-sandero_e75afa8a.jpg" alt="Stand da Sandero finalizado na Expoagas 2026, com exposição de produtos de limpeza" class="block h-auto w-full" loading="lazy" />
+        <figcaption class="px-4 py-3 text-sm text-slate-200">Identidade de marca e organização de produtos no stand da Sandero.</figcaption>
+      </figure>
+
+      <p>O vídeo também registra como iluminação, mobiliário, elementos naturais, painéis de comunicação e vitrines podem apoiar o trabalho comercial de cada expositor. Para a SAMS, esse resultado é fruto de uma cadeia coordenada de briefing, projeto, produção, logística, montagem e conferência final no pavilhão.</p>
+
+      <h2>Expoagas 2026</h2>
+      <p>Promovida pela Associação Gaúcha de Supermercados (AGAS), a Expoagas é realizada no Centro de Eventos FIERGS. A programação oficial informa abertura da feira de negócios às 11h e encerramento às 20h nos dias 18, 19 e 20 de agosto. <a href="https://agas.com.br/expoagas" target="_blank" rel="noopener noreferrer">Consulte a programação e as informações oficiais da Expoagas 2026</a>.</p>
+
+      <figure class="my-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
+        <img src="/manus-storage/expoagas-mm_7a58fb3c.jpg" alt="Stand da MM Hortifrutigranjeiros finalizado na Expoagas 2026" class="block h-auto w-full" loading="lazy" />
+        <figcaption class="px-4 py-3 text-sm text-slate-200">Stand da MM Hortifrutigranjeiros registrado no encerramento do vídeo.</figcaption>
+      </figure>
+
+      <h2>Planeje seu próximo stand</h2>
+      <p>Se sua empresa participará de uma feira de negócios, comece o planejamento com antecedência. A SAMS Locações atende projetos em todo o Brasil, com montagem, locação e soluções personalizadas para transformar a presença da sua marca em experiência para o público.</p>
+    `,
+  },
   "maio-2026-desafios-conquistas-sams": {
     html: `
       <p>Maio de 2026 foi um período de trabalho intenso para a <strong>SAMS Locações</strong>. A equipe participou de três feiras em São Paulo — BF Show, APAS Show e Feira Hospitalar —, com entregas que exigiram planejamento técnico, logística e acompanhamento próximo no pavilhão.</p>

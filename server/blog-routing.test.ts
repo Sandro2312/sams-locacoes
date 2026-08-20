@@ -10,10 +10,28 @@ describe("rotas de artigos do blog", () => {
   const slugs = [...catalogo.matchAll(/slug:\s*"([^"]+)"/g)].map((match) => match[1]);
 
   it("mantém conteúdo individual para cada artigo exibido na listagem", () => {
-    expect(slugs).toHaveLength(6);
+    expect(slugs).toHaveLength(7);
     for (const slug of slugs) {
       expect(conteudo).toContain(`"${slug}": {`);
     }
+  });
+
+  it("mantém a cobertura da Expoagas vinculada aos registros audiovisuais, ao evento oficial e aos sete clientes confirmados", () => {
+    expect(catalogo).toContain('expoagas-2026-stands-sams-locacoes');
+    expect(catalogo).toContain('/manus-storage/expoagas-neugebauer_f12fc1e1.jpg');
+    expect(catalogo).toContain('7 stands finalizados');
+    expect(conteudo).toContain('Clientes confirmados na Expoagas 2026');
+    expect(conteudo).toContain('confirmada pela SAMS Locações');
+    expect(conteudo).toContain('Neugebauer');
+    expect(conteudo).toContain('Alcafoods');
+    expect(conteudo).toContain('MM Hortifrutigranjeiros');
+    expect(conteudo).toContain('Sandero');
+    expect(conteudo).toContain('Beer Bev');
+    expect(conteudo).toContain('Urano');
+    expect(conteudo).toContain('Ceasa');
+    expect(conteudo).not.toContain('Tradição de Minas:</strong> stand de esquina');
+    expect(conteudo).toContain('https://agas.com.br/expoagas');
+    expect(conteudo).toContain('Marcas que aparecem em produtos, ilhas ou displays compartilhados não são tratadas como clientes independentes');
   });
 
   it("preserva o CTA de orçamento na leitura individual", () => {
