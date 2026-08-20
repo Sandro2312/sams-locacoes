@@ -742,3 +742,10 @@
 - [x] Definir checklist guiado, estados de pendência e regras de parcelamento sem lançamento automático
 - [x] Definir integração supervisionada com Veruska, permissões e trilha de auditoria
 - [x] Documentar o roteiro de implementação, riscos e critérios de aceite para decisão da gestão
+
+## Implementação — Guia de Fechamento por Stand V1 (Ago/2026)
+- [x] Revisar a integração entre Projeto de Stand, Orçamento Técnico, lançamentos e fluxo de abertura de formulários
+- [x] Criar checklist persistente e não destrutivo de receitas, custos, pendências e revisão por stand
+- [x] Implementar APIs auditáveis de consulta, atualização do checklist e consolidação de divergências
+- [x] Construir guia responsivo com atalhos pré-preenchidos para Contas a Receber e Despesas
+- [x] Validar permissões, integridade de dados, desktop/mobile, sintaxe e regressões; checkpoint pendente

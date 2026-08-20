@@ -120,6 +120,13 @@
       "when": 1787235819470,
       "tag": "0016_giant_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1787243914594,
+      "tag": "0017_tiny_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

@@ -4534,7 +4534,13 @@ ENTREGA
 
     // Formulário Financeiro (Transações)
     getFinanceiroForm(id = null) {
-        const transacao = id ? ModuleSystem.data.transacoes?.find(t => String(t.id) === String(id)) : {};
+        const guiaContexto = !id && window.__samsGuiaStandDefaults?.transacoes
+            ? { ...window.__samsGuiaStandDefaults.transacoes }
+            : null;
+        if (guiaContexto) {
+            try { delete window.__samsGuiaStandDefaults.transacoes; } catch {}
+        }
+        const transacao = id ? ModuleSystem.data.transacoes?.find(t => String(t.id) === String(id)) : (guiaContexto || {});
         const formId = `transacao_${id || 'new'}`;
         const vencimento = (transacao?.data || '').slice(0, 10);
         const dataPagamento = (transacao?.dataPagamento ?? transacao?.data_pagamento ?? '').slice(0, 10);

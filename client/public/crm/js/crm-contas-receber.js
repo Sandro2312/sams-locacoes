@@ -351,9 +351,15 @@
 
     /** Retorna o HTML do formulário de Conta a Receber */
     getForm(id = null) {
+      const guiaContexto = !id && window.__samsGuiaStandDefaults?.contasReceber
+        ? { ...window.__samsGuiaStandDefaults.contasReceber }
+        : null;
+      if (guiaContexto) {
+        try { delete window.__samsGuiaStandDefaults.contasReceber; } catch {}
+      }
       const conta = id
         ? (window.ModuleSystem?.data?.contasReceber?.find(c => String(c.id) === String(id)) || {})
-        : {};
+        : (guiaContexto || {});
       const formId = `cr-${id || 'new'}`;
       const vencimento = id ? ((conta?.vencimento || '').slice(0, 10)) : '';
       const dataPagamento = (conta?.dataPagamento ?? conta?.data_pagamento ?? '').slice(0, 10);

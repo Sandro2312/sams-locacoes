@@ -23,8 +23,8 @@ describe("Financeiro — busca e cadastro contextual de cliente", () => {
     expect(formsSource).toContain("const initialLimit");
     expect(contasReceberSource).toContain('data-client-search');
     expect(contasReceberSource).toContain('data-client-initial-limit="80"');
-    expect(indexSource).toContain("crm-contas-receber.js?v=1787242200");
-    expect(indexSource).toContain("forms.js?v=1787242200");
+    expect(indexSource).toContain("crm-contas-receber.js?v=1787247000");
+    expect(indexSource).toContain("forms.js?v=1787247000");
   });
 
   it("preserva o lançamento e seleciona o novo cliente quando o cadastro é aberto pelo formulário financeiro", () => {

@@ -12,6 +12,23 @@
     const role = String(currentUser()?.role || '').toLowerCase();
     return ['admin', 'administrador', 'manager', 'gerente', 'gerencia', 'desenvolvedor', 'developer', 'financeiro'].includes(role);
   };
+  const canGuide = () => {
+    const role = String(currentUser()?.role || '').toLowerCase();
+    return ['admin', 'administrador', 'manager', 'gerente', 'gerencia', 'desenvolvedor', 'developer', 'financeiro', 'vendedor', 'comercial', 'projetos', 'montagem'].includes(role);
+  };
+  const guideCategories = [
+    ['receita_parcelas', 'Receita e parcelas', 'Defina a referência comercial e cadastre cada parcela de recebimento.', 'contasReceber'],
+    ['projeto', 'Projeto e projetista', 'Custo de criação, projeto executivo ou projetista.', 'transacoes'],
+    ['montagem', 'Produção e montagem', 'Materiais, fornecedores e mão de obra de montagem.', 'transacoes'],
+    ['taxas', 'Taxas do evento', 'Taxas, credenciais, energia, seguro e obrigações do evento.', 'transacoes'],
+    ['comissao_comercial', 'Comissão comercial', 'Comissão de venda ou representação comercial.', 'transacoes'],
+    ['comissao_projetista', 'Comissão de projetista', 'Comissão ou remuneração vinculada ao projeto.', 'transacoes'],
+    ['logistica', 'Logística e frete', 'Frete, transporte, armazenagem e deslocamentos.', 'transacoes'],
+    ['desmontagem', 'Desmontagem', 'Desmontagem, retorno e descarte quando aplicável.', 'transacoes'],
+    ['rateios', 'Rateios compartilhados', 'Custos compartilhados aprovados e alocados ao stand.', null],
+  ];
+  const guideStateLabel = (value) => ({ pendente: 'Pendente de informação', estimado: 'Estimado / pendente de lançamento', lancado: 'Lançado e vinculado', nao_aplicavel: 'Não aplicável' }[String(value || '').toLowerCase()] || 'Pendente de informação');
+  const guideStatusLabel = (value) => ({ planejamento: 'Em planejamento', em_preenchimento: 'Em preenchimento', pendente_revisao: 'Pronto para revisão', fechado: 'Fechado' }[String(value || '').toLowerCase()] || 'Em planejamento');
   const authHeaders = () => {
     try { return window.AuthSystem?._getAuthHeaders?.() || {}; } catch { return {}; }
   };
@@ -48,6 +65,8 @@
 
   function render() {
     const manage = canManage();
+    const guide = canGuide();
+    const showActions = manage || guide;
     const cards = state.items.reduce((acc, item) => {
       acc.receitas += Number(item.receitas_previstas || 0);
       acc.custos += Number(item.custos_diretos || 0);
@@ -97,10 +116,10 @@
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Rateio</th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Custo total</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Situação</th>
-              ${manage ? '<th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Ações</th>' : ''}
+              ${showActions ? '<th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Ações</th>' : ''}
             </tr></thead>
             <tbody id="projeto-stand-list" class="divide-y divide-gray-100">
-              ${state.loading ? `<tr><td colspan="${manage ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Carregando Projetos de Stand...</td></tr>` : state.items.length ? state.items.map((item) => `
+              ${state.loading ? `<tr><td colspan="${showActions ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Carregando Projetos de Stand...</td></tr>` : state.items.length ? state.items.map((item) => `
                 <tr class="hover:bg-gray-50">
                   <td class="px-4 py-3 text-sm text-gray-700">${escapeHtml(item.evento_nome || '-')}</td>
                   <td class="px-4 py-3"><div class="font-medium text-gray-900">${escapeHtml(item.cliente_nome || item.lead_nome || '-')}</div><div class="text-sm text-gray-500">${escapeHtml(item.nome || '-')} ${item.referencia_stand ? `· ${escapeHtml(item.referencia_stand)}` : ''}</div><div class="text-xs text-gray-400">${item.cliente_convertido_nome ? 'Cliente convertido' : 'Lead / cliente potencial'} · ${escapeHtml(item.codigo || '')}</div></td>
@@ -109,8 +128,8 @@
                   <td class="px-4 py-3 text-right text-sm font-medium text-orange-700">${money(item.custos_rateados)}</td>
                   <td class="px-4 py-3 text-right text-sm font-medium text-gray-900">${money(Number(item.custos_diretos || 0) + Number(item.custos_rateados || 0))}</td>
                   <td class="px-4 py-3"><div><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusClass(item.status)}">${escapeHtml(statusLabel(item.status))}</span></div><div class="mt-1"><span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${commercialClass(item.situacao_comercial)}">${escapeHtml(commercialLabel(item.situacao_comercial))}</span></div></td>
-                  ${manage ? `<td class="px-4 py-3 text-right"><button type="button" class="projeto-stand-budget text-sm font-medium text-violet-700 hover:text-violet-900" data-id="${item.id}">Orçamento</button><button type="button" class="projeto-stand-edit ml-3 text-sm font-medium text-indigo-700 hover:text-indigo-900" data-id="${item.id}">Editar</button><button type="button" class="projeto-stand-delete ml-3 text-sm font-medium text-rose-700 hover:text-rose-900" data-id="${item.id}">Excluir</button></td>` : ''}
-                </tr>`).join('') : `<tr><td colspan="${manage ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500">Nenhum Projeto de Stand encontrado. ${manage ? 'Crie o primeiro projeto para começar a vincular novos lançamentos.' : ''}</td></tr>`}
+                  ${showActions ? `<td class="px-4 py-3 text-right whitespace-nowrap">${guide ? `<button type="button" class="projeto-stand-guide text-sm font-semibold text-emerald-700 hover:text-emerald-900" data-id="${item.id}"><i class="fas fa-clipboard-check mr-1"></i>Guia</button>` : ''}${manage ? `<button type="button" class="projeto-stand-budget ml-3 text-sm font-medium text-violet-700 hover:text-violet-900" data-id="${item.id}">Orçamento</button><button type="button" class="projeto-stand-edit ml-3 text-sm font-medium text-indigo-700 hover:text-indigo-900" data-id="${item.id}">Editar</button><button type="button" class="projeto-stand-delete ml-3 text-sm font-medium text-rose-700 hover:text-rose-900" data-id="${item.id}">Excluir</button>` : ''}</td>` : ''}
+                </tr>`).join('') : `<tr><td colspan="${showActions ? 8 : 7}" class="px-4 py-8 text-center text-sm text-gray-500">Nenhum Projeto de Stand encontrado. ${manage ? 'Crie o primeiro projeto para começar a vincular novos lançamentos.' : ''}</td></tr>`}
             </tbody>
           </table>
         </div>

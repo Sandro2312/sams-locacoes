@@ -103,6 +103,53 @@ export type CrmProjetoStand = typeof crmProjetosStand.$inferSelect;
 export type InsertCrmProjetoStand = typeof crmProjetosStand.$inferInsert;
 
 /**
+ * Estado operacional do guia de fechamento. Valores financeiros continuam
+ * calculados nas receitas, despesas e rateios de origem; este registro guarda
+ * somente o avanço, as justificativas e a revisão humana por Projeto de Stand.
+ */
+export const crmProjetosStandFechamentos = mysqlTable("crm_projetos_stand_fechamentos", {
+  id: int("id").autoincrement().primaryKey(),
+  projetoStandId: int("projeto_stand_id").notNull().unique(),
+  status: varchar("status", { length: 30 }).notNull().default("planejamento"),
+  justificativaDivergencia: text("justificativa_divergencia"),
+  observacoesRevisao: text("observacoes_revisao"),
+  revisadoPor: int("revisado_por"),
+  revisadoPorNome: varchar("revisado_por_nome", { length: 255 }),
+  revisadoEm: timestamp("revisado_em"),
+  createdBy: int("created_by").notNull(),
+  updatedBy: int("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_projetos_fechamentos_status_idx").on(table.status),
+]);
+
+/**
+ * Checklist auditável de categorias financeiras. Cada categoria possui um
+ * estado explícito, sem criar nem modificar lançamentos financeiros.
+ */
+export const crmProjetosStandFechamentoItens = mysqlTable("crm_projetos_stand_fechamento_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  fechamentoId: int("fechamento_id").notNull(),
+  categoria: varchar("categoria", { length: 50 }).notNull(),
+  estado: varchar("estado", { length: 30 }).notNull().default("pendente"),
+  valorEstimado: decimal("valor_estimado", { precision: 14, scale: 2 }),
+  observacao: text("observacao"),
+  atualizadoPor: int("atualizado_por").notNull(),
+  atualizadoPorNome: varchar("atualizado_por_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_projetos_fechamento_itens_unique").on(table.fechamentoId, table.categoria),
+  index("crm_projetos_fechamento_itens_fechamento_idx").on(table.fechamentoId),
+]);
+
+export type CrmProjetoStandFechamento = typeof crmProjetosStandFechamentos.$inferSelect;
+export type InsertCrmProjetoStandFechamento = typeof crmProjetosStandFechamentos.$inferInsert;
+export type CrmProjetoStandFechamentoItem = typeof crmProjetosStandFechamentoItens.$inferSelect;
+export type InsertCrmProjetoStandFechamentoItem = typeof crmProjetosStandFechamentoItens.$inferInsert;
+
+/**
  * Metas comerciais e fechamento operacional de uma feira. Há no máximo um
  * registro por Evento; os totais financeiros e de captação continuam sendo
  * calculados nas tabelas de origem para não duplicar nem reescrever históricos.
