@@ -26,6 +26,161 @@ const FormSystem = {
             .replaceAll("'", '&#39;');
     },
 
+    getClientesFinanceiros() {
+        const byId = new Map();
+        const clientes = Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : [];
+        clientes.forEach((cliente) => {
+            if (!cliente || cliente.id == null) return;
+            const id = String(cliente.id);
+            const nome = cliente.nome || cliente.razao_social || cliente.empresa || `Cliente #${id}`;
+            byId.set(id, { ...cliente, id, nome, email: cliente.email || '' });
+        });
+        return Array.from(byId.values()).sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR', { sensitivity: 'base' }));
+    },
+
+    _normalizeClientSearch(value) {
+        return String(value ?? '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    },
+
+    _renderClienteOptions(form, selectedId = null) {
+        const select = form?.querySelector('select[name="clienteId"]');
+        if (!select) return;
+        const searchInput = form.querySelector('[data-client-search]');
+        const count = form.querySelector('[data-client-search-count]');
+        const previous = selectedId != null ? String(selectedId) : String(select.value || '');
+        const term = this._normalizeClientSearch(searchInput?.value || '');
+        const allClientes = this.getClientesFinanceiros();
+        const matchedClients = allClientes.filter((cliente) => {
+            const haystack = this._normalizeClientSearch(`${cliente.nome} ${cliente.email || ''} ${cliente.documento || ''}`);
+            return !term || haystack.includes(term) || String(cliente.id) === previous;
+        });
+        const limit = Number(form.dataset.clientInitialLimit || 80);
+        const initialLimit = Number.isFinite(limit) && limit > 0 ? limit : 80;
+        const matches = term ? matchedClients : matchedClients.slice(0, initialLimit);
+        if (!term && previous && !matches.some((cliente) => String(cliente.id) === previous)) {
+            const selected = matchedClients.find((cliente) => String(cliente.id) === previous);
+            if (selected) matches.push(selected);
+        }
+
+        const placeholder = select.dataset.placeholder || select.options[0]?.textContent || 'Selecione um cliente...';
+        while (select.options.length) select.remove(0);
+        const first = document.createElement('option');
+        first.value = '';
+        first.textContent = placeholder;
+        select.appendChild(first);
+        matches.forEach((cliente) => {
+            const option = document.createElement('option');
+            option.value = cliente.id;
+            option.textContent = cliente.email ? `${cliente.nome} • ${cliente.email}` : cliente.nome;
+            select.appendChild(option);
+        });
+        if (previous) select.value = previous;
+        if (count) {
+            count.textContent = term
+                ? `${matches.length} cliente${matches.length === 1 ? '' : 's'} encontrado${matches.length === 1 ? '' : 's'}.`
+                : `${allClientes.length} cliente${allClientes.length === 1 ? '' : 's'} cadastrado${allClientes.length === 1 ? '' : 's'}. Digite para localizar.`;
+        }
+    },
+
+    async refreshClientPicker(form, selectedId = null) {
+        if (!form) return;
+        try {
+            if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
+                await ModuleSystem.syncClientesFromBackend();
+            }
+        } catch (error) {
+            console.warn('[FormSystem] Não foi possível atualizar clientes para o lançamento:', error);
+        }
+        this._renderClienteOptions(form, selectedId);
+    },
+
+    bindClientPicker(form) {
+        if (!form || form.dataset.clientPickerBound === '1') return;
+        form.dataset.clientPickerBound = '1';
+        const searchInput = form.querySelector('[data-client-search]');
+        const select = form.querySelector('select[name="clienteId"]');
+        const createButton = form.querySelector('[data-form-action="create-context-client"]');
+        searchInput?.addEventListener('input', () => this._renderClienteOptions(form));
+        select?.addEventListener('change', () => {
+            if (!searchInput || !select.value) return;
+            const current = Array.from(select.options).find((option) => option.value === select.value);
+            if (current) searchInput.value = current.textContent || '';
+        });
+        createButton?.addEventListener('click', () => this.openContextClientCreate(form));
+    },
+
+    captureFinancialDraft(form) {
+        const draft = {};
+        if (!form) return draft;
+        Array.from(form.elements || []).forEach((element) => {
+            if (!element?.name || element.type === 'file' || element.disabled) return;
+            if ((element.type === 'checkbox' || element.type === 'radio') && !element.checked) return;
+            draft[element.name] = element.value ?? '';
+        });
+        return draft;
+    },
+
+    restoreFinancialDraft(form, draft = {}) {
+        if (!form || !draft || typeof draft !== 'object') return;
+        Object.entries(draft).forEach(([name, value]) => {
+            const field = form.elements?.namedItem(name);
+            if (!field || field.type === 'file') return;
+            if (typeof field.length === 'number' && !field.tagName) return;
+            field.value = value != null ? String(value) : '';
+        });
+    },
+
+    openContextClientCreate(form) {
+        if (!form) return;
+        const module = String(form.dataset.module || '').trim();
+        if (!['contasReceber', 'transacoes'].includes(module)) return;
+        const draft = this.captureFinancialDraft(form);
+        const hasFile = Array.from(form.querySelectorAll('input[type="file"]')).some((input) => input.files && input.files.length > 0);
+        if (hasFile) {
+            this._notifyOnce('cliente-contexto-arquivo', 'O lançamento será preservado, mas o comprovante deverá ser anexado novamente ao retornar.', 'warning', 0);
+        }
+        window.__samsReturnToFinanceAfterClient = {
+            module,
+            action: String(form.dataset.action || 'create'),
+            id: String(form.dataset.id || ''),
+            draft
+        };
+        window.__samsClienteCreateDefaults = { evento_id: draft.eventoId || null };
+        this.showCreateForm('clientes');
+    },
+
+    returnToFinancialDraft(clienteId = null) {
+        const context = window.__samsReturnToFinanceAfterClient;
+        if (!context || !['contasReceber', 'transacoes'].includes(context.module)) return false;
+        try { window.__samsReturnToFinanceAfterClient = null; } catch {}
+        const open = context.action === 'update' && context.id
+            ? () => this.showEditForm(context.module, context.id)
+            : () => this.showCreateForm(context.module);
+        open();
+        setTimeout(async () => {
+            const root = document.getElementById('modal-content') || document;
+            const form = root.querySelector(`form#crud-form[data-module="${context.module}"]`);
+            if (!form) return;
+            this.restoreFinancialDraft(form, context.draft);
+            if (clienteId != null) form.dataset.clientPendingSelectedId = String(clienteId);
+            this.bindClientPicker(form);
+            await this.refreshClientPicker(form, clienteId || context.draft.clienteId || null);
+            if (clienteId != null) {
+                const select = form.querySelector('select[name="clienteId"]');
+                if (select) select.value = String(clienteId);
+                const selected = select && Array.from(select.options).find((option) => option.value === String(clienteId));
+                const search = form.querySelector('[data-client-search]');
+                if (search && selected) search.value = selected.textContent || '';
+                this._notifyOnce('cliente-contexto', 'Cliente cadastrado e vinculado ao lançamento em edição.', 'success', 0);
+            }
+        }, 80);
+        return true;
+    },
+
     async ensureEventosLoaded() {
         try {
             if (!window.ModuleSystem || !ModuleSystem.data) return;
@@ -657,6 +812,14 @@ const FormSystem = {
     // Fechar modal
     closeModal() {
         console.log('[FormSystem] Fechando modal...');
+        try {
+            const root = document.getElementById('modal-content');
+            const creatingClient = !!root?.querySelector('form#crud-form[data-module="clientes"]');
+            if (creatingClient && window.__samsReturnToFinanceAfterClient) {
+                this.returnToFinancialDraft();
+                return;
+            }
+        } catch {}
         const overlay = document.getElementById(this.config.overlayId);
         if (overlay) {
             overlay.classList.add('hidden');
@@ -1735,6 +1898,11 @@ const FormSystem = {
                 }
             }
 
+            if (module === 'clientes' && createdId != null && window.__samsReturnToFinanceAfterClient) {
+                this.returnToFinancialDraft(createdId);
+                return createdId;
+            }
+
             if (module === 'eventos' && createdId != null && window.__samsReturnToBriefingAfterEvent && window.FormSystem && typeof FormSystem.showCreateForm === 'function') {
                 const ctx = window.__samsReturnToBriefingAfterEvent;
                 try { window.__samsReturnToBriefingAfterEvent = null; } catch {}
@@ -2364,52 +2532,6 @@ const FormSystem = {
                     }
                 } catch (_e0) {}
                 formHtml = this.getContaReceberForm();
-                // Após abrir o modal, garantir lista de clientes atualizada e popular o select
-                Promise.resolve().then(async () => {
-                    try {
-                        if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
-                            await ModuleSystem.syncClientesFromBackend();
-                        }
-                    } catch (_e) {}
-                    try {
-                        const allClientes = (() => {
-                            const merged = [];
-                            const seen = new Set();
-                            const push = (c) => {
-                                if (!c || c.id == null) return;
-                                const key = String(c.id);
-                                if (seen.has(key)) return;
-                                seen.add(key);
-                                merged.push(c);
-                            };
-                            (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
-                            (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
-                            return merged;
-                        })();
-                        // Encontrar o select de cliente dentro do modal aberto
-                        const modalContent = document.getElementById('modal-content');
-                        if (!modalContent) return;
-                        const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
-                        if (!form) return;
-                        const sel = form.querySelector('select[name="clienteId"]');
-                        if (!sel) return;
-                        // Só repopular se o select ainda tem apenas a opção placeholder
-                        if (allClientes.length === 0) return;
-                        const currentVal = sel.value;
-                        // Remover options antigas (exceto o placeholder)
-                        while (sel.options.length > 1) sel.remove(1);
-                        allClientes.forEach(c => {
-                            const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
-                            const email = c.email ? ` • ${c.email}` : '';
-                            const opt = document.createElement('option');
-                            opt.value = c.id;
-                            opt.textContent = `${nome}${email}`;
-                            sel.appendChild(opt);
-                        });
-                        // Restaurar valor selecionado se havia um
-                        if (currentVal) sel.value = currentVal;
-                    } catch (_e2) {}
-                });
                 break;
             case 'marketing_campanhas':
                 title = 'Nova Campanha';
@@ -2457,6 +2579,15 @@ const FormSystem = {
                 }
             }
         } catch {}
+        if (module === 'contasReceber' || module === 'transacoes' || module === 'financeiro') {
+            setTimeout(async () => {
+                const root = document.getElementById('modal-content') || document;
+                const form = root.querySelector('form#crud-form[data-module="contasReceber"], form#crud-form[data-module="transacoes"]');
+                if (!form) return;
+                this.bindClientPicker(form);
+                await this.refreshClientPicker(form, form.dataset.clientPendingSelectedId || null);
+            }, 0);
+        }
         if (module === 'briefings') {
             try {
                 const root = document.getElementById('modal-content') || document;
@@ -3038,52 +3169,12 @@ ENTREGA
                     const _crSelectedId = String(_crRecord.clienteId ?? _crRecord.cliente_id ?? '');
                     Promise.resolve().then(async () => {
                         try {
-                            if (window.ModuleSystem && typeof ModuleSystem.syncClientesFromBackend === 'function') {
-                                await ModuleSystem.syncClientesFromBackend();
-                            }
-                        } catch (_e) {}
-                        try {
-                            const allClientes = (() => {
-                                const merged = [];
-                                const seen = new Set();
-                                const push = (c) => {
-                                    if (!c || c.id == null) return;
-                                    const key = String(c.id);
-                                    if (seen.has(key)) return;
-                                    seen.add(key);
-                                    merged.push(c);
-                                };
-                                (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : []).forEach(push);
-                                (Array.isArray(window.ModuleSystem?.data?.leads) ? window.ModuleSystem.data.leads : []).forEach(push);
-                                return merged;
-                            })();
                             const modalContent = document.getElementById('modal-content');
                             if (!modalContent) return;
                             const form = modalContent.querySelector('form#crud-form[data-module="contasReceber"]');
                             if (!form) return;
-                            const sel = form.querySelector('select[name="clienteId"]');
-                            if (!sel || allClientes.length === 0) return;
-                            // Usar o selectedId capturado ANTES da chamada async (evita race condition)
-                            const targetVal = _crSelectedId || sel.value;
-                            while (sel.options.length > 1) sel.remove(1);
-                            allClientes.forEach(c => {
-                                const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
-                                const email = c.email ? ` • ${c.email}` : '';
-                                const opt = document.createElement('option');
-                                opt.value = String(c.id);
-                                opt.textContent = `${nome}${email}`;
-                                sel.appendChild(opt);
-                            });
-                            // Definir o valor após popular as opções
-                            if (targetVal) {
-                                sel.value = targetVal;
-                                // Se ainda não encontrou, tentar comparação numérica
-                                if (sel.value !== targetVal) {
-                                    const numTarget = parseInt(targetVal, 10);
-                                    const matchOpt = Array.from(sel.options).find(o => parseInt(o.value, 10) === numTarget);
-                                    if (matchOpt) sel.value = matchOpt.value;
-                                }
-                            }
+                            this.bindClientPicker(form);
+                            await this.refreshClientPicker(form, _crSelectedId || null);
                         } catch (_e2) {}
                     });
                 }
@@ -4457,9 +4548,13 @@ ENTREGA
         const projetoStandId = transacao?.projetoStandId ?? transacao?.projeto_stand_id ?? '';
         const eventos = Array.isArray(ModuleSystem.data?.eventos) ? ModuleSystem.data.eventos : [];
         const clientes = Array.isArray(ModuleSystem.data?.clientes) ? ModuleSystem.data.clientes : [];
+        const clienteSelecionado = clientes.find(cliente => String(cliente?.id) === String(clienteId));
+        const clienteSelecionadoNome = clienteSelecionado
+            ? (clienteSelecionado.nome || clienteSelecionado.razao_social || clienteSelecionado.empresa || `Cliente #${clienteSelecionado.id}`)
+            : '';
         const projetosStand = Array.isArray(ModuleSystem.data?.projetosStand) ? ModuleSystem.data.projetosStand : [];
         return `
-            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="transacoes" data-id="${id || ''}" autocomplete="on">
+            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="transacoes" data-id="${id || ''}" data-client-initial-limit="80" autocomplete="on">
                 <div class="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-lg mb-6 border border-red-200">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">
                         <i class="fas fa-money-bill-wave mr-3 text-red-600"></i>${id ? 'Editar' : 'Nova'} Despesa
@@ -4489,10 +4584,23 @@ ENTREGA
 
                         <div>
                             <label for="cliente_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-                            <select id="cliente_${formId}" name="clienteId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <div class="space-y-2" data-client-picker>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input type="search" data-client-search autocomplete="off"
+                                           aria-label="Buscar cliente para Despesa"
+                                           placeholder="Buscar por nome, e-mail ou documento"
+                                           class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <button type="button" data-form-action="create-context-client"
+                                            class="shrink-0 px-3 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                                        <i class="fas fa-user-plus mr-1"></i>Novo cliente
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-500" data-client-search-count aria-live="polite">Atualizando clientes...</p>
+                            <select id="cliente_${formId}" name="clienteId" data-placeholder="Não vincular a cliente" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                                 <option value="">Não vincular a cliente</option>
-                                ${clientes.map(cliente => `<option value="${cliente.id}" ${String(clienteId) === String(cliente.id) ? 'selected' : ''}>${ModuleSystem.escapeHtml(cliente.nome || cliente.razao_social || cliente.empresa || `Cliente #${cliente.id}`)}</option>`).join('')}
+                                ${clienteId && clienteSelecionadoNome ? `<option value="${this.escapeHtml(String(clienteId))}" selected>${this.escapeHtml(clienteSelecionadoNome)}</option>` : ''}
                             </select>
+                            </div>
                         </div>
 
                         <div class="md:col-span-2">
@@ -4619,6 +4727,7 @@ ENTREGA
         const cliente = id ? ModuleSystem.data.clientes?.find(c => String(c.id) === String(id)) : {};
         const formId = `cliente-${id || 'new'}`;
         const defaults = (!id && typeof window !== 'undefined' && window.__samsClienteCreateDefaults) ? window.__samsClienteCreateDefaults : null;
+        const returnToFinancial = !id && typeof window !== 'undefined' && !!window.__samsReturnToFinanceAfterClient;
         const defResp = defaults && defaults.responsavel_id != null ? String(defaults.responsavel_id) : '';
         const defEvento = defaults && defaults.evento_id != null ? String(defaults.evento_id) : '';
         const usuarios = (window.ModuleSystem && ModuleSystem.data && Array.isArray(ModuleSystem.data.usuarios)) ? ModuleSystem.data.usuarios : [];
@@ -4631,6 +4740,15 @@ ENTREGA
                     </h3>
                     <p class="text-sm text-gray-600">Cliente qualificado do CRM. Integração com CEP e CNPJ.</p>
                 </div>
+
+                ${returnToFinancial ? `
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <p class="text-sm text-blue-900">Você está cadastrando um cliente a partir de um lançamento financeiro. Os dados do lançamento permanecem preservados.</p>
+                    <button type="button" onclick="FormSystem.returnToFinancialDraft()"
+                            class="shrink-0 px-4 py-2 text-sm font-medium bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100">
+                        <i class="fas fa-arrow-left mr-1"></i>Voltar ao lançamento
+                    </button>
+                </div>` : ''}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

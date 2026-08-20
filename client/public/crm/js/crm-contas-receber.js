@@ -307,6 +307,12 @@
       const sel = form.querySelector('select[name="clienteId"]');
       if (!sel) return;
 
+      if (window.FormSystem && typeof window.FormSystem.refreshClientPicker === 'function') {
+        window.FormSystem.bindClientPicker?.(form);
+        await window.FormSystem.refreshClientPicker(form, selectedId);
+        return;
+      }
+
       try {
         if (window.ModuleSystem && typeof window.ModuleSystem.syncClientesFromBackend === 'function') {
           await window.ModuleSystem.syncClientesFromBackend();
@@ -355,6 +361,11 @@
       const selectedEventoId = conta?.eventoId ?? conta?.evento_id ?? '';
       const selectedProjetoStandId = conta?.projetoStandId ?? conta?.projeto_stand_id ?? '';
       const projetosStand = Array.isArray(window.ModuleSystem?.data?.projetosStand) ? window.ModuleSystem.data.projetosStand : [];
+      const selectedCliente = (Array.isArray(window.ModuleSystem?.data?.clientes) ? window.ModuleSystem.data.clientes : [])
+        .find((cliente) => String(cliente?.id) === String(selectedClienteId));
+      const selectedClienteNome = selectedCliente
+        ? (selectedCliente.nome || selectedCliente.razao_social || selectedCliente.empresa || `Cliente #${selectedCliente.id}`)
+        : '';
 
       // Recuperar último Centro de Custos usado
       let lastCentro = '';
@@ -367,7 +378,7 @@
       const comprovanteUrl = conta?.comprovante?.download_url || null;
 
       return `
-        <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" autocomplete="${id ? 'on' : 'off'}">
+        <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="contasReceber" data-id="${id || ''}" data-client-initial-limit="80" autocomplete="${id ? 'on' : 'off'}">
           <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg mb-6 border border-green-200">
             <h3 class="text-xl font-bold text-gray-800 mb-2">
               <i class="fas fa-dollar-sign mr-3 text-green-600"></i>${id ? 'Editar' : 'Nova'} Conta a Receber
@@ -385,16 +396,24 @@
 
             <div>
               <label for="cliente_${formId}" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-              <select id="cliente_${formId}" name="clienteId" autocomplete="off"
+              <div class="space-y-2" data-client-picker>
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <input type="search" data-client-search autocomplete="off"
+                         aria-label="Buscar cliente para Conta a Receber"
+                         placeholder="Buscar por nome, e-mail ou documento"
+                         class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                  <button type="button" data-form-action="create-context-client"
+                          class="shrink-0 px-3 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                    <i class="fas fa-user-plus mr-1"></i>Novo cliente
+                  </button>
+                </div>
+                <p class="text-xs text-gray-500" data-client-search-count aria-live="polite">Atualizando clientes...</p>
+              <select id="cliente_${formId}" name="clienteId" autocomplete="off" data-placeholder="Selecione um cliente..."
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                 <option value="">Selecione um cliente...</option>
-                ${(window.ModuleSystem?.data?.clientes || []).map(c => {
-                  const nome = c.nome || c.razao_social || c.empresa || `ID ${c.id}`;
-                  const email = c.email ? ` • ${c.email}` : '';
-                  const sel2 = String(c.id) === String(selectedClienteId) ? ' selected' : '';
-                  return `<option value="${c.id}"${sel2}>${escapeHtml(nome + email)}</option>`;
-                }).join('')}
+                ${selectedClienteId && selectedClienteNome ? `<option value="${escapeHtml(String(selectedClienteId))}" selected>${escapeHtml(selectedClienteNome)}</option>` : ''}
               </select>
+              </div>
             </div>
 
             <div>
