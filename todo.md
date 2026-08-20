@@ -764,4 +764,4 @@
 - [x] Pesquisar a base completa de Clientes, além dos Projetos de Stand existentes
 - [x] Exibir stands vinculados ao cliente encontrado e preservar o acesso direto ao checklist
 - [x] Criar atalho contextual para novo Projeto de Stand quando o cliente não possuir vínculo
-- [x] Validar pesquisa, criação, permissões, mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar pesquisa, criação, permissões, mobile, sintaxe e regressões; checkpoint salvo
