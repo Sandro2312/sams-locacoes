@@ -748,4 +748,4 @@
 - [x] Criar checklist persistente e não destrutivo de receitas, custos, pendências e revisão por stand
 - [x] Implementar APIs auditáveis de consulta, atualização do checklist e consolidação de divergências
 - [x] Construir guia responsivo com atalhos pré-preenchidos para Contas a Receber e Despesas
-- [x] Validar permissões, integridade de dados, desktop/mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar permissões, integridade de dados, desktop/mobile, sintaxe e regressões; checkpoint salvo
