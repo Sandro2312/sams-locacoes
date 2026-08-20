@@ -769,4 +769,4 @@
 ## Correção — Ação de Criar Stand no Guia (Ago/2026)
 - [x] Identificar por que o cliente sem stand não exibe ação de continuidade
 - [x] Renderizar e vincular o botão de criação contextual de Projeto de Stand
-- [x] Validar abertura, pré-preenchimento, retorno ao Financeiro, mobile e regressões; checkpoint pendente
+- [x] Validar abertura, pré-preenchimento, retorno ao Financeiro, mobile e regressões; checkpoint salvo
