@@ -103,6 +103,37 @@ export type CrmProjetoStand = typeof crmProjetosStand.$inferSelect;
 export type InsertCrmProjetoStand = typeof crmProjetosStand.$inferInsert;
 
 /**
+ * Metas comerciais e fechamento operacional de uma feira. Há no máximo um
+ * registro por Evento; os totais financeiros e de captação continuam sendo
+ * calculados nas tabelas de origem para não duplicar nem reescrever históricos.
+ */
+export const crmEventosResultados = mysqlTable("crm_eventos_resultados", {
+  id: int("id").autoincrement().primaryKey(),
+  eventoId: int("evento_id").notNull().unique(),
+  status: varchar("status", { length: 30 }).notNull().default("planejamento"),
+  objetivoComercial: varchar("objetivo_comercial", { length: 255 }),
+  metaReunioes: int("meta_reunioes").notNull().default(0),
+  reunioesRealizadas: int("reunioes_realizadas").notNull().default(0),
+  metaLeads: int("meta_leads").notNull().default(0),
+  metaPropostas: int("meta_propostas").notNull().default(0),
+  metaReceita: decimal("meta_receita", { precision: 14, scale: 2 }).notNull().default("0"),
+  resumoPosEvento: text("resumo_pos_evento"),
+  aprendizados: text("aprendizados"),
+  acoesFollowUp: text("acoes_follow_up"),
+  encerradoEm: timestamp("encerrado_em"),
+  encerradoPor: int("encerrado_por"),
+  createdBy: int("created_by").notNull(),
+  updatedBy: int("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_eventos_resultados_status_idx").on(table.status),
+]);
+
+export type CrmEventoResultado = typeof crmEventosResultados.$inferSelect;
+export type InsertCrmEventoResultado = typeof crmEventosResultados.$inferInsert;
+
+/**
  * Orçamento técnico-comercial versionado de um Projeto de Stand. Cada versão
  * preserva a composição e os valores de custo/venda para comparação futura.
  */

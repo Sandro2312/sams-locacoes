@@ -723,3 +723,10 @@
 - [x] Mapear as lacunas e oportunidades frente às capacidades atuais do site e CRM SAMS
 - [x] Priorizar evoluções por impacto operacional, comercial, técnico e risco de adoção
 - [x] Registrar o roteiro recomendado para decisão da gestão
+
+## Implementação — Painel de Resultado do Evento (Ago/2026)
+- [x] Mapear vínculos e dados existentes de Eventos, Projetos de Stand, leads, receitas, despesas e rateios
+- [x] Criar metas e fechamento pós-evento sem alterar dados históricos
+- [x] Implementar APIs auditáveis de metas, consolidação e revisão pós-evento
+- [x] Construir painel responsivo com resultado comercial, financeiro e operacional por evento
+- [x] Validar cálculos, permissões, desktop/mobile e regressões; checkpoint pendente

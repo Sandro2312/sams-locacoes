@@ -5,6 +5,7 @@ import { registerImportRoutes } from "./crm-import";
 import { registerAssistenteRoutes } from "./crm-assistente";
 import { registerTicketRoutes } from "./crm-tickets";
 import { registerProjetosStandRoutes } from "./crm-projetos-stand";
+import { registerEventosResultadosRoutes } from "./crm-eventos-resultados";
 import { registerRateiosRoutes } from "./crm-rateios";
 import { registerJuridicoRoutes } from "./crm-juridico";
 import mysql from "mysql2/promise";
@@ -2254,6 +2255,8 @@ export function registerCrmRoutes(app: any) {
   registerTicketRoutes(app);
   // Registrar rotas de Projeto de Stand e apuração por evento/cliente
   registerProjetosStandRoutes(app);
+  // Registrar o painel de metas, captação e resultado consolidado por Evento
+  registerEventosResultadosRoutes(app);
   // Registrar rotas de rateio auditável de custos compartilhados
   registerRateiosRoutes(app);
   registerJuridicoRoutes(app);
