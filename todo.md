@@ -753,4 +753,4 @@
 ## Correção — Entrada do Guia no Financeiro (Ago/2026)
 - [x] Mapear a visibilidade atual do guia e os pontos de entrada do módulo Financeiro
 - [x] Adicionar acesso explícito e selecionador de stand no Financeiro, preservando o atalho no Projeto de Stand
-- [x] Validar navegação, contexto de lançamento, permissões, mobile e regressões; checkpoint pendente
+- [x] Validar navegação, contexto de lançamento, permissões, mobile e regressões; checkpoint salvo
