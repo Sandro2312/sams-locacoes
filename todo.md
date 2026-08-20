@@ -774,4 +774,4 @@
 ## Correção — Controle de Continuidade Suprimido (Ago/2026)
 - [x] Identificar a regra que remove ou oculta a ação de criação no CRM publicado
 - [x] Substituir a ação por uma chamada visual isolada e vinculada à criação contextual de stand
-- [x] Validar renderização, clique, pré-preenchimento, mobile e regressões; checkpoint pendente
+- [x] Validar renderização, clique, pré-preenchimento, mobile e regressões; checkpoint salvo
