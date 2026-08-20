@@ -787,3 +787,14 @@
 - [x] Identificar por que o texto digitado não atualiza o seletor de cliente do lote
 - [x] Corrigir filtro, seleção automática e preservação do cliente no contexto do lote
 - [x] Validar criação de lote, mobile, sintaxe e regressões; checkpoint salvo
+
+## Evolução — Confirmação e Parcelas do Lote Financeiro (Ago/2026)
+- [x] Mapear o rascunho atual, a confirmação de lançamentos e o formato de vencimentos do lote
+- [x] Adicionar datas individualizadas por parcela sem alterar lançamentos já criados
+- [x] Tornar a confirmação de receitas e despesas pendentes explícita e visível no resumo do lote
+- [x] Corrigir exibição de datas, validar totais, permissões, mobile, sintaxe e regressões
+
+## Garantia — Integração com Formulários Financeiros de Origem (Ago/2026)
+- [x] Confirmar que cada item do lote confirmado cria a mesma Conta a Receber ou Despesa usada nos módulos financeiros
+- [x] Exibir no lote os tipos de registro financeiro criados e preservar o acesso aos fluxos de pagamento e comprovante
+- [x] Validar o mapeamento de campos, parcelas e status pendente antes do checkpoint

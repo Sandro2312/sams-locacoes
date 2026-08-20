@@ -12,6 +12,7 @@ type LoteItemInput = {
   valorTotal: unknown;
   parcelas?: unknown;
   primeiroVencimento: string;
+  datasVencimento?: unknown;
   formaPagamento?: string | null;
   observacoes?: string | null;
 };
@@ -22,6 +23,7 @@ type NormalizedItem = {
   valorCents: number;
   parcelas: number;
   primeiroVencimento: string;
+  datasVencimento: string[];
   formaPagamento: string | null;
   observacoes: string | null;
 };
@@ -80,14 +82,21 @@ function isoDate(value: unknown) {
 }
 function asNumberFields(value: any): any {
   if (!value || typeof value !== "object") return value;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (Array.isArray(value)) return value.map(asNumberFields);
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, typeof item === "string" && /^-?\d+(?:\.\d+)?$/.test(item) ? Number(item) : asNumberFields(item)]));
+}
+function parcelDates(raw: unknown, parcelas: number, primeiroVencimento: string) {
+  const supplied = Array.isArray(raw) ? raw.filter((date) => text(date, 10)).map(isoDate) : [];
+  if (supplied.length && supplied.length !== parcelas) throw new Error("DATAS_PARCELAS_INCONSISTENTES");
+  return supplied.length ? supplied : Array.from({ length: parcelas }, (_, index) => addMonths(primeiroVencimento, index));
 }
 function normalizeItem(raw: any): NormalizedItem {
   const natureza = text(raw?.natureza, 20).toLowerCase();
   const categoria = text(raw?.categoria || "outros", 60).toLowerCase();
   const descricao = text(raw?.descricao, 500);
   const parcelas = safeInt(raw?.parcelas, 1, 1, 60);
+  const primeiroVencimento = isoDate(raw?.primeiroVencimento ?? raw?.primeiro_vencimento);
   if (!ITEM_NATURES.has(natureza)) throw new Error("NATUREZA_INVALIDA");
   if (!ITEM_CATEGORIES.has(categoria)) throw new Error("CATEGORIA_INVALIDA");
   if (!descricao) throw new Error("DESCRICAO_OBRIGATORIA");
@@ -97,7 +106,8 @@ function normalizeItem(raw: any): NormalizedItem {
     descricao,
     valorCents: money(raw?.valorTotal ?? raw?.valor_total),
     parcelas,
-    primeiroVencimento: isoDate(raw?.primeiroVencimento ?? raw?.primeiro_vencimento),
+    primeiroVencimento,
+    datasVencimento: parcelDates(raw?.datasVencimento ?? raw?.datas_vencimento, parcelas, primeiroVencimento),
     formaPagamento: nullableText(raw?.formaPagamento ?? raw?.forma_pagamento, 120),
     observacoes: nullableText(raw?.observacoes, 4000),
   };
@@ -110,14 +120,27 @@ function addMonths(dateValue: string, months: number) {
   const lastDay = new Date(Date.UTC(targetYear, monthIndex + 1, 0)).getUTCDate();
   return `${targetYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
 }
-function buildParcelas(totalCents: number, parcelas: number, primeiroVencimento: string) {
+function buildParcelas(totalCents: number, parcelas: number, primeiroVencimento: string, datasVencimento?: string[]) {
   const base = Math.floor(totalCents / parcelas);
   const remainder = totalCents - (base * parcelas);
+  const vencimentos = parcelDates(datasVencimento, parcelas, primeiroVencimento);
   return Array.from({ length: parcelas }, (_, index) => ({
     numero: index + 1,
     valor: ((base + (index === parcelas - 1 ? remainder : 0)) / 100).toFixed(2),
-    vencimento: addMonths(primeiroVencimento, index),
+    vencimento: vencimentos[index],
   }));
+}
+function storedDates(raw: unknown, parcelas: number, primeiroVencimento: string) {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parcelDates(parsed, parcelas, primeiroVencimento);
+  } catch { return parcelDates([], parcelas, primeiroVencimento); }
+}
+function storedCreated(raw: unknown) {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? asNumberFields(parsed) : [];
+  } catch { return []; }
 }
 async function audit(conn: mysql.PoolConnection, user: CrmSession, action: string, recordId: number, details: Record<string, unknown>) {
   await conn.execute(
@@ -134,7 +157,15 @@ async function getLote(loteId: number) {
       WHERE l.id = ?`, [loteId],
   );
   if (!lote) return null;
-  const itens = await db<any>("SELECT * FROM crm_lotes_financeiros_stand_itens WHERE lote_id = ? ORDER BY id ASC", [loteId]);
+  const itens = (await db<any>("SELECT * FROM crm_lotes_financeiros_stand_itens WHERE lote_id = ? ORDER BY id ASC", [loteId])).map((item) => {
+    const primeiroVencimento = asNumberFields(item.primeiro_vencimento);
+    return {
+      ...item,
+      primeiro_vencimento: primeiroVencimento,
+      datas_vencimento: storedDates(item.datas_vencimento, Number(item.parcelas || 1), String(primeiroVencimento)),
+      lancamentos_criados: storedCreated(item.lancamentos_criados),
+    };
+  });
   const resumo = itens.reduce((acc: any, item: any) => {
     const value = Number(item.valor_total || 0);
     if (item.natureza === "receita") acc.receitas += value;
@@ -231,16 +262,16 @@ export function registerLotesFinanceirosRoutes(app: any) {
       const item = normalizeItem(req.body);
       const [result] = await getPool().execute(
         `INSERT INTO crm_lotes_financeiros_stand_itens
-         (lote_id, natureza, categoria, descricao, valor_total, parcelas, primeiro_vencimento, forma_pagamento, observacoes, status, created_by, updated_by)
-         VALUES (?,?,?,?,?,?,?,?,?,'rascunho',?,?)`,
-        [loteId, item.natureza, item.categoria, item.descricao, (item.valorCents / 100).toFixed(2), item.parcelas, item.primeiroVencimento, item.formaPagamento, item.observacoes, user.userId, user.userId],
+         (lote_id, natureza, categoria, descricao, valor_total, parcelas, primeiro_vencimento, datas_vencimento, forma_pagamento, observacoes, status, created_by, updated_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,'rascunho',?,?)`,
+        [loteId, item.natureza, item.categoria, item.descricao, (item.valorCents / 100).toFixed(2), item.parcelas, item.primeiroVencimento, JSON.stringify(item.datasVencimento), item.formaPagamento, item.observacoes, user.userId, user.userId],
       );
       const itemId = Number((result as any).insertId);
       const conn = await getPool().getConnection();
       try { await audit(conn, user, "ADD_FINANCE_BATCH_ITEM", loteId, { itemId, natureza: item.natureza, categoria: item.categoria, valor: item.valorCents / 100, parcelas: item.parcelas }); } finally { conn.release(); }
       res.status(201).json({ ok: true, lote: await getLote(loteId) });
     } catch (error: any) {
-      const known = ["VALOR_INVALIDO", "DATA_INVALIDA", "NATUREZA_INVALIDA", "CATEGORIA_INVALIDA", "DESCRICAO_OBRIGATORIA"];
+      const known = ["VALOR_INVALIDO", "DATA_INVALIDA", "DATAS_PARCELAS_INCONSISTENTES", "NATUREZA_INVALIDA", "CATEGORIA_INVALIDA", "DESCRICAO_OBRIGATORIA"];
       res.status(known.includes(error?.message) ? 400 : 500).json({ error: known.includes(error?.message) ? error.message : (error?.message || "Não foi possível adicionar o item") });
     }
   });
@@ -278,7 +309,8 @@ export function registerLotesFinanceirosRoutes(app: any) {
         const allCreated: any[] = [];
         for (const item of itens as any[]) {
           const totalCents = Math.round(Number(item.valor_total) * 100);
-          const parcelas = buildParcelas(totalCents, safeInt(item.parcelas, 1, 1, 60), String(item.primeiro_vencimento));
+          const primeiroVencimento = String(asNumberFields(item.primeiro_vencimento));
+          const parcelas = buildParcelas(totalCents, safeInt(item.parcelas, 1, 1, 60), primeiroVencimento, storedDates(item.datas_vencimento, safeInt(item.parcelas, 1, 1, 60), primeiroVencimento));
           const created: any[] = [];
           for (const parcela of parcelas) {
             const descricao = parcelas.length > 1 ? `${item.descricao} — ${parcela.numero}/${parcelas.length}` : item.descricao;

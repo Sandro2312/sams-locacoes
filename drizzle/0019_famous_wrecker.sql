@@ -1,0 +1,1 @@
+ALTER TABLE `crm_lotes_financeiros_stand_itens` ADD `datas_vencimento` text;
