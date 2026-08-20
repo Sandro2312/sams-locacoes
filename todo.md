@@ -798,3 +798,8 @@
 - [x] Confirmar que cada item do lote confirmado cria a mesma Conta a Receber ou Despesa usada nos módulos financeiros
 - [x] Exibir no lote os tipos de registro financeiro criados e preservar o acesso aos fluxos de pagamento e comprovante
 - [x] Validar o mapeamento de campos, parcelas e status pendente antes do checkpoint
+
+## Correção — Ação de Confirmar Lote Visível (Ago/2026)
+- [x] Reposicionar a ação de confirmação para ficar visível junto à tabela de itens em rascunho
+- [x] Reforçar o aviso de que a confirmação cria os lançamentos reais do Financeiro
+- [x] Validar o botão em desktop/mobile, a confirmação humana e as regressões antes do checkpoint
