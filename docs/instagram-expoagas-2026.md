@@ -28,4 +28,4 @@ A programação oficial da AGAS informa que a Expoagas 2026 ocorre de 18 a 20 de
 
 ## Estado
 
-O texto e as mídias estão prontos. A integração de Instagram está disponível no ambiente, porém permanece desativada e sem conta autorizada. Nenhuma publicação externa foi realizada.
+O texto e as mídias estão prontos como rascunho. A tentativa de conexão da conta encontrou uma verificação anti-automação do Instagram e o usuário orientou interromper o fluxo externo. Nenhuma publicação externa foi realizada, nenhuma credencial foi registrada neste arquivo e o carrossel permanece somente como material para uso futuro.

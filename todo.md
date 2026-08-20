@@ -707,3 +707,7 @@
 ## Confirmação editorial — Clientes Expoagas 2026 (Ago/2026)
 - [x] Confirmar pelo usuário os sete clientes: Neugebauer, Alcafoods, MM Hortifrutigranjeiros, Sandero, Beer Bev, Urano e Ceasa
 - [x] Remover referências a expositores não confirmados e alinhar toda a cobertura à lista oficial
+
+## Encerramento — Instagram Expoagas 2026 (Ago/2026)
+- [x] Interromper o fluxo externo e confirmar que nenhum conteúdo foi publicado
+- [x] Preservar o rascunho local e documentar o bloqueio de autenticação sem armazenar credenciais
