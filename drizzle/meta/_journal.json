@@ -127,6 +127,13 @@
       "when": 1787243914594,
       "tag": "0017_tiny_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1787252584522,
+      "tag": "0018_wakeful_human_torch",
+      "breakpoints": true
     }
   ]
 }

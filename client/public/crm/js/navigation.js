@@ -630,8 +630,8 @@ const NavigationSystem = {
             }
         } else if (module === 'financeiro' && page === 'guia_lancamentos') {
             try {
-                window.ProjetosStandFechamentoModule?.bindFinanceiro?.();
-                window.ProjetosStandFechamentoModule?.loadFinanceiro?.();
+                window.LoteFinanceiroModule?.bind?.();
+                window.LoteFinanceiroModule?.load?.();
             } catch (e) { console.warn('Falha ao carregar Guia de Lançamentos:', e); }
         } else if (module === 'financeiro' && page === 'resultados_stand') {
             try { window.ProjetosStandModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado por Stand:', e); }
@@ -762,7 +762,7 @@ const NavigationSystem = {
         } else if (module === 'financeiro' && page === 'receitas') {
             pageContent = ModuleSystem?.financeiro?.listReceitas?.() || '';
         } else if (module === 'financeiro' && page === 'guia_lancamentos') {
-            pageContent = window.ProjetosStandFechamentoModule?.renderFinanceiro?.() || '';
+            pageContent = window.LoteFinanceiroModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'resultados_stand') {
             pageContent = window.ProjetosStandModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'resultados_evento') {

@@ -13,6 +13,7 @@ const formsSource = readFileSync(resolve(root, "client/public/crm/js/forms.js"),
 const receivableSource = readFileSync(resolve(root, "client/public/crm/js/crm-contas-receber.js"), "utf8");
 const navigationSource = readFileSync(resolve(root, "client/public/crm/js/navigation.js"), "utf8");
 const indexSource = readFileSync(resolve(root, "client/public/crm/index.html"), "utf8");
+const batchGuideSource = readFileSync(resolve(root, "client/public/crm/js/crm-lotes-financeiros.js"), "utf8");
 
 describe("Guia de Fechamento por Stand V1", () => {
   it("mantém o checklist em tabelas complementares e não destrutivas", () => {
@@ -53,24 +54,15 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787252500');
   });
 
-  it("expõe o guia como entrada principal no Financeiro com busca de stand", () => {
+  it("mantém o checklist por projeto e expõe o lote financeiro como entrada principal", () => {
     expect(navigationSource).toContain("guia_lancamentos: { name: 'Guia de Lançamentos'");
     expect(navigationSource).toContain("page === 'guia_lancamentos'");
-    expect(navigationSource).toContain('loadFinanceiro?.()');
-    expect(guideUiSource).toContain('Guia de Lançamentos por Stand');
-    expect(guideUiSource).toContain('data-finance-guide-search');
-    expect(guideUiSource).toContain("fetchAll('/api/crm/projetos-stand'");
-    expect(guideUiSource).toContain('data-finance-guide-action="open"');
-    expect(guideUiSource).toContain('Stand selecionado automaticamente.');
-    expect(guideUiSource).toContain('document.addEventListener(\'input\'');
-    expect(guideUiSource).toContain('/api/crm/clientes');
-    expect(guideUiSource).toContain('Continuar: criar Projeto de Stand');
-    expect(guideUiSource).toContain('data-finance-guide-action="create-project"');
-    expect(guideUiSource).toContain('role="button"');
-    expect(guideUiSource).toContain('display:flex!important');
-    expect(guideUiSource).toContain('Selecione o cliente antes de criar o Projeto de Stand.');
-    expect(guideUiSource).toContain('sams:projeto-stand-salvo');
-    expect(projectUiSource).toContain('sams:projeto-stand-salvo');
-    expect(projectUiSource).toContain("navigateToPage?.('financeiro', 'guia_lancamentos')");
+    expect(navigationSource).toContain('window.LoteFinanceiroModule?.load?.()');
+    expect(batchGuideSource).toContain('Lançamentos em lote por Stand');
+    expect(batchGuideSource).toContain('Não cria venda nem Projeto de Stand');
+    expect(batchGuideSource).toContain('data-finance-batch-client-search');
+    expect(batchGuideSource).toContain('Criar lote e adicionar itens');
+    expect(batchGuideSource).toContain('Revisar e confirmar lançamentos');
+    expect(indexSource).toContain('crm-lotes-financeiros.js?v=1787253000');
   });
 });

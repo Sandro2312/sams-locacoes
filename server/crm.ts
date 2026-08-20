@@ -6,6 +6,7 @@ import { registerAssistenteRoutes } from "./crm-assistente";
 import { registerTicketRoutes } from "./crm-tickets";
 import { registerProjetosStandRoutes } from "./crm-projetos-stand";
 import { registerProjetosStandFechamentoRoutes } from "./crm-projetos-stand-fechamento";
+import { registerLotesFinanceirosRoutes } from "./crm-lotes-financeiros";
 import { registerEventosResultadosRoutes } from "./crm-eventos-resultados";
 import { registerRateiosRoutes } from "./crm-rateios";
 import { registerJuridicoRoutes } from "./crm-juridico";
@@ -2258,6 +2259,8 @@ export function registerCrmRoutes(app: any) {
   registerProjetosStandRoutes(app);
   // Registrar o checklist guiado de fechamento por stand, sem alterar lançamentos de origem
   registerProjetosStandFechamentoRoutes(app);
+  // Registrar lotes financeiros por cliente, evento e stand sem criar venda ou Projeto de Stand
+  registerLotesFinanceirosRoutes(app);
   // Registrar o painel de metas, captação e resultado consolidado por Evento
   registerEventosResultadosRoutes(app);
   // Registrar rotas de rateio auditável de custos compartilhados

@@ -150,6 +150,64 @@ export type CrmProjetoStandFechamentoItem = typeof crmProjetosStandFechamentoIte
 export type InsertCrmProjetoStandFechamentoItem = typeof crmProjetosStandFechamentoItens.$inferInsert;
 
 /**
+ * Sessão financeira independente de venda ou Projeto de Stand. Ela organiza um
+ * conjunto de receitas e despesas de um mesmo stand antes da confirmação humana
+ * que cria os lançamentos nas tabelas financeiras de origem.
+ */
+export const crmLotesFinanceirosStand = mysqlTable("crm_lotes_financeiros_stand", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 60 }).notNull().unique(),
+  clienteId: int("cliente_id").notNull(),
+  eventoId: int("evento_id").notNull(),
+  identificacaoStand: varchar("identificacao_stand", { length: 180 }).notNull(),
+  centroCusto: varchar("centro_custo", { length: 220 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("rascunho"),
+  observacoes: text("observacoes"),
+  confirmadoPor: int("confirmado_por"),
+  confirmadoPorNome: varchar("confirmado_por_nome", { length: 255 }),
+  confirmadoEm: timestamp("confirmado_em"),
+  createdBy: int("created_by").notNull(),
+  updatedBy: int("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_lotes_fin_stand_cliente_evento_idx").on(table.clienteId, table.eventoId),
+  index("crm_lotes_fin_stand_status_idx").on(table.status),
+]);
+
+/**
+ * Item em rascunho do lote. Receita parcela uma conta a receber na confirmação;
+ * despesa parcela transações de saída. Os IDs criados são preservados aqui para
+ * auditoria e nunca substituem os dados de origem.
+ */
+export const crmLotesFinanceirosStandItens = mysqlTable("crm_lotes_financeiros_stand_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  loteId: int("lote_id").notNull(),
+  natureza: varchar("natureza", { length: 20 }).notNull(),
+  categoria: varchar("categoria", { length: 60 }).notNull().default("outros"),
+  descricao: varchar("descricao", { length: 500 }).notNull(),
+  valorTotal: decimal("valor_total", { precision: 14, scale: 2 }).notNull(),
+  parcelas: int("parcelas").notNull().default(1),
+  primeiroVencimento: date("primeiro_vencimento").notNull(),
+  formaPagamento: varchar("forma_pagamento", { length: 120 }),
+  observacoes: text("observacoes"),
+  status: varchar("status", { length: 30 }).notNull().default("rascunho"),
+  lancamentosCriados: text("lancamentos_criados"),
+  createdBy: int("created_by").notNull(),
+  updatedBy: int("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_lotes_fin_stand_itens_lote_idx").on(table.loteId),
+  index("crm_lotes_fin_stand_itens_status_idx").on(table.status),
+]);
+
+export type CrmLoteFinanceiroStand = typeof crmLotesFinanceirosStand.$inferSelect;
+export type InsertCrmLoteFinanceiroStand = typeof crmLotesFinanceirosStand.$inferInsert;
+export type CrmLoteFinanceiroStandItem = typeof crmLotesFinanceirosStandItens.$inferSelect;
+export type InsertCrmLoteFinanceiroStandItem = typeof crmLotesFinanceirosStandItens.$inferInsert;
+
+/**
  * Metas comerciais e fechamento operacional de uma feira. Há no máximo um
  * registro por Evento; os totais financeiros e de captação continuam sendo
  * calculados nas tabelas de origem para não duplicar nem reescrever históricos.

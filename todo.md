@@ -775,3 +775,10 @@
 - [x] Identificar a regra que remove ou oculta a ação de criação no CRM publicado
 - [x] Substituir a ação por uma chamada visual isolada e vinculada à criação contextual de stand
 - [x] Validar renderização, clique, pré-preenchimento, mobile e regressões; checkpoint salvo
+
+## Redesenho — Lote Financeiro por Stand (Ago/2026)
+- [x] Mapear formulários e regras atuais de receitas, despesas, parcelas e centros de custo
+- [x] Definir a sessão de lote por Cliente, Evento e identificação de stand, sem criar venda ou Projeto de Stand
+- [x] Criar APIs auditáveis para rascunho, itens do lote, validação e confirmação humana de lançamentos
+- [x] Construir tela de lançamento em lote com receitas, despesas, parcelamento e revisão de pendências
+- [x] Validar persistência, integridade, permissões, desktop/mobile, sintaxe e regressões; checkpoint pendente
