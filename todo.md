@@ -786,4 +786,4 @@
 ## Correção — Busca de Cliente no Lote Financeiro (Ago/2026)
 - [x] Identificar por que o texto digitado não atualiza o seletor de cliente do lote
 - [x] Corrigir filtro, seleção automática e preservação do cliente no contexto do lote
-- [x] Validar criação de lote, mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar criação de lote, mobile, sintaxe e regressões; checkpoint salvo
