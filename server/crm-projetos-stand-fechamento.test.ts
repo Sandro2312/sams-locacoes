@@ -49,7 +49,7 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(guideUiSource).toContain('window.__samsGuiaStandDefaults');
     expect(formsSource).toContain('window.__samsGuiaStandDefaults?.transacoes');
     expect(receivableSource).toContain('window.__samsGuiaStandDefaults?.contasReceber');
-    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787249000');
+    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787250200');
   });
 
   it("expõe o guia como entrada principal no Financeiro com busca de stand", () => {
@@ -60,5 +60,7 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(guideUiSource).toContain('data-finance-guide-search');
     expect(guideUiSource).toContain('/api/crm/projetos-stand?limit=500');
     expect(guideUiSource).toContain('data-finance-guide-action="open"');
+    expect(guideUiSource).toContain('Stand selecionado automaticamente.');
+    expect(guideUiSource).toContain('document.addEventListener(\'input\'');
   });
 });

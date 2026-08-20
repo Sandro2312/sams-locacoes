@@ -98,39 +98,57 @@
         </div>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Projetos de Stand...</p></div>
-          <button type="button" data-finance-guide-action="open" disabled class="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-list-check mr-2"></i>Abrir guia do stand</button>
-        </div>
-        <label for="finance-guide-project-select" class="mt-5 block text-sm font-semibold text-slate-700">Projeto de Stand</label><select id="finance-guide-project-select" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-select disabled><option value="">Carregando projetos...</option></select>
+        <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Projetos de Stand...</p></div>
+        <label for="finance-guide-project-select" class="mt-5 block text-sm font-semibold text-slate-700">Projeto de Stand encontrado</label><select id="finance-guide-project-select" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-select disabled><option value="">Carregando projetos...</option></select>
+        <button type="button" data-finance-guide-action="open" disabled class="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-list-check mr-2"></i>Abrir guia do stand selecionado</button>
         <div class="mt-5 grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3"><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">1. Venda e parcelas</p><p class="mt-1 text-xs text-slate-600">Conferir orçamento aprovado e cadastrar recebimentos parcelados.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">2. Custos e rateios</p><p class="mt-1 text-xs text-slate-600">Registrar custos por categoria e revisar alocações compartilhadas.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">3. Revisão humana</p><p class="mt-1 text-xs text-slate-600">Classificar pendências e documentar divergências antes de fechar.</p></div></div>
       </div>
     </section>`;
   }
 
   let financeProjects = [];
-  const projectLabel = (project) => [project.codigo || project.nome || 'Projeto de Stand', project.cliente_nome || project.lead_nome || 'Cliente / lead', project.evento_nome || 'Sem evento'].filter(Boolean).join(' · ');
+  const projectLabel = (project) => [project.codigo || project.nome || project.referencia_stand || 'Projeto de Stand', project.cliente_nome || project.clienteNome || project.cliente_convertido_nome || project.lead_nome || project.leadNome || 'Cliente / lead', project.evento_nome || project.eventoNome || 'Sem evento'].filter(Boolean).join(' · ');
+  const projectSearchText = (project) => [projectLabel(project), project.codigo, project.nome, project.referencia_stand, project.cliente_nome, project.clienteNome, project.cliente_convertido_nome, project.lead_nome, project.leadNome, project.evento_nome, project.eventoNome].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
   function paintFinanceProjects(query = '') {
     const select = document.querySelector('[data-finance-guide-select]');
     const count = document.getElementById('finance-guide-project-count');
     const open = document.querySelector('[data-finance-guide-action="open"]');
     if (!select) return;
     const term = String(query || '').trim().toLocaleLowerCase('pt-BR');
-    const visible = financeProjects.filter((project) => projectLabel(project).toLocaleLowerCase('pt-BR').includes(term));
+    const currentValue = String(select.value || '');
+    const visible = financeProjects.filter((project) => projectSearchText(project).includes(term));
     select.innerHTML = `<option value="">${visible.length ? 'Selecione o stand para iniciar' : 'Nenhum stand encontrado'}</option>${visible.map((project) => `<option value="${esc(project.id)}">${esc(projectLabel(project))}</option>`).join('')}`;
     select.disabled = !visible.length;
-    if (open) open.disabled = true;
-    if (count) count.textContent = term ? `${visible.length} de ${financeProjects.length} stand(s) encontrado(s).` : `${financeProjects.length} Projeto(s) de Stand disponível(is).`;
+    const persisted = visible.some((project) => String(project.id) === currentValue) ? currentValue : '';
+    const automatic = term && visible.length === 1 ? String(visible[0].id) : '';
+    select.value = automatic || persisted;
+    if (open) open.disabled = !select.value;
+    if (count) count.textContent = term ? `${visible.length} de ${financeProjects.length} stand(s) encontrado(s).${automatic ? ' Stand selecionado automaticamente.' : ''}` : `${financeProjects.length} Projeto(s) de Stand disponível(is).`;
   }
 
+  let financeControlsBound = false;
   function bindFinanceiro() {
-    const search = document.querySelector('[data-finance-guide-search]');
-    const select = document.querySelector('[data-finance-guide-select]');
-    const open = document.querySelector('[data-finance-guide-action="open"]');
-    search?.addEventListener('input', () => paintFinanceProjects(search.value));
-    select?.addEventListener('change', () => { if (open) open.disabled = !select.value; });
-    open?.addEventListener('click', () => { if (select?.value) openGuide(select.value); });
-    document.querySelector('[data-finance-guide-action="resultados"]')?.addEventListener('click', () => window.NavigationSystem?.navigateToPage?.('financeiro', 'resultados_stand'));
+    if (financeControlsBound) return;
+    financeControlsBound = true;
+    document.addEventListener('input', (event) => {
+      const search = event.target?.closest?.('[data-finance-guide-search]');
+      if (search) paintFinanceProjects(search.value);
+    });
+    document.addEventListener('change', (event) => {
+      const select = event.target?.closest?.('[data-finance-guide-select]');
+      if (!select) return;
+      const open = document.querySelector('[data-finance-guide-action="open"]');
+      if (open) open.disabled = !select.value;
+    });
+    document.addEventListener('click', (event) => {
+      const action = event.target?.closest?.('[data-finance-guide-action]');
+      if (!action) return;
+      if (action.dataset.financeGuideAction === 'open') {
+        const select = document.querySelector('[data-finance-guide-select]');
+        if (select?.value) openGuide(select.value);
+      }
+      if (action.dataset.financeGuideAction === 'resultados') window.NavigationSystem?.navigateToPage?.('financeiro', 'resultados_stand');
+    });
   }
 
   async function loadFinanceiro() {
@@ -199,5 +217,6 @@
     event.preventDefault();
     openGuide(button.dataset.id);
   });
+  bindFinanceiro();
   window.ProjetosStandFechamentoModule = { openGuide, renderFinanceiro, loadFinanceiro, bindFinanceiro };
 })();

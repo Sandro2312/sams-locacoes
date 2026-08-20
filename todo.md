@@ -754,3 +754,8 @@
 - [x] Mapear a visibilidade atual do guia e os pontos de entrada do módulo Financeiro
 - [x] Adicionar acesso explícito e selecionador de stand no Financeiro, preservando o atalho no Projeto de Stand
 - [x] Validar navegação, contexto de lançamento, permissões, mobile e regressões; checkpoint salvo
+
+## Correção — Busca do Guia de Lançamentos (Ago/2026)
+- [x] Identificar por que a digitação não atualiza o seletor de stand encontrado
+- [x] Corrigir a busca, seleção e habilitação do botão para iniciar o guia
+- [x] Validar o fluxo de Cliente/Eventos/Stand, mobile, sintaxe e regressões; checkpoint pendente

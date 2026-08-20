@@ -19,3 +19,9 @@ O atalho original no Resultado por Stand foi preservado para quem estiver analis
 ## Compatibilidade e validação
 
 A página usa campo de busca, `select` nativo e botões responsivos, sem dependência de componentes externos. A navegação foi incluída nas mesmas regras de permissão de Resultado por Stand. A sintaxe de `navigation.js` foi validada, o TypeScript permaneceu sem erros e a regressão do guia passou em 5/5 casos. A suíte geral ficou em 139/141, mantendo duas falhas administrativas preexistentes nos testes de Contato e Orçamento.
+
+## Correção da busca de stand
+
+Após a primeira utilização, foi identificado que a lista de projetos era carregada, porém a digitação podia não atualizar o seletor quando a vinculação local do campo não ocorria no momento correto. A busca agora usa delegação de eventos no documento e compara nome, código, referência, cliente convertido, lead e evento. Quando a pesquisa retorna apenas um stand, ele é selecionado automaticamente e o botão **Abrir guia do stand selecionado** é habilitado.
+
+Essa alteração elimina a dependência de clicar novamente no seletor após localizar, por exemplo, **Urano**, e mantém o controle nativo para teclado, leitores de tela, desktop e mobile.
