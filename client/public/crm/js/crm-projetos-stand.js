@@ -199,10 +199,16 @@
       submit.disabled = true;
       submit.textContent = 'Salvando...';
       try {
-        await api(project?.id ? `/${encodeURIComponent(project.id)}` : '/', { method: project?.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const returnToFinanceGuide = !project && Boolean(window.__samsFinanceGuidePendingClientId);
+        const saved = await api(project?.id ? `/${encodeURIComponent(project.id)}` : '/', { method: project?.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         showMessage(project?.id ? 'Projeto de Stand atualizado.' : 'Projeto de Stand criado.');
         close();
-        await load();
+        window.dispatchEvent(new CustomEvent('sams:projeto-stand-salvo', { detail: { id: saved?.id ?? saved?.data?.id ?? project?.id ?? null, clienteId: payload.clienteId || null } }));
+        if (returnToFinanceGuide) {
+          window.NavigationSystem?.navigateToPage?.('financeiro', 'guia_lancamentos');
+        } else {
+          await load();
+        }
       } catch (error) {
         showMessage(error.message || 'Não foi possível salvar.', 'error');
         submit.disabled = false;

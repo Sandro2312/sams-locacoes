@@ -759,3 +759,9 @@
 - [x] Identificar por que a digitação não atualiza o seletor de stand encontrado
 - [x] Corrigir a busca, seleção e habilitação do botão para iniciar o guia
 - [x] Validar o fluxo de Cliente/Eventos/Stand, mobile, sintaxe e regressões; checkpoint salvo
+
+## Evolução — Cliente para Stand no Guia de Lançamentos (Ago/2026)
+- [x] Pesquisar a base completa de Clientes, além dos Projetos de Stand existentes
+- [x] Exibir stands vinculados ao cliente encontrado e preservar o acesso direto ao checklist
+- [x] Criar atalho contextual para novo Projeto de Stand quando o cliente não possuir vínculo
+- [x] Validar pesquisa, criação, permissões, mobile, sintaxe e regressões; checkpoint pendente

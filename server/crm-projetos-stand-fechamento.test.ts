@@ -49,7 +49,8 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(guideUiSource).toContain('window.__samsGuiaStandDefaults');
     expect(formsSource).toContain('window.__samsGuiaStandDefaults?.transacoes');
     expect(receivableSource).toContain('window.__samsGuiaStandDefaults?.contasReceber');
-    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787250200');
+    expect(indexSource).toContain('crm-projetos-stand.js?v=1787251200');
+    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787251200');
   });
 
   it("expõe o guia como entrada principal no Financeiro com busca de stand", () => {
@@ -58,9 +59,14 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(navigationSource).toContain('loadFinanceiro?.()');
     expect(guideUiSource).toContain('Guia de Lançamentos por Stand');
     expect(guideUiSource).toContain('data-finance-guide-search');
-    expect(guideUiSource).toContain('/api/crm/projetos-stand?limit=500');
+    expect(guideUiSource).toContain("fetchAll('/api/crm/projetos-stand'");
     expect(guideUiSource).toContain('data-finance-guide-action="open"');
     expect(guideUiSource).toContain('Stand selecionado automaticamente.');
     expect(guideUiSource).toContain('document.addEventListener(\'input\'');
+    expect(guideUiSource).toContain('/api/crm/clientes');
+    expect(guideUiSource).toContain('Criar Projeto de Stand para este cliente');
+    expect(guideUiSource).toContain('sams:projeto-stand-salvo');
+    expect(projectUiSource).toContain('sams:projeto-stand-salvo');
+    expect(projectUiSource).toContain("navigateToPage?.('financeiro', 'guia_lancamentos')");
   });
 });

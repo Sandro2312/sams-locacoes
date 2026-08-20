@@ -25,3 +25,11 @@ A página usa campo de busca, `select` nativo e botões responsivos, sem depend�
 Após a primeira utilização, foi identificado que a lista de projetos era carregada, porém a digitação podia não atualizar o seletor quando a vinculação local do campo não ocorria no momento correto. A busca agora usa delegação de eventos no documento e compara nome, código, referência, cliente convertido, lead e evento. Quando a pesquisa retorna apenas um stand, ele é selecionado automaticamente e o botão **Abrir guia do stand selecionado** é habilitado.
 
 Essa alteração elimina a dependência de clicar novamente no seletor após localizar, por exemplo, **Urano**, e mantém o controle nativo para teclado, leitores de tela, desktop e mobile.
+
+## Fluxo de cliente sem stand vinculado
+
+A busca anterior tinha como fonte apenas Projetos de Stand. Por isso, ao digitar um cliente que existia no cadastro geral — mas que ainda não possuía Projeto de Stand — o resultado podia indicar “0 stands”, embora o cliente estivesse registrado.
+
+O guia agora consulta a base completa de Clientes em blocos, além da lista de Projetos de Stand. Quando encontra o cliente sem vínculo, apresenta o bloco **Cliente encontrado, mas sem Projeto de Stand vinculado** e oferece a ação **Criar Projeto de Stand para este cliente**. O formulário abre com o cliente já selecionado; a equipe informa o evento, o nome/referência do stand e o centro de custo antes de salvar. Após a criação, o usuário retorna ao Guia de Lançamentos no Financeiro e pode abrir o checklist do stand recém-criado.
+
+Esse passo preserva a regra operacional: os lançamentos continuam vinculados a um Projeto de Stand, mas a descoberta inicial parte do cadastro real de Clientes, não apenas de projetos que já existiam.

@@ -98,17 +98,41 @@
         </div>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Projetos de Stand...</p></div>
+        <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Clientes e Projetos de Stand...</p></div>
         <label for="finance-guide-project-select" class="mt-5 block text-sm font-semibold text-slate-700">Projeto de Stand encontrado</label><select id="finance-guide-project-select" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-select disabled><option value="">Carregando projetos...</option></select>
         <button type="button" data-finance-guide-action="open" disabled class="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-list-check mr-2"></i>Abrir guia do stand selecionado</button>
+        <div id="finance-guide-client-without-project" class="mt-4 hidden rounded-lg border border-amber-200 bg-amber-50 p-4"><p class="text-sm font-semibold text-amber-950">Cliente encontrado, mas sem Projeto de Stand vinculado.</p><p class="mt-1 text-xs leading-5 text-amber-900">Crie o Projeto de Stand para definir Evento, nome do stand e centro de custo. Depois, o guia ficará disponível para os lançamentos.</p><label for="finance-guide-client-select" class="mt-3 block text-xs font-semibold text-amber-950">Cliente encontrado</label><select id="finance-guide-client-select" class="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-client-select></select><button type="button" data-finance-guide-action="create-project" disabled class="mt-3 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-plus mr-2"></i>Criar Projeto de Stand para este cliente</button></div>
         <div class="mt-5 grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3"><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">1. Venda e parcelas</p><p class="mt-1 text-xs text-slate-600">Conferir orçamento aprovado e cadastrar recebimentos parcelados.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">2. Custos e rateios</p><p class="mt-1 text-xs text-slate-600">Registrar custos por categoria e revisar alocações compartilhadas.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">3. Revisão humana</p><p class="mt-1 text-xs text-slate-600">Classificar pendências e documentar divergências antes de fechar.</p></div></div>
       </div>
     </section>`;
   }
 
   let financeProjects = [];
+  let financeClients = [];
   const projectLabel = (project) => [project.codigo || project.nome || project.referencia_stand || 'Projeto de Stand', project.cliente_nome || project.clienteNome || project.cliente_convertido_nome || project.lead_nome || project.leadNome || 'Cliente / lead', project.evento_nome || project.eventoNome || 'Sem evento'].filter(Boolean).join(' · ');
   const projectSearchText = (project) => [projectLabel(project), project.codigo, project.nome, project.referencia_stand, project.cliente_nome, project.clienteNome, project.cliente_convertido_nome, project.lead_nome, project.leadNome, project.evento_nome, project.eventoNome].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
+  const clientLabel = (client) => client?.nome || client?.razao_social || client?.empresa || `Cliente #${client?.id || ''}`;
+  const clientSearchText = (client) => [clientLabel(client), client?.email, client?.documento, client?.cpf_cnpj, client?.cnpj, client?.telefone, client?.whatsapp].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
+  const matchedClients = (term) => term ? financeClients.filter((client) => clientSearchText(client).includes(term)) : [];
+  const linkedProjects = (clientId) => financeProjects.filter((project) => String(project.cliente_id ?? project.clienteId) === String(clientId));
+  function paintClientWithoutProject(clients, term) {
+    const box = document.getElementById('finance-guide-client-without-project');
+    const select = document.querySelector('[data-finance-guide-client-select]');
+    const create = document.querySelector('[data-finance-guide-action="create-project"]');
+    if (!box || !select || !create) return;
+    const withoutProject = clients.filter((client) => !linkedProjects(client.id).length);
+    if (!term || !withoutProject.length) {
+      box.classList.add('hidden');
+      select.innerHTML = '<option value="">Nenhum cliente selecionado</option>';
+      create.disabled = true;
+      return;
+    }
+    const selected = withoutProject.length === 1 ? String(withoutProject[0].id) : String(select.value || '');
+    select.innerHTML = `<option value="">Selecione o cliente para criar o stand</option>${withoutProject.map((client) => `<option value="${esc(client.id)}">${esc(clientLabel(client))}</option>`).join('')}`;
+    select.value = withoutProject.some((client) => String(client.id) === selected) ? selected : '';
+    create.disabled = !select.value;
+    box.classList.remove('hidden');
+  }
   function paintFinanceProjects(query = '') {
     const select = document.querySelector('[data-finance-guide-select]');
     const count = document.getElementById('finance-guide-project-count');
@@ -116,6 +140,7 @@
     if (!select) return;
     const term = String(query || '').trim().toLocaleLowerCase('pt-BR');
     const currentValue = String(select.value || '');
+    const clientMatches = matchedClients(term);
     const visible = financeProjects.filter((project) => projectSearchText(project).includes(term));
     select.innerHTML = `<option value="">${visible.length ? 'Selecione o stand para iniciar' : 'Nenhum stand encontrado'}</option>${visible.map((project) => `<option value="${esc(project.id)}">${esc(projectLabel(project))}</option>`).join('')}`;
     select.disabled = !visible.length;
@@ -123,7 +148,13 @@
     const automatic = term && visible.length === 1 ? String(visible[0].id) : '';
     select.value = automatic || persisted;
     if (open) open.disabled = !select.value;
-    if (count) count.textContent = term ? `${visible.length} de ${financeProjects.length} stand(s) encontrado(s).${automatic ? ' Stand selecionado automaticamente.' : ''}` : `${financeProjects.length} Projeto(s) de Stand disponível(is).`;
+    paintClientWithoutProject(clientMatches, term);
+    if (count) {
+      if (!term) count.textContent = `${financeProjects.length} Projeto(s) de Stand e ${financeClients.length} cliente(s) disponíveis.`;
+      else if (visible.length) count.textContent = `${visible.length} stand(s) encontrado(s).${automatic ? ' Stand selecionado automaticamente.' : ''}`;
+      else if (clientMatches.length) count.textContent = `${clientMatches.length} cliente(s) encontrado(s), mas sem stand vinculado.`;
+      else count.textContent = `Nenhum cliente ou stand encontrado para “${String(query || '').trim()}”.`;
+    }
   }
 
   let financeControlsBound = false;
@@ -136,9 +167,15 @@
     });
     document.addEventListener('change', (event) => {
       const select = event.target?.closest?.('[data-finance-guide-select]');
-      if (!select) return;
-      const open = document.querySelector('[data-finance-guide-action="open"]');
-      if (open) open.disabled = !select.value;
+      const clientSelect = event.target?.closest?.('[data-finance-guide-client-select]');
+      if (select) {
+        const open = document.querySelector('[data-finance-guide-action="open"]');
+        if (open) open.disabled = !select.value;
+      }
+      if (clientSelect) {
+        const create = document.querySelector('[data-finance-guide-action="create-project"]');
+        if (create) create.disabled = !clientSelect.value;
+      }
     });
     document.addEventListener('click', (event) => {
       const action = event.target?.closest?.('[data-finance-guide-action]');
@@ -146,6 +183,19 @@
       if (action.dataset.financeGuideAction === 'open') {
         const select = document.querySelector('[data-finance-guide-select]');
         if (select?.value) openGuide(select.value);
+      }
+      if (action.dataset.financeGuideAction === 'create-project') {
+        const clientSelect = document.querySelector('[data-finance-guide-client-select]');
+        const client = financeClients.find((item) => String(item.id) === String(clientSelect?.value || ''));
+        if (!client) return;
+        window.__samsFinanceGuidePendingClientId = String(client.id);
+        window.ProjetosStandModule?.openForm?.({
+          cliente_id: client.id,
+          clienteId: client.id,
+          cliente_nome: clientLabel(client),
+          nome: `Stand — ${clientLabel(client)}`,
+          centro_custo: clientLabel(client),
+        });
       }
       if (action.dataset.financeGuideAction === 'resultados') window.NavigationSystem?.navigateToPage?.('financeiro', 'resultados_stand');
     });
@@ -155,10 +205,24 @@
     const select = document.querySelector('[data-finance-guide-select]');
     if (!select) return;
     try {
-      const response = await fetch('/api/crm/projetos-stand?limit=500', { credentials: 'include', headers: headers() });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar os stands.');
-      financeProjects = Array.isArray(payload.data) ? payload.data : [];
+      const fetchAll = async (baseUrl, messageText) => {
+        const items = []; let offset = 0; let total = Infinity;
+        while (offset < total) {
+          const joiner = baseUrl.includes('?') ? '&' : '?';
+          const response = await fetch(`${baseUrl}${joiner}limit=500&offset=${offset}`, { credentials: 'include', headers: headers() });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || messageText);
+          const rows = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
+          items.push(...rows); total = Number(payload.total ?? rows.length);
+          if (!rows.length || rows.length < 500) break;
+          offset += rows.length;
+        }
+        return items;
+      };
+      [financeProjects, financeClients] = await Promise.all([
+        fetchAll('/api/crm/projetos-stand', 'Não foi possível carregar os stands.'),
+        fetchAll('/api/crm/clientes', 'Não foi possível carregar os clientes.'),
+      ]);
       paintFinanceProjects(document.querySelector('[data-finance-guide-search]')?.value || '');
     } catch (error) {
       select.disabled = true;
@@ -216,6 +280,14 @@
     if (!button) return;
     event.preventDefault();
     openGuide(button.dataset.id);
+  });
+  window.addEventListener('sams:projeto-stand-salvo', (event) => {
+    if (!document.querySelector('[data-finance-guide-select]')) return;
+    const pendingClientId = String(window.__samsFinanceGuidePendingClientId || '');
+    if (pendingClientId && String(event.detail?.clienteId || '') === pendingClientId) {
+      delete window.__samsFinanceGuidePendingClientId;
+      loadFinanceiro();
+    }
   });
   bindFinanceiro();
   window.ProjetosStandFechamentoModule = { openGuide, renderFinanceiro, loadFinanceiro, bindFinanceiro };
