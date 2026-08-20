@@ -735,4 +735,4 @@
 - [x] Mapear origem, atualização e limite da lista de clientes nos formulários financeiros
 - [x] Corrigir a sincronização para exibir clientes recém-cadastrados em Contas a Receber e Despesas
 - [x] Implementar busca acessível e cadastro contextual de cliente sem perder o lançamento em edição
-- [x] Validar persistência, navegação, desktop/mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar persistência, navegação, desktop/mobile, sintaxe e regressões; checkpoint salvo
