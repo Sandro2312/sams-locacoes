@@ -758,4 +758,4 @@
 ## Correção — Busca do Guia de Lançamentos (Ago/2026)
 - [x] Identificar por que a digitação não atualiza o seletor de stand encontrado
 - [x] Corrigir a busca, seleção e habilitação do botão para iniciar o guia
-- [x] Validar o fluxo de Cliente/Eventos/Stand, mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar o fluxo de Cliente/Eventos/Stand, mobile, sintaxe e regressões; checkpoint salvo
