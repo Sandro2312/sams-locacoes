@@ -21,6 +21,10 @@ O valor informado em cada item representa seu **total**. Ao escolher mais de uma
 
 As receitas possuem categorias de venda de stand, adicional/serviço e outra receita. As despesas possuem Projeto, Montagem, Taxas/feira, Comissão de vendedor, Comissão de projetista, Logística, Desmontagem, Fornecedor e Outros. As despesas são criadas com o tipo financeiro já utilizado pelo CRM (`pagar`).
 
+## Busca de cliente
+
+O campo **Buscar cliente** filtra o seletor por nome, e-mail ou documento e apresenta uma contagem atualizada dos resultados. Quando existe somente uma correspondência, como ao digitar `urano` para **URANO TECNOLOGIA LTDA**, o seletor é preenchido automaticamente e o centro de custo é atualizado assim que Evento e identificação do stand forem informados. Quando há mais de uma correspondência, o usuário escolhe o registro no seletor filtrado; quando não há resultado, a contagem informa que nenhum cliente foi localizado.
+
 ## Origem e auditoria
 
 Os rascunhos são armazenados nas tabelas complementares `crm_lotes_financeiros_stand` e `crm_lotes_financeiros_stand_itens`. Essas tabelas não substituem nem modificam registros anteriores. Após a confirmação, cada item preserva os identificadores de Contas a Receber ou Transações criadas; o lote e todas as ações de item/confirmar são auditados em `crm_auditoria`.

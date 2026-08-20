@@ -71,7 +71,7 @@
     return `<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">1. Identifique o lote financeiro</h3><p class="mt-1 text-sm text-slate-600">Este contexto será aplicado às receitas e despesas confirmadas neste lote.</p></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p></div>
+        <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-client-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-client">Cliente <span class="text-rose-600">*</span></label><select id="finance-batch-client" data-finance-batch-client class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${clientOptions('', '')}</select></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-event">Evento <span class="text-rose-600">*</span></label><select id="finance-batch-event" data-finance-batch-event class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${eventOptions('')}</select></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-stand">Identificação do stand <span class="text-rose-600">*</span></label><input id="finance-batch-stand" data-finance-batch-stand maxlength="180" placeholder="Ex.: Stand Urano · Pavilhão 2 · 48 m²" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div>
@@ -98,10 +98,22 @@
   function refreshClientSelect() {
     const search = document.querySelector('[data-finance-batch-client-search]');
     const select = document.querySelector('[data-finance-batch-client]');
+    const count = document.querySelector('[data-finance-batch-client-count]');
     if (!select) return;
     const previous = select.value;
-    select.innerHTML = clientOptions(previous, search?.value || '');
-    if (previous) select.value = previous;
+    const term = String(search?.value || '');
+    const results = searchClient(term);
+    select.innerHTML = clientOptions(previous, term);
+    if (term.trim() && results.length === 1) {
+      select.value = String(results[0].id);
+      if (count) count.textContent = `1 cliente encontrado e selecionado automaticamente.`;
+    } else {
+      if (previous) select.value = previous;
+      if (count) count.textContent = term.trim()
+        ? `${results.length} cliente(s) encontrado(s). Selecione um resultado abaixo.`
+        : `${state.clientes.length} clientes disponíveis para busca.`;
+    }
+    updateCentroCusto();
   }
   function updateCentroCusto() {
     const client = state.clientes.find((item) => String(item.id) === String(document.querySelector('[data-finance-batch-client]')?.value || ''));

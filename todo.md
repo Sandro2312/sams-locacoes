@@ -782,3 +782,8 @@
 - [x] Criar APIs auditáveis para rascunho, itens do lote, validação e confirmação humana de lançamentos
 - [x] Construir tela de lançamento em lote com receitas, despesas, parcelamento e revisão de pendências
 - [x] Validar persistência, integridade, permissões, desktop/mobile, sintaxe e regressões; checkpoint salvo
+
+## Correção — Busca de Cliente no Lote Financeiro (Ago/2026)
+- [x] Identificar por que o texto digitado não atualiza o seletor de cliente do lote
+- [x] Corrigir filtro, seleção automática e preservação do cliente no contexto do lote
+- [x] Validar criação de lote, mobile, sintaxe e regressões; checkpoint pendente

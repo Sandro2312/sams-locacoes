@@ -45,9 +45,12 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain("Não cria venda nem Projeto de Stand");
     expect(guide).toContain("Criar lote e adicionar itens");
     expect(guide).toContain("Revisar e confirmar lançamentos");
-    expect(guide).toContain("data-finance-batch-client-search");
-    expect(navigation).toContain("window.LoteFinanceiroModule?.render?.()");
+    expect(guide).toContain('data-finance-batch-client-search');
+    expect(guide).toContain('data-finance-batch-client-count');
+    expect(guide).toContain('1 cliente encontrado e selecionado automaticamente.');
+    expect(guide).toContain('results.length === 1');
+    expect(navigation).toContain('window.LoteFinanceiroModule?.load?.()');
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787253000");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787253400");
   });
 });
