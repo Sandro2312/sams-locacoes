@@ -11,6 +11,7 @@ const projectUiSource = readFileSync(resolve(root, "client/public/crm/js/crm-pro
 const guideUiSource = readFileSync(resolve(root, "client/public/crm/js/crm-projetos-stand-fechamento.js"), "utf8");
 const formsSource = readFileSync(resolve(root, "client/public/crm/js/forms.js"), "utf8");
 const receivableSource = readFileSync(resolve(root, "client/public/crm/js/crm-contas-receber.js"), "utf8");
+const navigationSource = readFileSync(resolve(root, "client/public/crm/js/navigation.js"), "utf8");
 const indexSource = readFileSync(resolve(root, "client/public/crm/index.html"), "utf8");
 
 describe("Guia de Fechamento por Stand V1", () => {
@@ -48,6 +49,16 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(guideUiSource).toContain('window.__samsGuiaStandDefaults');
     expect(formsSource).toContain('window.__samsGuiaStandDefaults?.transacoes');
     expect(receivableSource).toContain('window.__samsGuiaStandDefaults?.contasReceber');
-    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787245200');
+    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787249000');
+  });
+
+  it("expõe o guia como entrada principal no Financeiro com busca de stand", () => {
+    expect(navigationSource).toContain("guia_lancamentos: { name: 'Guia de Lançamentos'");
+    expect(navigationSource).toContain("page === 'guia_lancamentos'");
+    expect(navigationSource).toContain('loadFinanceiro?.()');
+    expect(guideUiSource).toContain('Guia de Lançamentos por Stand');
+    expect(guideUiSource).toContain('data-finance-guide-search');
+    expect(guideUiSource).toContain('/api/crm/projetos-stand?limit=500');
+    expect(guideUiSource).toContain('data-finance-guide-action="open"');
   });
 });

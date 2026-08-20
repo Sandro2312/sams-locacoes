@@ -749,3 +749,8 @@
 - [x] Implementar APIs auditáveis de consulta, atualização do checklist e consolidação de divergências
 - [x] Construir guia responsivo com atalhos pré-preenchidos para Contas a Receber e Despesas
 - [x] Validar permissões, integridade de dados, desktop/mobile, sintaxe e regressões; checkpoint salvo
+
+## Correção — Entrada do Guia no Financeiro (Ago/2026)
+- [x] Mapear a visibilidade atual do guia e os pontos de entrada do módulo Financeiro
+- [x] Adicionar acesso explícito e selecionador de stand no Financeiro, preservando o atalho no Projeto de Stand
+- [x] Validar navegação, contexto de lançamento, permissões, mobile e regressões; checkpoint pendente

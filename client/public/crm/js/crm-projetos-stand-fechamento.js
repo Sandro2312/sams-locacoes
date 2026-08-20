@@ -89,6 +89,67 @@
     };
   }
 
+  function renderFinanceiro() {
+    return `<section class="finance-guide-page space-y-5">
+      <div class="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white p-5 sm:p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="max-w-3xl"><p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Financeiro · lançamento guiado</p><h2 class="mt-1 text-2xl font-bold text-slate-900">Guia de Lançamentos por Stand</h2><p class="mt-2 text-sm leading-6 text-slate-600">Escolha o stand para revisar venda, parcelas, custos e pendências. Os atalhos preenchem o contexto do lançamento; a conferência e o salvamento continuam sob sua responsabilidade.</p></div>
+          <button type="button" data-finance-guide-action="resultados" class="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i class="fas fa-store mr-2"></i>Ver Resultado por Stand</button>
+        </div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div><label for="finance-guide-project-search" class="text-sm font-semibold text-slate-700">Localize o Cliente, Evento ou Stand</label><input id="finance-guide-project-search" type="search" autocomplete="off" placeholder="Digite nome do cliente, evento, código ou stand" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" data-finance-guide-search><p id="finance-guide-project-count" class="mt-2 text-xs text-slate-500">Carregando Projetos de Stand...</p></div>
+          <button type="button" data-finance-guide-action="open" disabled class="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-list-check mr-2"></i>Abrir guia do stand</button>
+        </div>
+        <label for="finance-guide-project-select" class="mt-5 block text-sm font-semibold text-slate-700">Projeto de Stand</label><select id="finance-guide-project-select" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm" data-finance-guide-select disabled><option value="">Carregando projetos...</option></select>
+        <div class="mt-5 grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3"><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">1. Venda e parcelas</p><p class="mt-1 text-xs text-slate-600">Conferir orçamento aprovado e cadastrar recebimentos parcelados.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">2. Custos e rateios</p><p class="mt-1 text-xs text-slate-600">Registrar custos por categoria e revisar alocações compartilhadas.</p></div><div class="rounded-lg bg-slate-50 p-3"><p class="text-sm font-semibold text-slate-800">3. Revisão humana</p><p class="mt-1 text-xs text-slate-600">Classificar pendências e documentar divergências antes de fechar.</p></div></div>
+      </div>
+    </section>`;
+  }
+
+  let financeProjects = [];
+  const projectLabel = (project) => [project.codigo || project.nome || 'Projeto de Stand', project.cliente_nome || project.lead_nome || 'Cliente / lead', project.evento_nome || 'Sem evento'].filter(Boolean).join(' · ');
+  function paintFinanceProjects(query = '') {
+    const select = document.querySelector('[data-finance-guide-select]');
+    const count = document.getElementById('finance-guide-project-count');
+    const open = document.querySelector('[data-finance-guide-action="open"]');
+    if (!select) return;
+    const term = String(query || '').trim().toLocaleLowerCase('pt-BR');
+    const visible = financeProjects.filter((project) => projectLabel(project).toLocaleLowerCase('pt-BR').includes(term));
+    select.innerHTML = `<option value="">${visible.length ? 'Selecione o stand para iniciar' : 'Nenhum stand encontrado'}</option>${visible.map((project) => `<option value="${esc(project.id)}">${esc(projectLabel(project))}</option>`).join('')}`;
+    select.disabled = !visible.length;
+    if (open) open.disabled = true;
+    if (count) count.textContent = term ? `${visible.length} de ${financeProjects.length} stand(s) encontrado(s).` : `${financeProjects.length} Projeto(s) de Stand disponível(is).`;
+  }
+
+  function bindFinanceiro() {
+    const search = document.querySelector('[data-finance-guide-search]');
+    const select = document.querySelector('[data-finance-guide-select]');
+    const open = document.querySelector('[data-finance-guide-action="open"]');
+    search?.addEventListener('input', () => paintFinanceProjects(search.value));
+    select?.addEventListener('change', () => { if (open) open.disabled = !select.value; });
+    open?.addEventListener('click', () => { if (select?.value) openGuide(select.value); });
+    document.querySelector('[data-finance-guide-action="resultados"]')?.addEventListener('click', () => window.NavigationSystem?.navigateToPage?.('financeiro', 'resultados_stand'));
+  }
+
+  async function loadFinanceiro() {
+    const select = document.querySelector('[data-finance-guide-select]');
+    if (!select) return;
+    try {
+      const response = await fetch('/api/crm/projetos-stand?limit=500', { credentials: 'include', headers: headers() });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar os stands.');
+      financeProjects = Array.isArray(payload.data) ? payload.data : [];
+      paintFinanceProjects(document.querySelector('[data-finance-guide-search]')?.value || '');
+    } catch (error) {
+      select.disabled = true;
+      select.innerHTML = '<option value="">Não foi possível carregar os stands</option>';
+      const count = document.getElementById('finance-guide-project-count');
+      if (count) count.textContent = error.message || 'Tente atualizar a página.';
+    }
+  }
+
   async function openGuide(projectId) {
     try {
       const data = await api(projectId);
@@ -138,5 +199,5 @@
     event.preventDefault();
     openGuide(button.dataset.id);
   });
-  window.ProjetosStandFechamentoModule = { openGuide };
+  window.ProjetosStandFechamentoModule = { openGuide, renderFinanceiro, loadFinanceiro, bindFinanceiro };
 })();
