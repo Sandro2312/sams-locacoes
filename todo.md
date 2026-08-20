@@ -717,3 +717,9 @@
 - [x] Otimizar a mídia, preservar o original fora do projeto e enviar a versão web para a CDN
 - [x] Incorporar player acessível com capa, controles e alternativa textual no artigo da Expoagas
 - [x] Validar reprodução, responsividade, carregamento e regressões antes do checkpoint
+
+## Avaliação Estratégica — Evolução do Site e CRM (Ago/2026)
+- [x] Pesquisar tendências recentes aplicáveis a montadoras de stands, feiras e eventos corporativos
+- [x] Mapear as lacunas e oportunidades frente às capacidades atuais do site e CRM SAMS
+- [x] Priorizar evoluções por impacto operacional, comercial, técnico e risco de adoção
+- [x] Registrar o roteiro recomendado para decisão da gestão
