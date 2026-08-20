@@ -781,4 +781,4 @@
 - [x] Definir a sessão de lote por Cliente, Evento e identificação de stand, sem criar venda ou Projeto de Stand
 - [x] Criar APIs auditáveis para rascunho, itens do lote, validação e confirmação humana de lançamentos
 - [x] Construir tela de lançamento em lote com receitas, despesas, parcelamento e revisão de pendências
-- [x] Validar persistência, integridade, permissões, desktop/mobile, sintaxe e regressões; checkpoint pendente
+- [x] Validar persistência, integridade, permissões, desktop/mobile, sintaxe e regressões; checkpoint salvo
