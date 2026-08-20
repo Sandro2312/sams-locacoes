@@ -803,3 +803,9 @@
 - [x] Reposicionar a ação de confirmação para ficar visível junto à tabela de itens em rascunho
 - [x] Reforçar o aviso de que a confirmação cria os lançamentos reais do Financeiro
 - [x] Validar o botão em desktop/mobile, a confirmação humana e as regressões antes do checkpoint
+
+## Evolução — Valores Individualizados por Parcela (Ago/2026)
+- [x] Criar campos de valor e vencimento para cada parcela do item do lote
+- [x] Validar que a soma dos valores parcelados é igual ao valor total informado
+- [x] Persistir os valores individualizados e gerar Contas a Receber ou Despesas com os valores corretos
+- [x] Preservar rascunhos existentes, validar mobile, confirmação e regressões antes do checkpoint

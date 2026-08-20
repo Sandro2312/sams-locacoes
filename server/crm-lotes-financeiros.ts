@@ -13,6 +13,7 @@ type LoteItemInput = {
   parcelas?: unknown;
   primeiroVencimento: string;
   datasVencimento?: unknown;
+  valoresParcelas?: unknown;
   formaPagamento?: string | null;
   observacoes?: string | null;
 };
@@ -24,6 +25,7 @@ type NormalizedItem = {
   parcelas: number;
   primeiroVencimento: string;
   datasVencimento: string[];
+  valoresParcelas: string[];
   formaPagamento: string | null;
   observacoes: string | null;
 };
@@ -91,6 +93,19 @@ function parcelDates(raw: unknown, parcelas: number, primeiroVencimento: string)
   if (supplied.length && supplied.length !== parcelas) throw new Error("DATAS_PARCELAS_INCONSISTENTES");
   return supplied.length ? supplied : Array.from({ length: parcelas }, (_, index) => addMonths(primeiroVencimento, index));
 }
+function centsToAmount(cents: number) { return (cents / 100).toFixed(2); }
+function equalParcelValues(totalCents: number, parcelas: number) {
+  const base = Math.floor(totalCents / parcelas);
+  const remainder = totalCents - (base * parcelas);
+  return Array.from({ length: parcelas }, (_, index) => base + (index === parcelas - 1 ? remainder : 0));
+}
+function parcelValues(raw: unknown, parcelas: number, totalCents: number) {
+  const supplied = Array.isArray(raw) ? raw : [];
+  if (supplied.length && supplied.length !== parcelas) throw new Error("VALORES_PARCELAS_INCONSISTENTES");
+  const values = supplied.length ? supplied.map(money) : equalParcelValues(totalCents, parcelas);
+  if (values.reduce((sum, value) => sum + value, 0) !== totalCents) throw new Error("VALORES_PARCELAS_INCONSISTENTES");
+  return values;
+}
 function normalizeItem(raw: any): NormalizedItem {
   const natureza = text(raw?.natureza, 20).toLowerCase();
   const categoria = text(raw?.categoria || "outros", 60).toLowerCase();
@@ -100,14 +115,17 @@ function normalizeItem(raw: any): NormalizedItem {
   if (!ITEM_NATURES.has(natureza)) throw new Error("NATUREZA_INVALIDA");
   if (!ITEM_CATEGORIES.has(categoria)) throw new Error("CATEGORIA_INVALIDA");
   if (!descricao) throw new Error("DESCRICAO_OBRIGATORIA");
+  const valorCents = money(raw?.valorTotal ?? raw?.valor_total);
+  const valoresParcelas = parcelValues(raw?.valoresParcelas ?? raw?.valores_parcelas, parcelas, valorCents).map(centsToAmount);
   return {
     natureza: natureza as "receita" | "despesa",
     categoria,
     descricao,
-    valorCents: money(raw?.valorTotal ?? raw?.valor_total),
+    valorCents,
     parcelas,
     primeiroVencimento,
     datasVencimento: parcelDates(raw?.datasVencimento ?? raw?.datas_vencimento, parcelas, primeiroVencimento),
+    valoresParcelas,
     formaPagamento: nullableText(raw?.formaPagamento ?? raw?.forma_pagamento, 120),
     observacoes: nullableText(raw?.observacoes, 4000),
   };
@@ -120,13 +138,12 @@ function addMonths(dateValue: string, months: number) {
   const lastDay = new Date(Date.UTC(targetYear, monthIndex + 1, 0)).getUTCDate();
   return `${targetYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
 }
-function buildParcelas(totalCents: number, parcelas: number, primeiroVencimento: string, datasVencimento?: string[]) {
-  const base = Math.floor(totalCents / parcelas);
-  const remainder = totalCents - (base * parcelas);
+function buildParcelas(totalCents: number, parcelas: number, primeiroVencimento: string, datasVencimento?: string[], valoresParcelas?: unknown) {
   const vencimentos = parcelDates(datasVencimento, parcelas, primeiroVencimento);
+  const valores = parcelValues(valoresParcelas, parcelas, totalCents);
   return Array.from({ length: parcelas }, (_, index) => ({
     numero: index + 1,
-    valor: ((base + (index === parcelas - 1 ? remainder : 0)) / 100).toFixed(2),
+    valor: centsToAmount(valores[index]),
     vencimento: vencimentos[index],
   }));
 }
@@ -135,6 +152,12 @@ function storedDates(raw: unknown, parcelas: number, primeiroVencimento: string)
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     return parcelDates(parsed, parcelas, primeiroVencimento);
   } catch { return parcelDates([], parcelas, primeiroVencimento); }
+}
+function storedValues(raw: unknown, parcelas: number, totalCents: number) {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parcelValues(parsed, parcelas, totalCents).map(centsToAmount);
+  } catch { return equalParcelValues(totalCents, parcelas).map(centsToAmount); }
 }
 function storedCreated(raw: unknown) {
   try {
@@ -159,10 +182,13 @@ async function getLote(loteId: number) {
   if (!lote) return null;
   const itens = (await db<any>("SELECT * FROM crm_lotes_financeiros_stand_itens WHERE lote_id = ? ORDER BY id ASC", [loteId])).map((item) => {
     const primeiroVencimento = asNumberFields(item.primeiro_vencimento);
+    const parcelas = Number(item.parcelas || 1);
+    const totalCents = Math.round(Number(item.valor_total || 0) * 100);
     return {
       ...item,
       primeiro_vencimento: primeiroVencimento,
-      datas_vencimento: storedDates(item.datas_vencimento, Number(item.parcelas || 1), String(primeiroVencimento)),
+      datas_vencimento: storedDates(item.datas_vencimento, parcelas, String(primeiroVencimento)),
+      valores_parcelas: storedValues(item.valores_parcelas, parcelas, totalCents),
       lancamentos_criados: storedCreated(item.lancamentos_criados),
     };
   });
@@ -262,16 +288,16 @@ export function registerLotesFinanceirosRoutes(app: any) {
       const item = normalizeItem(req.body);
       const [result] = await getPool().execute(
         `INSERT INTO crm_lotes_financeiros_stand_itens
-         (lote_id, natureza, categoria, descricao, valor_total, parcelas, primeiro_vencimento, datas_vencimento, forma_pagamento, observacoes, status, created_by, updated_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,'rascunho',?,?)`,
-        [loteId, item.natureza, item.categoria, item.descricao, (item.valorCents / 100).toFixed(2), item.parcelas, item.primeiroVencimento, JSON.stringify(item.datasVencimento), item.formaPagamento, item.observacoes, user.userId, user.userId],
+         (lote_id, natureza, categoria, descricao, valor_total, parcelas, primeiro_vencimento, datas_vencimento, valores_parcelas, forma_pagamento, observacoes, status, created_by, updated_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,'rascunho',?,?)`,
+        [loteId, item.natureza, item.categoria, item.descricao, (item.valorCents / 100).toFixed(2), item.parcelas, item.primeiroVencimento, JSON.stringify(item.datasVencimento), JSON.stringify(item.valoresParcelas), item.formaPagamento, item.observacoes, user.userId, user.userId],
       );
       const itemId = Number((result as any).insertId);
       const conn = await getPool().getConnection();
       try { await audit(conn, user, "ADD_FINANCE_BATCH_ITEM", loteId, { itemId, natureza: item.natureza, categoria: item.categoria, valor: item.valorCents / 100, parcelas: item.parcelas }); } finally { conn.release(); }
       res.status(201).json({ ok: true, lote: await getLote(loteId) });
     } catch (error: any) {
-      const known = ["VALOR_INVALIDO", "DATA_INVALIDA", "DATAS_PARCELAS_INCONSISTENTES", "NATUREZA_INVALIDA", "CATEGORIA_INVALIDA", "DESCRICAO_OBRIGATORIA"];
+      const known = ["VALOR_INVALIDO", "DATA_INVALIDA", "DATAS_PARCELAS_INCONSISTENTES", "VALORES_PARCELAS_INCONSISTENTES", "NATUREZA_INVALIDA", "CATEGORIA_INVALIDA", "DESCRICAO_OBRIGATORIA"];
       res.status(known.includes(error?.message) ? 400 : 500).json({ error: known.includes(error?.message) ? error.message : (error?.message || "Não foi possível adicionar o item") });
     }
   });
@@ -310,7 +336,8 @@ export function registerLotesFinanceirosRoutes(app: any) {
         for (const item of itens as any[]) {
           const totalCents = Math.round(Number(item.valor_total) * 100);
           const primeiroVencimento = String(asNumberFields(item.primeiro_vencimento));
-          const parcelas = buildParcelas(totalCents, safeInt(item.parcelas, 1, 1, 60), primeiroVencimento, storedDates(item.datas_vencimento, safeInt(item.parcelas, 1, 1, 60), primeiroVencimento));
+          const quantidadeParcelas = safeInt(item.parcelas, 1, 1, 60);
+          const parcelas = buildParcelas(totalCents, quantidadeParcelas, primeiroVencimento, storedDates(item.datas_vencimento, quantidadeParcelas, primeiroVencimento), storedValues(item.valores_parcelas, quantidadeParcelas, totalCents));
           const created: any[] = [];
           for (const parcela of parcelas) {
             const descricao = parcelas.length > 1 ? `${item.descricao} — ${parcela.numero}/${parcelas.length}` : item.descricao;

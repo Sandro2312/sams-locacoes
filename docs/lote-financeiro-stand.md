@@ -17,7 +17,9 @@ O contexto do lote forma o centro de custo descritivo. Por exemplo: `URANO TECNO
 
 ## Parcelamento e categorias
 
-O valor informado em cada item representa seu **total**. Ao escolher mais de uma parcela, a equipe informa individualmente a data de vencimento de cada uma. O sistema distribui o valor de forma uniforme e atribui eventual diferença de centavos à última parcela. Isso evita discrepância entre o total do item e a soma dos lançamentos criados, sem obrigar vencimentos mensais quando o acordo comercial ou o fornecedor usar outro calendário.
+O valor informado em cada item representa seu **total**. Ao escolher mais de uma parcela, a equipe informa individualmente a data de vencimento **e o valor** de cada uma. Os valores podem ser diferentes — por exemplo, uma entrada maior e parcelas seguintes menores — desde que a soma seja exatamente igual ao total do item. O totalizador exibe essa conferência antes de o item ser adicionado, e a API repete a validação antes de persistir o rascunho.
+
+Para rascunhos criados antes desta evolução, que ainda não possuem valores individuais gravados, o CRM mantém o comportamento anterior apenas como compatibilidade: calcula a divisão proporcional para exibição e confirmação. Nenhum lançamento já confirmado é recalculado, alterado ou duplicado.
 
 As receitas possuem categorias de venda de stand, adicional/serviço e outra receita. As despesas possuem Projeto, Montagem, Taxas/feira, Comissão de vendedor, Comissão de projetista, Logística, Desmontagem, Fornecedor e Outros. As despesas são criadas com o tipo financeiro já utilizado pelo CRM (`pagar`).
 
@@ -39,8 +41,8 @@ O lote exige sessão CRM e perfis de Administração, Gerência, Desenvolvimento
 
 | Verificação | Resultado |
 |---|---|
-| Migração | `0018_wakeful_human_torch.sql` cria somente tabelas e índices complementares; `0019_famous_wrecker.sql` adiciona a lista de vencimentos por parcela ao rascunho. |
-| API | Autenticação, validações de valor/data/categoria, vencimentos individualizados, transação de confirmação, identificação dos registros criados e auditoria implementadas. |
+| Migração | `0018_wakeful_human_torch.sql` cria somente tabelas e índices complementares; `0019_famous_wrecker.sql` adiciona vencimentos por parcela e `0020_special_slipstream.sql` registra os valores individuais no rascunho. |
+| API | Autenticação, validações de valor/data/categoria, vencimentos e valores individualizados, transação de confirmação, identificação dos registros criados e auditoria implementadas. |
 | Sintaxe e tipos | `node --check` e `pnpm check` aprovados. |
 | Regressão específica | 10/10 testes do lote e do Guia de Fechamento aprovados. |
 | Suíte geral | 144/146 testes aprovados; as duas falhas remanescentes são preexistentes nos testes de permissões de Contato e Orçamento. |

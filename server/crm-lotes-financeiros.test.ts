@@ -9,6 +9,7 @@ const crm = read("server/crm.ts");
 const schema = read("drizzle/schema.ts");
 const migration = read("drizzle/0018_wakeful_human_torch.sql");
 const dueDatesMigration = read("drizzle/0019_famous_wrecker.sql");
+const installmentValuesMigration = read("drizzle/0020_special_slipstream.sql");
 const guide = read("client/public/crm/js/crm-lotes-financeiros.js");
 const navigation = read("client/public/crm/js/navigation.js");
 const index = read("client/public/crm/index.html");
@@ -44,9 +45,14 @@ describe("Lote Financeiro por Stand", () => {
 
   it("preserva datas individualizadas por parcela e não serializa datas como objetos", () => {
     expect(schema).toContain('datasVencimento: text("datas_vencimento")');
+    expect(schema).toContain('valoresParcelas: text("valores_parcelas")');
     expect(dueDatesMigration).toContain("ADD `datas_vencimento` text");
+    expect(installmentValuesMigration).toContain("ADD `valores_parcelas` text");
     expect(api).toContain("datasVencimento: string[]");
     expect(api).toContain("DATAS_PARCELAS_INCONSISTENTES");
+    expect(api).toContain("VALORES_PARCELAS_INCONSISTENTES");
+    expect(api).toContain("function parcelValues");
+    expect(api).toContain("JSON.stringify(item.valoresParcelas)");
     expect(api).toContain("JSON.stringify(item.datasVencimento)");
     expect(api).toContain("value instanceof Date");
   });
@@ -61,7 +67,9 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('1 cliente encontrado e selecionado automaticamente.');
     expect(guide).toContain('results.length === 1');
     expect(guide).toContain('data-finance-batch-item-data-parcela');
-    expect(guide).toContain('Vencimentos por parcela');
+    expect(guide).toContain('Vencimentos e valores por parcela');
+    expect(guide).toContain('data-finance-batch-item-valor-parcela');
+    expect(guide).toContain('Soma das parcelas:');
     expect(guide).toContain('Confirmar no Financeiro');
     expect(guide).toContain('Confirmar e criar lançamentos');
     expect(guide).toContain('Criar ${itens.length} item(ns) como lançamentos reais');
@@ -72,6 +80,6 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain("openFinancePage('custos')");
     expect(navigation).toContain('window.LoteFinanceiroModule?.load?.()');
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787260000");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787261200");
   });
 });

@@ -190,6 +190,7 @@ export const crmLotesFinanceirosStandItens = mysqlTable("crm_lotes_financeiros_s
   parcelas: int("parcelas").notNull().default(1),
   primeiroVencimento: date("primeiro_vencimento").notNull(),
   datasVencimento: text("datas_vencimento"),
+  valoresParcelas: text("valores_parcelas"),
   formaPagamento: varchar("forma_pagamento", { length: 120 }),
   observacoes: text("observacoes"),
   status: varchar("status", { length: 30 }).notNull().default("rascunho"),
