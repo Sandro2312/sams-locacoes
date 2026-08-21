@@ -35,6 +35,6 @@ describe("Edição de eventos", () => {
   });
 
   it("distribui a versão corrigida do formulário", () => {
-    expect(index).toContain("/crm/js/forms.js?v=1787339800");
+    expect(index).toContain("/crm/js/forms.js?v=1787346800");
   });
 });

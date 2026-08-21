@@ -48,19 +48,28 @@ describe("Pesquisa assistida de eventos", () => {
     expect(derived.organizadora).toBe("ABRH-RS");
   });
 
-  it("exibe carregamento, pré-visualização confirmável e fontes sem preencher antes da revisão", () => {
+  it("exibe pré-visualização editável, alerta lacunas e preserva a aplicação sob confirmação", () => {
     expect(forms).toContain('data-evento-pesquisa="1"');
     expect(forms).toContain("const setIfEmpty");
     expect(forms).toContain('data-evento-pesquisa-aplicar');
     expect(forms).toContain('background:#047857!important');
     expect(forms).toContain('data-evento-pesquisa-descartar');
-    expect(forms).toContain('Pré-visualização dos dados encontrados');
+    expect(forms).toContain('Pré-visualização editável dos dados encontrados');
+    expect(forms).toContain('data-evento-preview-field');
+    expect(forms).toContain('Preenchimento manual necessário:');
     expect(forms).toContain('fa-circle-notch fa-spin');
     expect(forms).toContain("pendingSuggestion = suggestion");
-    expect(forms).toContain("applySuggestion(pendingSuggestion)");
+    expect(forms).toContain("applySuggestion(readPreviewSuggestion())");
     expect(forms).toContain('name="site"');
     expect(forms).toContain('name="descricao"');
     expect(forms).toContain('/api/crm/eventos/pesquisar');
+  });
+
+  it("limpa somente valores automáticos ainda inalterados e preserva edições manuais", () => {
+    expect(forms).toContain('data-evento-pesquisa-limpar');
+    expect(forms).toContain('const autoAppliedValues = new Map()');
+    expect(forms).toContain('field.dataset.eventoPesquisaAuto');
+    expect(forms).toContain('Sugestões aplicadas foram removidas. Campos alterados manualmente foram preservados.');
   });
 
   it("retorna e persiste site e descrição sem preencher taxas", () => {
@@ -72,6 +81,6 @@ describe("Pesquisa assistida de eventos", () => {
   });
 
   it("distribui o formulário atualizado", () => {
-    expect(index).toContain('/crm/js/forms.js?v=1787339800');
+    expect(index).toContain('/crm/js/forms.js?v=1787346800');
   });
 });

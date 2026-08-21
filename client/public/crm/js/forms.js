@@ -2871,7 +2871,10 @@ const FormSystem = {
         const openButtons = Array.from(wrap.querySelectorAll('[data-evento-ai-open]'));
         const researchButton = form.querySelector('[data-evento-pesquisa="1"]');
         const researchResult = wrap.querySelector('[data-evento-pesquisa-resultado]');
+        const appliedNotice = wrap.querySelector('[data-evento-pesquisa-aplicada]');
         let pendingSuggestion = null;
+        const autoAppliedValues = new Map();
+        let automaticObservationNote = '';
 
         const copyText = async (text) => {
             const t = String(text || '');
@@ -2900,6 +2903,8 @@ const FormSystem = {
             const field = form.querySelector(`[name="${name}"]`);
             if (!field || field.value || !value) return false;
             field.value = value;
+            field.dataset.eventoPesquisaAuto = String(value);
+            autoAppliedValues.set(name, String(value));
             field.dispatchEvent(new Event('input', { bubbles: true }));
             field.dispatchEvent(new Event('change', { bubbles: true }));
             return true;
@@ -2909,21 +2914,38 @@ const FormSystem = {
             if (!/^https?:\/\//i.test(url)) return '';
             return `<li><a href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="font-medium text-indigo-700 underline hover:text-indigo-900">${escape(source?.titulo || url)}</a></li>`;
         };
-        const previewLine = (label, value) => value ? `<div class="border-b border-slate-100 py-2 last:border-0"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">${escape(label)}</dt><dd class="mt-1 break-words text-slate-800">${escape(value)}</dd></div>` : '';
+        const previewFields = [
+            { name: 'organizadora', label: 'Organizadora', type: 'text' },
+            { name: 'local', label: 'Local', type: 'text' },
+            { name: 'endereco', label: 'Endereço', type: 'text' },
+            { name: 'site', label: 'Site oficial', type: 'url' },
+            { name: 'dataInicio', label: 'Data de início', type: 'date' },
+            { name: 'dataFim', label: 'Data de fim', type: 'date' },
+            { name: 'descricao', label: 'Descrição', type: 'textarea' }
+        ];
+        const previewControl = (field, suggestion) => {
+            const value = String(suggestion?.[field.name] || (field.name === 'descricao' ? suggestion?.resumo || '' : ''));
+            const control = field.type === 'textarea'
+                ? `<textarea data-evento-preview-field="${field.name}" rows="3" class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">${escape(value)}</textarea>`
+                : `<input data-evento-preview-field="${field.name}" type="${field.type}" value="${escape(value)}" class="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">`;
+            return `<label class="block border-b border-slate-100 py-2 last:border-0"><span class="text-xs font-semibold uppercase tracking-wide text-slate-600">${escape(field.label)}</span>${control}</label>`;
+        };
+        const readPreviewSuggestion = () => {
+            const next = { ...(pendingSuggestion || {}) };
+            if (!researchResult) return next;
+            previewFields.forEach((field) => {
+                const control = researchResult.querySelector(`[data-evento-preview-field="${field.name}"]`);
+                if (control) next[field.name] = String(control.value || '').trim();
+            });
+            return next;
+        };
         const renderPreview = (suggestion) => {
             if (!researchResult) return;
             const sources = Array.isArray(suggestion?.fontes) ? suggestion.fontes.map(formatSource).filter(Boolean).join('') : '';
-            const lines = [
-                previewLine('Organizadora', suggestion?.organizadora),
-                previewLine('Local', suggestion?.local),
-                previewLine('Endereço', suggestion?.endereco),
-                previewLine('Site oficial', suggestion?.site),
-                previewLine('Data de início', suggestion?.dataInicio),
-                previewLine('Data de fim', suggestion?.dataFim),
-                previewLine('Descrição', suggestion?.descricao || suggestion?.resumo)
-            ].filter(Boolean).join('');
+            const missing = previewFields.filter((field) => !String(suggestion?.[field.name] || (field.name === 'descricao' ? suggestion?.resumo || '' : '')).trim()).map((field) => field.label);
+            const controls = previewFields.map((field) => previewControl(field, suggestion)).join('');
             researchResult.classList.remove('hidden');
-            researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-clipboard-check mt-0.5 text-indigo-700" aria-hidden="true"></i><div class="min-w-0 flex-1"><p class="font-semibold text-slate-800">Pré-visualização dos dados encontrados</p><p class="mt-1 text-xs leading-5 text-slate-600">Revise as sugestões e escolha aplicar. Campos já preenchidos e taxas serão preservados.</p>${lines ? `<dl class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3">${lines}</dl>` : '<p class="mt-3 text-xs text-amber-700">As fontes foram encontradas, mas não havia campos confirmados para sugerir.</p>'}${sources ? `<p class="mt-3 text-xs font-semibold text-slate-600">Fontes consultadas</p><ul class="mt-1 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : ''}<div class="mt-4 flex flex-wrap gap-2" aria-label="Ações da pré-visualização"><button type="button" data-evento-pesquisa-aplicar aria-label="Aplicar sugestões aos campos vazios do evento" style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:0;border-radius:6px;background:#047857!important;color:#ffffff!important;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;"><i class="fas fa-check mr-1" aria-hidden="true"></i>Aplicar sugestões</button><button type="button" data-evento-pesquisa-descartar style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#334155;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;">Descartar</button></div></div></div>`;
+            researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-clipboard-check mt-0.5 text-indigo-700" aria-hidden="true"></i><div class="min-w-0 flex-1"><p class="font-semibold text-slate-800">Pré-visualização editável dos dados encontrados</p><p class="mt-1 text-xs leading-5 text-slate-600">Ajuste livremente as sugestões antes de aplicar. Campos já preenchidos e taxas serão preservados.</p>${missing.length ? `<div class="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950"><i class="fas fa-exclamation-triangle mr-1" aria-hidden="true"></i><strong>Preenchimento manual necessário:</strong> não foram encontradas evidências para ${escape(missing.join(', '))}.</div>` : '<div class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><i class="fas fa-check-circle mr-1" aria-hidden="true"></i>Foram encontradas sugestões para todos os campos principais.</div>'}<div class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3">${controls}</div>${sources ? `<p class="mt-3 text-xs font-semibold text-slate-600">Fontes consultadas</p><ul class="mt-1 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : ''}<div class="mt-4 flex flex-wrap gap-2" aria-label="Ações da pré-visualização"><button type="button" data-evento-pesquisa-aplicar aria-label="Aplicar sugestões aos campos vazios do evento" style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:0;border-radius:6px;background:#047857!important;color:#ffffff!important;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;"><i class="fas fa-check mr-1" aria-hidden="true"></i>Aplicar sugestões</button><button type="button" data-evento-pesquisa-descartar style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#334155;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;">Descartar</button></div></div></div>`;
         };
         const applySuggestion = (suggestion) => {
             if (!suggestion) return;
@@ -2933,8 +2955,10 @@ const FormSystem = {
             });
             const obs = form.querySelector('[name="observacoes"]');
             const sourceNote = suggestion.resumo ? `Pesquisa assistida (${suggestion.confianca || 'baixa'} confiança): ${suggestion.resumo}` : '';
-            if (obs && sourceNote && !String(obs.value || '').includes(sourceNote)) obs.value = String(obs.value || '').trim() ? `${obs.value}\n\n${sourceNote}` : sourceNote;
+            if (obs && sourceNote && applied.length && !String(obs.value || '').includes(sourceNote)) obs.value = String(obs.value || '').trim() ? `${obs.value}\n\n${sourceNote}` : sourceNote;
+            if (obs && sourceNote && applied.length) { obs.dataset.eventoPesquisaAuto = sourceNote; automaticObservationNote = sourceNote; }
             if (researchResult) researchResult.classList.add('hidden');
+            if (appliedNotice && applied.length) appliedNotice.classList.remove('hidden');
             pendingSuggestion = null;
             notifyOk(applied.length ? `Sugestões aplicadas aos campos vazios: ${applied.join(', ')}.` : 'Nenhum campo vazio foi alterado.');
         };
@@ -2960,8 +2984,40 @@ const FormSystem = {
         if (researchResult) researchResult.addEventListener('click', (event) => {
             const apply = event.target.closest('[data-evento-pesquisa-aplicar]');
             const discard = event.target.closest('[data-evento-pesquisa-descartar]');
-            if (apply) applySuggestion(pendingSuggestion);
+            if (apply) applySuggestion(readPreviewSuggestion());
             if (discard) { pendingSuggestion = null; researchResult.classList.add('hidden'); notifyOk('Sugestões descartadas. Nenhum campo foi alterado.'); }
+        });
+        if (form) form.addEventListener('input', (event) => {
+            const field = event.target;
+            const name = field?.getAttribute?.('name');
+            if (!name || !autoAppliedValues.has(name)) return;
+            if (String(field.value || '') !== autoAppliedValues.get(name)) {
+                autoAppliedValues.delete(name);
+                delete field.dataset.eventoPesquisaAuto;
+            }
+        });
+        if (appliedNotice) appliedNotice.addEventListener('click', (event) => {
+            if (!event.target.closest('[data-evento-pesquisa-limpar]')) return;
+            const cleared = [];
+            autoAppliedValues.forEach((value, name) => {
+                const field = form.querySelector(`[name="${name}"]`);
+                if (field && String(field.value || '') === value) {
+                    field.value = '';
+                    delete field.dataset.eventoPesquisaAuto;
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                    cleared.push(name);
+                }
+            });
+            const obs = form.querySelector('[name="observacoes"]');
+            if (obs && automaticObservationNote && String(obs.value || '').includes(automaticObservationNote)) {
+                obs.value = String(obs.value || '').replace(`\n\n${automaticObservationNote}`, '').replace(automaticObservationNote, '').trim();
+                delete obs.dataset.eventoPesquisaAuto;
+            }
+            autoAppliedValues.clear();
+            automaticObservationNote = '';
+            appliedNotice.classList.add('hidden');
+            notifyOk(cleared.length ? 'Sugestões aplicadas foram removidas. Campos alterados manualmente foram preservados.' : 'Nenhum valor automático permaneceu para limpar.');
         });
 
         const buildPrompt = () => {
@@ -6273,6 +6329,7 @@ ENTREGA
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${evento?.observacoes || ''}</textarea>
                         </div>
                         <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2" data-evento-ai="1">
+                            <div data-evento-pesquisa-aplicada class="hidden mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p class="text-emerald-950"><i class="fas fa-check-circle mr-1" aria-hidden="true"></i>Há sugestões aplicadas por esta pesquisa. Você pode removê-las sem apagar alterações manuais.</p><button type="button" data-evento-pesquisa-limpar style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #b91c1c;border-radius:6px;background:#ffffff;color:#991b1b;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;"><i class="fas fa-eraser mr-1" aria-hidden="true"></i>Limpar sugestões aplicadas</button></div></div>
                             <div data-evento-pesquisa-resultado role="status" aria-live="polite" class="hidden mb-4 rounded-lg border border-indigo-200 bg-white p-3 text-sm"></div>
                             <div class="flex items-center justify-between gap-3">
                                 <div>

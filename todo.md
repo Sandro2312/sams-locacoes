@@ -866,3 +866,9 @@
 - [x] Gerar sugestões práticas de organizadora, local, datas, site e descrição a partir das evidências
 - [x] Manter o botão Aplicar sugestões sempre visível e acessível em desktop/mobile
 - [x] Validar o caso público, aplicação, preservação de dados e regressões antes do checkpoint
+
+## Evolução — Revisão Editável de Sugestões de Evento (Ago/2026)
+- [x] Permitir editar cada dado diretamente na pré-visualização antes da aplicação
+- [x] Destacar campos sem evidência para preenchimento manual
+- [x] Limpar somente valores aplicados automaticamente, preservando edições manuais
+- [x] Validar edição, aplicação, limpeza, mobile e regressões antes do checkpoint
