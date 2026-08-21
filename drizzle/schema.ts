@@ -41,6 +41,31 @@ export const contatos = mysqlTable("contatos", {
 export type Contato = typeof contatos.$inferSelect;
 export type InsertContato = typeof contatos.$inferInsert;
 
+/**
+ * Eventos comerciais consultados e acompanhados pelo CRM. Site e descrição
+ * são opcionais para preservar os registros antigos e somente são sugeridos
+ * após revisão humana na pesquisa assistida.
+ */
+export const crmEventos = mysqlTable("crm_eventos", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  organizadora: varchar("organizadora", { length: 255 }),
+  local: varchar("local", { length: 255 }),
+  endereco: text("endereco"),
+  site: varchar("site", { length: 500 }),
+  descricao: text("descricao"),
+  dataInicio: varchar("data_inicio", { length: 50 }),
+  dataFim: varchar("data_fim", { length: 50 }),
+  status: varchar("status", { length: 50 }).notNull().default("Planejado"),
+  taxasJson: text("taxas_json"),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CrmEvento = typeof crmEventos.$inferSelect;
+export type InsertCrmEvento = typeof crmEventos.$inferInsert;
+
 export const orcamentos = mysqlTable("orcamentos", {
   id: int("id").autoincrement().primaryKey(),
   // Dados pessoais

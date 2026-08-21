@@ -28,11 +28,13 @@ describe("Edição de eventos", () => {
     expect(crm).toContain('const existing = await dbOne<any>("SELECT * FROM crm_eventos WHERE id = ?", [id])');
     expect(crm).toContain('const data_inicio = choose(existing.data_inicio, "data_inicio", "dataInicio")');
     expect(crm).toContain('const data_fim = choose(existing.data_fim, "data_fim", "dataFim")');
+    expect(crm).toContain('const site = choose(existing.site, "site")');
+    expect(crm).toContain('const descricao = choose(existing.descricao, "descricao")');
     expect(crm).toContain('const rawTaxas = supplied("taxas_json", "taxas")');
     expect(crm).toContain("res.json({ ok: true, evento });");
   });
 
   it("distribui a versão corrigida do formulário", () => {
-    expect(index).toContain("/crm/js/forms.js?v=1787323600");
+    expect(index).toContain("/crm/js/forms.js?v=1787337600");
   });
 });

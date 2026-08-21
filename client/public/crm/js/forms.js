@@ -2871,6 +2871,7 @@ const FormSystem = {
         const openButtons = Array.from(wrap.querySelectorAll('[data-evento-ai-open]'));
         const researchButton = form.querySelector('[data-evento-pesquisa="1"]');
         const researchResult = wrap.querySelector('[data-evento-pesquisa-resultado]');
+        let pendingSuggestion = null;
 
         const copyText = async (text) => {
             const t = String(text || '');
@@ -2908,37 +2909,60 @@ const FormSystem = {
             if (!/^https?:\/\//i.test(url)) return '';
             return `<li><a href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="font-medium text-indigo-700 underline hover:text-indigo-900">${escape(source?.titulo || url)}</a></li>`;
         };
+        const previewLine = (label, value) => value ? `<div class="border-b border-slate-100 py-2 last:border-0"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">${escape(label)}</dt><dd class="mt-1 break-words text-slate-800">${escape(value)}</dd></div>` : '';
+        const renderPreview = (suggestion) => {
+            if (!researchResult) return;
+            const sources = Array.isArray(suggestion?.fontes) ? suggestion.fontes.map(formatSource).filter(Boolean).join('') : '';
+            const lines = [
+                previewLine('Organizadora', suggestion?.organizadora),
+                previewLine('Local', suggestion?.local),
+                previewLine('Endereço', suggestion?.endereco),
+                previewLine('Site oficial', suggestion?.site),
+                previewLine('Data de início', suggestion?.dataInicio),
+                previewLine('Data de fim', suggestion?.dataFim),
+                previewLine('Descrição', suggestion?.descricao || suggestion?.resumo)
+            ].filter(Boolean).join('');
+            researchResult.classList.remove('hidden');
+            researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-clipboard-check mt-0.5 text-indigo-700" aria-hidden="true"></i><div class="min-w-0 flex-1"><p class="font-semibold text-slate-800">Pré-visualização dos dados encontrados</p><p class="mt-1 text-xs leading-5 text-slate-600">Revise as sugestões e escolha aplicar. Campos já preenchidos e taxas serão preservados.</p>${lines ? `<dl class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3">${lines}</dl>` : '<p class="mt-3 text-xs text-amber-700">As fontes foram encontradas, mas não havia campos confirmados para sugerir.</p>'}${sources ? `<p class="mt-3 text-xs font-semibold text-slate-600">Fontes consultadas</p><ul class="mt-1 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : ''}<div class="mt-4 flex flex-wrap gap-2"><button type="button" data-evento-pesquisa-aplicar class="rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"><i class="fas fa-check mr-1" aria-hidden="true"></i>Aplicar sugestões</button><button type="button" data-evento-pesquisa-descartar class="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Descartar</button></div></div></div>`;
+        };
+        const applySuggestion = (suggestion) => {
+            if (!suggestion) return;
+            const applied = [];
+            [['organizadora', 'organizadora'], ['local', 'local'], ['endereco', 'endereço'], ['site', 'site oficial'], ['dataInicio', 'data de início'], ['dataFim', 'data de fim'], ['descricao', 'descrição']].forEach(([field, label]) => {
+                if (setIfEmpty(field, suggestion[field])) applied.push(label);
+            });
+            const obs = form.querySelector('[name="observacoes"]');
+            const sourceNote = suggestion.resumo ? `Pesquisa assistida (${suggestion.confianca || 'baixa'} confiança): ${suggestion.resumo}` : '';
+            if (obs && sourceNote && !String(obs.value || '').includes(sourceNote)) obs.value = String(obs.value || '').trim() ? `${obs.value}\n\n${sourceNote}` : sourceNote;
+            if (researchResult) researchResult.classList.add('hidden');
+            pendingSuggestion = null;
+            notifyOk(applied.length ? `Sugestões aplicadas aos campos vazios: ${applied.join(', ')}.` : 'Nenhum campo vazio foi alterado.');
+        };
         const pesquisarDados = async () => {
             const nome = String(form.querySelector('[name="nome"]')?.value || '').trim();
             if (nome.length < 3) return notifyErr('Informe o nome do evento antes de pesquisar.');
             const original = researchButton?.innerHTML || '';
-            if (researchButton) { researchButton.disabled = true; researchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Pesquisando...'; }
+            if (researchButton) { researchButton.disabled = true; researchButton.setAttribute('aria-busy', 'true'); researchButton.classList.add('opacity-80', 'cursor-wait'); researchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2" aria-hidden="true"></i><span>Pesquisando fontes...</span>'; }
             try {
                 const response = await fetch('/api/crm/eventos/pesquisar', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome }) });
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(payload.error || `Falha na pesquisa (${response.status})`);
                 const suggestion = payload.sugestao || {};
-                const applied = [];
-                if (setIfEmpty('organizadora', suggestion.organizadora)) applied.push('organizadora');
-                if (setIfEmpty('local', suggestion.local)) applied.push('local');
-                if (setIfEmpty('endereco', suggestion.endereco)) applied.push('endereço');
-                if (setIfEmpty('dataInicio', suggestion.dataInicio)) applied.push('data de início');
-                if (setIfEmpty('dataFim', suggestion.dataFim)) applied.push('data de fim');
-                const obs = form.querySelector('[name="observacoes"]');
-                const sourceNote = suggestion.resumo ? `Pesquisa assistida (${suggestion.confianca || 'baixa'} confiança): ${suggestion.resumo}` : '';
-                if (obs && sourceNote && !String(obs.value || '').includes(sourceNote)) obs.value = String(obs.value || '').trim() ? `${obs.value}\n\n${sourceNote}` : sourceNote;
-                const sources = Array.isArray(suggestion.fontes) ? suggestion.fontes.map(formatSource).filter(Boolean).join('') : '';
-                if (researchResult) {
-                    researchResult.classList.remove('hidden');
-                    researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-check-circle mt-0.5 text-emerald-600" aria-hidden="true"></i><div class="min-w-0"><p class="font-semibold text-slate-800">Sugestões de fontes públicas ${applied.length ? 'aplicadas aos campos vazios' : 'encontradas'}</p><p class="mt-1 text-xs leading-5 text-slate-600">${applied.length ? `Preenchido: ${escape(applied.join(', '))}. ` : 'Os campos já preenchidos foram preservados. '}Revise tudo antes de salvar. Taxas não são preenchidas automaticamente.</p>${sources ? `<ul class="mt-2 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : '<p class="mt-2 text-xs text-amber-700">Nenhuma fonte pública confiável foi retornada para este nome. Preencha manualmente após conferir o site oficial.</p>'}</div></div>`;
-                }
-                notifyOk(applied.length ? 'Pesquisa concluída. Revise as sugestões antes de salvar o evento.' : 'Pesquisa concluída sem alterar dados já preenchidos. Revise as fontes exibidas.');
+                pendingSuggestion = suggestion;
+                renderPreview(suggestion);
+                notifyOk('Pesquisa concluída. Revise a pré-visualização e confirme antes de aplicar.');
             } catch (error) {
                 notifyErr(error?.message || 'Não foi possível pesquisar os dados do evento.');
             } finally {
-                if (researchButton && researchButton.isConnected) { researchButton.disabled = false; researchButton.innerHTML = original; }
+                if (researchButton && researchButton.isConnected) { researchButton.disabled = false; researchButton.setAttribute('aria-busy', 'false'); researchButton.classList.remove('opacity-80', 'cursor-wait'); researchButton.innerHTML = original; }
             }
         };
+        if (researchResult) researchResult.addEventListener('click', (event) => {
+            const apply = event.target.closest('[data-evento-pesquisa-aplicar]');
+            const discard = event.target.closest('[data-evento-pesquisa-descartar]');
+            if (apply) applySuggestion(pendingSuggestion);
+            if (discard) { pendingSuggestion = null; researchResult.classList.add('hidden'); notifyOk('Sugestões descartadas. Nenhum campo foi alterado.'); }
+        });
 
         const buildPrompt = () => {
             const fd = new FormData(form);
@@ -6176,7 +6200,7 @@ ENTREGA
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
-                            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div class="min-w-0 flex-1"><label for="${formId}-nome" class="block text-sm font-medium text-gray-700 mb-2">Nome do Evento *</label><input type="text" id="${formId}-nome" name="nome" value="${evento?.nome || ''}" required placeholder="Ex: Feira de Tecnologia 2025" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"></div><button type="button" data-evento-pesquisa="1" class="shrink-0 rounded-lg bg-indigo-700 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-800 focus:ring-2 focus:ring-indigo-400"><i class="fas fa-search mr-2"></i>Pesquisar dados</button></div><p class="mt-2 text-xs leading-5 text-slate-500">A pesquisa consulta fontes públicas e sugere apenas organizadora, local, endereço e datas encontrados. Revise as sugestões antes de salvar.</p>
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div class="min-w-0 flex-1"><label for="${formId}-nome" class="block text-sm font-medium text-gray-700 mb-2">Nome do Evento *</label><input type="text" id="${formId}-nome" name="nome" value="${evento?.nome || ''}" required placeholder="Ex: Feira de Tecnologia 2025" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"></div><button type="button" data-evento-pesquisa="1" aria-busy="false" class="shrink-0 rounded-lg bg-indigo-700 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-800 focus:ring-2 focus:ring-indigo-400"><i class="fas fa-search mr-2" aria-hidden="true"></i>Pesquisar dados</button></div><p class="mt-2 text-xs leading-5 text-slate-500">A pesquisa consulta fontes públicas e prepara uma pré-visualização de organizadora, local, endereço, site, descrição e datas. Revise e confirme antes de aplicar.</p>
                         </div>
                         <div>
                             <label for="${formId}-organizadora" class="block text-sm font-medium text-gray-700 mb-2">Organizadora</label>
@@ -6195,6 +6219,18 @@ ENTREGA
                             <input type="text" id="${formId}-endereco" name="endereco" value="${evento?.endereco || ''}"
                                    placeholder="Rua, número, bairro, cidade/UF"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="${formId}-site" class="block text-sm font-medium text-gray-700 mb-2">Site oficial</label>
+                            <input type="url" id="${formId}-site" name="site" value="${evento?.site || ''}"
+                                   placeholder="https://www.evento.com.br"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="${formId}-descricao" class="block text-sm font-medium text-gray-700 mb-2">Descrição do evento</label>
+                            <textarea id="${formId}-descricao" name="descricao" rows="3"
+                                      placeholder="Resumo público do evento, público, tema e diferenciais..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${evento?.descricao || ''}</textarea>
                         </div>
                         <div>
                             <label for="${formId}-dataInicio" class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
@@ -6237,7 +6273,7 @@ ENTREGA
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${evento?.observacoes || ''}</textarea>
                         </div>
                         <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2" data-evento-ai="1">
-                            <div data-evento-pesquisa-resultado class="hidden mb-4 rounded-lg border border-indigo-200 bg-white p-3 text-sm"></div>
+                            <div data-evento-pesquisa-resultado role="status" aria-live="polite" class="hidden mb-4 rounded-lg border border-indigo-200 bg-white p-3 text-sm"></div>
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <div class="text-sm font-semibold text-blue-800">IA (Prospecção de Leads)</div>

@@ -45,15 +45,29 @@ describe("Pesquisa assistida de eventos", () => {
     expect(derived.organizadora).toBe("ABRH-RS");
   });
 
-  it("preenche apenas campos vazios e mostra a revisão e as fontes", () => {
+  it("exibe carregamento, pré-visualização confirmável e fontes sem preencher antes da revisão", () => {
     expect(forms).toContain('data-evento-pesquisa="1"');
     expect(forms).toContain("const setIfEmpty");
-    expect(forms).toContain('Taxas não são preenchidas automaticamente.');
-    expect(forms).toContain('Revise tudo antes de salvar.');
+    expect(forms).toContain('data-evento-pesquisa-aplicar');
+    expect(forms).toContain('data-evento-pesquisa-descartar');
+    expect(forms).toContain('Pré-visualização dos dados encontrados');
+    expect(forms).toContain('fa-circle-notch fa-spin');
+    expect(forms).toContain("pendingSuggestion = suggestion");
+    expect(forms).toContain("applySuggestion(pendingSuggestion)");
+    expect(forms).toContain('name="site"');
+    expect(forms).toContain('name="descricao"');
     expect(forms).toContain('/api/crm/eventos/pesquisar');
   });
 
+  it("retorna e persiste site e descrição sem preencher taxas", () => {
+    expect(server).toContain('site: { type: "string", description: "URL oficial do evento ou vazia" }');
+    expect(server).toContain('descricao: { type: "string", description: "Descrição curta confirmada pelas fontes ou vazia" }');
+    expect(server).toContain('INSERT INTO crm_eventos (nome, organizadora, local, endereco, site, descricao');
+    expect(server).toContain('const site = choose(existing.site, "site")');
+    expect(server).toContain('const descricao = choose(existing.descricao, "descricao")');
+  });
+
   it("distribui o formulário atualizado", () => {
-    expect(index).toContain('/crm/js/forms.js?v=1787323600');
+    expect(index).toContain('/crm/js/forms.js?v=1787337600');
   });
 });

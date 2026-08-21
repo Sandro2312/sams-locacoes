@@ -194,6 +194,8 @@ CREATE TABLE IF NOT EXISTS crm_eventos (
   organizadora VARCHAR(255) NULL,
   local VARCHAR(255) NULL,
   endereco TEXT NULL,
+  site VARCHAR(500) NULL,
+  descricao TEXT NULL,
   data_inicio VARCHAR(50) NULL,
   data_fim VARCHAR(50) NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'Planejado',

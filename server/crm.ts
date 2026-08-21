@@ -215,6 +215,7 @@ export function deriveEventFieldsFromSources(sources: EventoPesquisaFonte[]) {
     organizadora,
     local: String(localMatch?.[1] || "").replace(/\s+/g, " ").trim(),
     endereco: "",
+    site: sources[0]?.url || "",
     dataInicio,
     dataFim,
   };
@@ -928,6 +929,8 @@ export function registerCrmRoutes(app: any) {
                 organizadora: { type: "string" },
                 local: { type: "string" },
                 endereco: { type: "string" },
+                site: { type: "string", description: "URL oficial do evento ou vazia" },
+                descricao: { type: "string", description: "Descrição curta confirmada pelas fontes ou vazia" },
                 dataInicio: { type: "string", description: "YYYY-MM-DD or empty" },
                 dataFim: { type: "string", description: "YYYY-MM-DD or empty" },
                 resumo: { type: "string" },
@@ -942,7 +945,7 @@ export function registerCrmRoutes(app: any) {
                   }
                 }
               },
-              required: ["organizadora", "local", "endereco", "dataInicio", "dataFim", "resumo", "confianca", "fontes"],
+              required: ["organizadora", "local", "endereco", "site", "descricao", "dataInicio", "dataFim", "resumo", "confianca", "fontes"],
               additionalProperties: false
             }
           }
@@ -954,10 +957,13 @@ export function registerCrmRoutes(app: any) {
       const isoDate = (value: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
       const fontes = fontesEncontradas.slice(0, 5).map((fonte) => ({ titulo: text(fonte.titulo, 180), url: text(fonte.url, 1000) }));
       const derived = deriveEventFieldsFromSources(fontesEncontradas);
+      const sourceSite = /^https?:\/\//i.test(text(parsed.site, 500)) ? text(parsed.site, 500) : text(derived.site, 500);
       const sugestao = {
         organizadora: text(parsed.organizadora, 180) || text(derived.organizadora, 180),
         local: text(parsed.local, 180) || text(derived.local, 180),
         endereco: text(parsed.endereco, 280) || text(derived.endereco, 280),
+        site: sourceSite,
+        descricao: text(parsed.descricao, 1800) || text(parsed.resumo, 1800),
         dataInicio: isoDate(parsed.dataInicio) || derived.dataInicio,
         dataFim: isoDate(parsed.dataFim) || derived.dataFim,
         resumo: text(parsed.resumo, 900),
@@ -974,11 +980,11 @@ export function registerCrmRoutes(app: any) {
 
   r.post("/eventos", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
-    const { nome, organizadora, local, endereco, data_inicio, data_fim, status = "Planejado", taxas_json, observacoes } = req.body;
+    const { nome, organizadora, local, endereco, site, descricao, data_inicio, data_fim, status = "Planejado", taxas_json, observacoes } = req.body;
     if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
     const [result] = await getPool().execute(
-      "INSERT INTO crm_eventos (nome, organizadora, local, endereco, data_inicio, data_fim, status, taxas_json, observacoes) VALUES (?,?,?,?,?,?,?,?,?)",
-      [nome, organizadora, local, endereco, data_inicio, data_fim, status, taxas_json ? JSON.stringify(taxas_json) : null, observacoes]
+      "INSERT INTO crm_eventos (nome, organizadora, local, endereco, site, descricao, data_inicio, data_fim, status, taxas_json, observacoes) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+      [nome, organizadora, local, endereco, site, descricao, data_inicio, data_fim, status, taxas_json ? JSON.stringify(taxas_json) : null, observacoes]
     );
     await audit(u.userId, "create", "crm_eventos", (result as any).insertId, { nome }, req.ip);
     res.json({ id: (result as any).insertId, ok: true });
@@ -1016,14 +1022,16 @@ export function registerCrmRoutes(app: any) {
     const organizadora = choose(existing.organizadora, "organizadora");
     const local = choose(existing.local, "local");
     const endereco = choose(existing.endereco, "endereco");
+    const site = choose(existing.site, "site");
+    const descricao = choose(existing.descricao, "descricao");
     const data_inicio = choose(existing.data_inicio, "data_inicio", "dataInicio");
     const data_fim = choose(existing.data_fim, "data_fim", "dataFim");
     const status = choose(existing.status || "Planejado", "status");
     const observacoes = choose(existing.observacoes, "observacoes");
     if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
     await db(
-      "UPDATE crm_eventos SET nome=?, organizadora=?, local=?, endereco=?, data_inicio=?, data_fim=?, status=?, taxas_json=?, observacoes=? WHERE id=?",
-      [nome, organizadora, local, endereco, data_inicio, data_fim, status ?? "Planejado", JSON.stringify(taxas), observacoes, id]
+      "UPDATE crm_eventos SET nome=?, organizadora=?, local=?, endereco=?, site=?, descricao=?, data_inicio=?, data_fim=?, status=?, taxas_json=?, observacoes=? WHERE id=?",
+      [nome, organizadora, local, endereco, site, descricao, data_inicio, data_fim, status ?? "Planejado", JSON.stringify(taxas), observacoes, id]
     );
     const evento = await dbOne<any>("SELECT * FROM crm_eventos WHERE id = ?", [id]);
     await audit(u.userId, "update", "crm_eventos", id, body, req.ip);

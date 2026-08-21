@@ -854,3 +854,9 @@
 - [x] Extrair datas, local e organizadora de forma determinística quando os trechos forem suficientes
 - [x] Preencher campos vazios e manter fontes, observações e revisão humana
 - [x] Validar o caso público, mobile, permissões e regressões antes do checkpoint
+
+## Evolução — Pré-visualização de Pesquisa de Eventos (Ago/2026)
+- [x] Adicionar estado de carregamento acessível ao botão de pesquisa
+- [x] Persistir e sugerir site oficial e descrição quando presentes nas fontes públicas
+- [x] Criar pré-visualização com aplicar ou descartar antes de preencher os campos
+- [x] Validar migração, salvamento, mobile, permissões e regressões antes do checkpoint
