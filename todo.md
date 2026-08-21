@@ -892,3 +892,8 @@
 - [x] Identificar a etapa de extração que derruba a resposta mesmo com fontes recuperadas
 - [x] Retornar sugestões determinísticas quando a IA ou o parse estruturado falhar
 - [x] Validar pesquisa, pré-visualização, aplicação, mobile e regressões antes do checkpoint
+
+## Correção — Pré-visualização Não Exibida Após Pesquisa (Ago/2026)
+- [x] Tornar a área de revisão visível imediatamente após a resposta de pesquisa
+- [x] Focar e rolar o modal de forma segura em desktop e mobile sem preencher campos automaticamente
+- [x] Validar busca, pré-visualização, aplicação e regressões antes do checkpoint

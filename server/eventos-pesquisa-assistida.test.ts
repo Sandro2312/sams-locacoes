@@ -71,6 +71,9 @@ describe("Pesquisa assistida de eventos", () => {
     expect(forms).toContain('name="site"');
     expect(forms).toContain('name="descricao"');
     expect(forms).toContain('/api/crm/eventos/pesquisar');
+    expect(forms).toContain('const revealPreview = () =>');
+    expect(forms).toContain("researchResult.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth'");
+    expect(forms).toContain('revealPreview();');
   });
 
   it("limpa somente valores automáticos ainda inalterados e preserva edições manuais", () => {
@@ -89,6 +92,6 @@ describe("Pesquisa assistida de eventos", () => {
   });
 
   it("distribui o formulário atualizado", () => {
-    expect(index).toContain('/crm/js/forms.js?v=1787346800');
+    expect(index).toContain('/crm/js/forms.js?v=1787347900');
   });
 });

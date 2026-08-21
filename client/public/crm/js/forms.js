@@ -2939,13 +2939,29 @@ const FormSystem = {
             });
             return next;
         };
+        const revealPreview = () => {
+            if (!researchResult) return;
+            researchResult.classList.remove('hidden');
+            researchResult.setAttribute('tabindex', '-1');
+            const show = () => {
+                try {
+                    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    researchResult.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start', inline: 'nearest' });
+                } catch {
+                    try { researchResult.scrollIntoView(); } catch {}
+                }
+                try { researchResult.focus({ preventScroll: true }); } catch {}
+            };
+            if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(show);
+            else setTimeout(show, 0);
+        };
         const renderPreview = (suggestion) => {
             if (!researchResult) return;
             const sources = Array.isArray(suggestion?.fontes) ? suggestion.fontes.map(formatSource).filter(Boolean).join('') : '';
             const missing = previewFields.filter((field) => !String(suggestion?.[field.name] || (field.name === 'descricao' ? suggestion?.resumo || '' : '')).trim()).map((field) => field.label);
             const controls = previewFields.map((field) => previewControl(field, suggestion)).join('');
-            researchResult.classList.remove('hidden');
             researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-clipboard-check mt-0.5 text-indigo-700" aria-hidden="true"></i><div class="min-w-0 flex-1"><p class="font-semibold text-slate-800">Pré-visualização editável dos dados encontrados</p><p class="mt-1 text-xs leading-5 text-slate-600">Ajuste livremente as sugestões antes de aplicar. Campos já preenchidos e taxas serão preservados.</p>${missing.length ? `<div class="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950"><i class="fas fa-exclamation-triangle mr-1" aria-hidden="true"></i><strong>Preenchimento manual necessário:</strong> não foram encontradas evidências para ${escape(missing.join(', '))}.</div>` : '<div class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"><i class="fas fa-check-circle mr-1" aria-hidden="true"></i>Foram encontradas sugestões para todos os campos principais.</div>'}<div class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3">${controls}</div>${sources ? `<p class="mt-3 text-xs font-semibold text-slate-600">Fontes consultadas</p><ul class="mt-1 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : ''}<div class="mt-4 flex flex-wrap gap-2" aria-label="Ações da pré-visualização"><button type="button" data-evento-pesquisa-aplicar aria-label="Aplicar sugestões aos campos vazios do evento" style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:0;border-radius:6px;background:#047857!important;color:#ffffff!important;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;"><i class="fas fa-check mr-1" aria-hidden="true"></i>Aplicar sugestões</button><button type="button" data-evento-pesquisa-descartar style="display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;color:#334155;font-size:12px;font-weight:700;visibility:visible!important;opacity:1!important;cursor:pointer;">Descartar</button></div></div></div>`;
+            revealPreview();
         };
         const applySuggestion = (suggestion) => {
             if (!suggestion) return;
