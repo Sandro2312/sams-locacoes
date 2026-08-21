@@ -39,7 +39,7 @@ describe("CRM — confirmação acessível e busca padrão", () => {
   });
 
   it("distribui as versões atualizadas dos dois módulos", () => {
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787321600");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787349100");
     expect(index).toContain("/crm/js/navigation.js?v=1787319600");
   });
 });

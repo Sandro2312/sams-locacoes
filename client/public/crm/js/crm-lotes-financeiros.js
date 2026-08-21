@@ -53,6 +53,13 @@
     const unique = selectedClient && !results.some((client) => String(client.id) === String(selectedClient.id)) ? [selectedClient, ...results] : results;
     return `<option value="">Selecione o cliente</option>${unique.map((client) => `<option value="${esc(client.id)}" ${String(client.id) === String(selected) ? 'selected' : ''}>${esc(clientName(client))}${client.documento ? ` · ${esc(client.documento)}` : ''}</option>`).join('')}`;
   }
+  function clientSearchResultsMarkup(term) {
+    const normalized = String(term || '').trim();
+    const results = searchClient(normalized);
+    if (!normalized) return '';
+    if (!results.length) return '<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Nenhum cliente encontrado. Tente outro nome, e-mail ou documento.</div>';
+    return `<div data-finance-batch-client-results class="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2" role="listbox" aria-label="Clientes encontrados"><p class="px-1 pb-1 text-xs font-semibold text-blue-900">Resultados encontrados — clique para selecionar:</p><div class="grid grid-cols-1 gap-1 sm:grid-cols-2">${results.map((client) => `<button type="button" data-finance-batch-client-result="${esc(client.id)}" role="option" aria-label="Selecionar ${esc(clientName(client))}" class="rounded-md border border-blue-100 bg-white px-3 py-2 text-left text-sm text-slate-800 hover:border-blue-400 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600"><span class="block font-semibold">${esc(clientName(client))}</span>${client.documento ? `<span class="block text-xs text-slate-500">${esc(client.documento)}</span>` : ''}</button>`).join('')}</div></div>`;
+  }
   function eventOptions(selected) {
     return `<option value="">Selecione o evento</option>${state.eventos.map((evento) => `<option value="${esc(evento.id)}" ${String(evento.id) === String(selected) ? 'selected' : ''}>${esc(eventName(evento))}</option>`).join('')}`;
   }
@@ -78,7 +85,7 @@
     return `<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">1. Identifique o lote financeiro</h3><p class="mt-1 text-sm text-slate-600">Este contexto será aplicado às receitas e despesas confirmadas neste lote.</p></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-client-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p></div>
+        <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-client-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p><div data-finance-batch-client-results-host></div></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-client">Cliente <span class="text-rose-600">*</span></label><select id="finance-batch-client" data-finance-batch-client class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${clientOptions('', '')}</select></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-event">Evento <span class="text-rose-600">*</span></label><select id="finance-batch-event" data-finance-batch-event class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${eventOptions('')}</select></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-stand">Identificação do stand <span class="text-rose-600">*</span></label><input id="finance-batch-stand" data-finance-batch-stand maxlength="180" placeholder="Ex.: Stand Urano · Pavilhão 2 · 48 m²" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div>
@@ -183,7 +190,9 @@
     const previous = select.value;
     const term = String(search?.value || '');
     const results = searchClient(term);
+    const resultsHost = document.querySelector('[data-finance-batch-client-results-host]');
     select.innerHTML = clientOptions(previous, term);
+    if (resultsHost) resultsHost.innerHTML = clientSearchResultsMarkup(term);
     if (term.trim() && results.length === 1) {
       select.value = String(results[0].id);
       if (count) count.textContent = `1 cliente encontrado e selecionado automaticamente.`;
@@ -307,6 +316,21 @@
       }
     });
     document.addEventListener('click', async (event) => {
+      const clientResult = event.target?.closest?.('[data-finance-batch-client-result]');
+      if (clientResult) {
+        event.preventDefault();
+        const search = document.querySelector('[data-finance-batch-client-search]');
+        const select = document.querySelector('[data-finance-batch-client]');
+        const count = document.querySelector('[data-finance-batch-client-count]');
+        const client = state.clientes.find((item) => String(item.id) === String(clientResult.dataset.financeBatchClientResult));
+        if (!client || !select) return;
+        if (search) search.value = clientName(client);
+        refreshClientSelect();
+        select.value = String(client.id);
+        if (count) count.textContent = `${clientName(client)} selecionado para o lote.`;
+        updateCentroCusto();
+        return;
+      }
       const action = event.target?.closest?.('[data-finance-batch-action]');
       if (!action) return;
       event.preventDefault();

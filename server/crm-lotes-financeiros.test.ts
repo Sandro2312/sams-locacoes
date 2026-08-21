@@ -64,6 +64,10 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain("Revisar e confirmar lançamentos");
     expect(guide).toContain('data-finance-batch-client-search');
     expect(guide).toContain('data-finance-batch-client-count');
+    expect(guide).toContain('data-finance-batch-client-results-host');
+    expect(guide).toContain('data-finance-batch-client-result');
+    expect(guide).toContain('Resultados encontrados — clique para selecionar:');
+    expect(guide).toContain('selecionado para o lote.');
     expect(guide).toContain('1 cliente encontrado e selecionado automaticamente.');
     expect(guide).toContain('results.length === 1');
     expect(guide).toContain('data-finance-batch-item-data-parcela');
@@ -84,6 +88,6 @@ describe("Lote Financeiro por Stand", () => {
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787321600");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787349100");
   });
 });

@@ -63,6 +63,6 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(batchGuideSource).toContain('data-finance-batch-client-search');
     expect(batchGuideSource).toContain('Criar lote e adicionar itens');
     expect(batchGuideSource).toContain('Revisar e confirmar lançamentos');
-    expect(indexSource).toContain('crm-lotes-financeiros.js?v=1787321600');
+    expect(indexSource).toContain('crm-lotes-financeiros.js?v=1787349100');
   });
 });

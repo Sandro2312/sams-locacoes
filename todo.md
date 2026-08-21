@@ -902,3 +902,8 @@
 - [x] Extrair endereço, cidade e UF das fontes públicas quando houver evidência suficiente
 - [x] Preservar o alerta de preenchimento manual quando não houver endereço confirmado
 - [x] Validar fontes, pré-visualização, aplicação, mobile e regressões antes do checkpoint
+
+## Correção — Seleção de Cliente no Guia de Lançamentos (Ago/2026)
+- [x] Mapear a divergência entre a contagem da busca e as opções visíveis no seletor
+- [x] Atualizar a lista de seleção com os clientes encontrados e preservar a escolha atual
+- [x] Validar busca, seleção, criação de lote, mobile e regressões antes do checkpoint
