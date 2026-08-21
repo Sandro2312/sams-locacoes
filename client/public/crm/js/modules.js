@@ -4125,7 +4125,7 @@ const ModuleSystem = {
             const selectedRaw = this._despesasCentroCustoFilter != null ? String(this._despesasCentroCustoFilter) : '';
             const selectedKey = selectedRaw && selectedRaw.trim() !== '' ? this.normalizeCentroCusto(selectedRaw) : '';
             const filtered = selectedKey
-                ? transacoes.filter(t => this.normalizeCentroCusto(t?.centroCusto) === selectedKey)
+                ? transacoes.filter(t => this.matchesCentroCustoFilter(t, selectedRaw))
                 : transacoes;
             return `
                 <div class="bg-white rounded-lg shadow">
@@ -4375,7 +4375,7 @@ const ModuleSystem = {
                             </thead>
                             <tbody id="contas-receber-list-body" class="bg-white divide-y divide-gray-200">
                                 ${sorted
-                                    .filter(cr => !selectedKey || this.normalizeCentroCusto(cr?.centroCusto ?? cr?.centro_custo) === selectedKey)
+                                    .filter(cr => !selectedKey || this.matchesCentroCustoFilter(cr, selectedRaw))
                                     .map(cr => `
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -4790,6 +4790,30 @@ const ModuleSystem = {
             return raw ? raw : '(Sem centro de custos)';
         },
 
+        centroCustoComparisonKey(value) {
+            return String(value ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+        },
+
+        findEventoByCentroCustoFilter(value) {
+            const key = this.centroCustoComparisonKey(value);
+            if (!key) return null;
+            return (Array.isArray(ModuleSystem.data.eventos) ? ModuleSystem.data.eventos : []).find((evento) =>
+                this.centroCustoComparisonKey(evento?.nome) === key
+            ) || null;
+        },
+
+        matchesCentroCustoFilter(record, value) {
+            const filterKey = this.centroCustoComparisonKey(value);
+            if (!filterKey) return true;
+            const centro = record?.centroCusto ?? record?.centro_custo ?? '';
+            if (this.centroCustoComparisonKey(centro) === filterKey) return true;
+            const eventoId = record?.eventoId ?? record?.evento_id ?? null;
+            const eventoNome = record?.eventoNome ?? record?.evento_nome
+                ?? (Array.isArray(ModuleSystem.data.eventos) ? ModuleSystem.data.eventos : []).find((evento) => String(evento?.id) === String(eventoId ?? ''))?.nome
+                ?? '';
+            return this.centroCustoComparisonKey(eventoNome) === filterKey;
+        },
+
         normalizeMoney(value) {
             const n = typeof value === 'string' ? Number(String(value).replace(',', '.')) : Number(value);
             return Number.isFinite(n) ? n : 0;
@@ -4812,6 +4836,12 @@ const ModuleSystem = {
         getRelatorioCentroCustosData(filterCentroCusto = '') {
             const transacoes = Array.isArray(ModuleSystem.data.transacoes) ? ModuleSystem.data.transacoes : [];
             const contas = Array.isArray(ModuleSystem.data.contasReceber) ? ModuleSystem.data.contasReceber : [];
+            const filterKey = (filterCentroCusto != null && String(filterCentroCusto).trim() !== '')
+                ? this.normalizeCentroCusto(filterCentroCusto)
+                : '';
+            const selectedEvent = filterKey ? this.findEventoByCentroCustoFilter(filterCentroCusto) : null;
+            const shouldInclude = (record) => !filterKey || this.matchesCentroCustoFilter(record, filterCentroCusto);
+            const bucketCentro = (record) => selectedEvent ? selectedEvent.nome : (record?.centroCusto ?? record?.centro_custo);
 
             const map = new Map();
 
@@ -4831,7 +4861,8 @@ const ModuleSystem = {
             };
 
             contas.forEach(cr => {
-                const bucket = ensure(cr?.centroCusto ?? cr?.centro_custo);
+                if (!shouldInclude(cr)) return;
+                const bucket = ensure(bucketCentro(cr));
                 const valor = this.normalizeMoney(cr?.valor);
                 bucket.receitasContas += valor;
                 bucket.itensReceitas.push({
@@ -4845,7 +4876,8 @@ const ModuleSystem = {
             });
 
             transacoes.forEach(t => {
-                const bucket = ensure(t?.centroCusto);
+                if (!shouldInclude(t)) return;
+                const bucket = ensure(bucketCentro(t));
                 const valor = this.normalizeMoney(t?.valor);
                 const tipo = String(t?.tipo || '').toLowerCase();
                 if (tipo.includes('pagar') || tipo.includes('desp')) {
@@ -4872,10 +4904,7 @@ const ModuleSystem = {
                 return { ...r, receitas, custos, saldo };
             }).sort((a, b) => b.saldo - a.saldo || a.centroCusto.localeCompare(b.centroCusto, 'pt-BR'));
 
-            const filterKey = (filterCentroCusto != null && String(filterCentroCusto).trim() !== '')
-                ? this.normalizeCentroCusto(filterCentroCusto)
-                : '';
-            const filteredRows = filterKey ? rows.filter(r => r && String(r.centroCusto) === String(filterKey)) : rows;
+            const filteredRows = rows;
 
             const totals = filteredRows.reduce((acc, r) => {
                 acc.receitasContas += r.receitasContas;
@@ -10703,6 +10732,9 @@ window.FinanceiroModule.loadContasReceber = async function() {
         ? ModuleSystem.financeiro.normalizeCentroCusto(raw)
         : String(raw).trim();
       return (list || []).filter(cr => {
+        if (window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.matchesCentroCustoFilter === 'function') {
+          return ModuleSystem.financeiro.matchesCentroCustoFilter(cr, raw);
+        }
         const v = cr && (cr.centroCusto ?? cr.centro_custo) != null ? String(cr.centroCusto ?? cr.centro_custo) : '';
         const k2 = (window.ModuleSystem && ModuleSystem.financeiro && typeof ModuleSystem.financeiro.normalizeCentroCusto === 'function')
           ? ModuleSystem.financeiro.normalizeCentroCusto(v)
@@ -10793,6 +10825,8 @@ window.FinanceiroModule.loadContasReceber = async function() {
         id: r.id,
         vendaId: r.vendaId ?? r.venda_id ?? null,
         clienteId,
+        eventoId: r.eventoId ?? r.evento_id ?? null,
+        eventoNome: r.eventoNome ?? r.evento_nome ?? null,
         centroCusto: r.centroCusto ?? r.centro_custo ?? null,
         tipoReceita: r.tipoReceita ?? r.tipo_receita ?? null,
         descricao: r.descricao ?? '',

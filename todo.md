@@ -819,3 +819,9 @@
 - [x] Mapear carregamento do formulário, datas, validações e rota de atualização do evento
 - [x] Corrigir a persistência e a atualização visual sem sobrescrever dados existentes
 - [x] Validar criação e edição de eventos, permissões, mobile e regressões antes do checkpoint
+
+## Correção — Centro de Custo do Guia de Lançamentos (Ago/2026)
+- [x] Mapear o centro aplicado pelo lote e os critérios de filtros e relatórios financeiros
+- [x] Apropriar receitas e despesas do lote no centro do evento, preservando o detalhe de cliente e stand
+- [x] Corrigir a consulta de centros para localizar lançamentos antigos e novos sem alterar valores históricos
+- [x] Validar filtros, relatórios, mobile e regressões antes do checkpoint
