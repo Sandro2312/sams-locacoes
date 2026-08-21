@@ -8,15 +8,19 @@ const forms = readFileSync(resolve(root, "client/public/crm/js/forms.js"), "utf8
 const index = readFileSync(resolve(root, "client/public/crm/index.html"), "utf8");
 
 describe("Pesquisa assistida de eventos", () => {
-  it("protege, limita e audita a pesquisa de evento", () => {
+  it("protege, limita, audita e usa fallback de busca pública de evento", () => {
     expect(server).toContain('r.post("/eventos/pesquisar", requireCrmAuth');
     expect(server).toContain('consumeRateLimit(`evento-pesquisa:${u.userId}`, 12');
-    expect(server).toContain('tools: [{ type: "web_search" }] as any');
+    expect(server).toContain('async function searchPublicEventSources');
+    expect(server).toContain('https://www.bing.com/search');
+    expect(server).toContain('const fontesEncontradas');
+    expect(server).toContain('.replace(/\\s+/g, "").replace(/[›>].*$/, "")');
     expect(server).toContain('event_search');
   });
 
-  it("pede fonte, não solicita taxas e normaliza apenas datas ISO", () => {
+  it("extrai somente das evidências, não solicita taxas e normaliza apenas datas ISO", () => {
     expect(server).toContain('Nunca invente datas, organizadora, local, endereço ou taxas');
+    expect(server).toContain('Use EXCLUSIVAMENTE os trechos de fontes públicas');
     expect(server).toContain('const isoDate =');
     expect(server).toContain('fontes');
   });

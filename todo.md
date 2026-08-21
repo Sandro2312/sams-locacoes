@@ -842,3 +842,9 @@
 - [x] Sugerir somente dados verificáveis de organizadora, local, endereço e datas, com indicação de fonte
 - [x] Manter revisão humana, não preencher taxas sem fonte e preservar campos já informados pelo usuário
 - [x] Validar permissões, interface mobile, falhas de pesquisa e regressões antes do checkpoint
+
+## Correção — Pesquisa Assistida Sem Resultados (Ago/2026)
+- [x] Reproduzir a ausência de fontes para evento com resultados públicos confirmados
+- [x] Priorizar resultados oficiais e criar fallback verificável para quando a IA não retornar fontes
+- [x] Preencher sugestões recuperadas, exibir a fonte e preservar a revisão humana
+- [x] Validar pesquisa, falhas, mobile, permissões e regressões antes do checkpoint

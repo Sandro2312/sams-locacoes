@@ -147,6 +147,42 @@ async function audit(userId: number | null, action: string, table: string, recor
   } catch { /* não bloquear por falha de auditoria */ }
 }
 
+type EventoPesquisaFonte = { titulo: string; url: string; trecho: string };
+
+function decodeSearchText(value: string) {
+  return String(value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (_match, decimal, hex, named) => {
+      if (decimal) return String.fromCharCode(Number(decimal));
+      if (hex) return String.fromCharCode(parseInt(hex, 16));
+      return ({ aacute: "á", eacute: "é", iacute: "í", oacute: "ó", uacute: "ú", ccedil: "ç", atilde: "ã", otilde: "õ", agrave: "à", ecirc: "ê" } as Record<string, string>)[String(named || "").toLowerCase()] || " ";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function searchPublicEventSources(query: string): Promise<EventoPesquisaFonte[]> {
+  const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=pt-BR`;
+  const response = await fetch(url, {
+    headers: { "user-agent": "Mozilla/5.0 (compatible; SAMS-Locacoes-Event-Research/1.0)" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) return [];
+  const html = await response.text();
+  const blocks = html.match(/<li class="b_algo"[\s\S]*?<\/li>/gi) || [];
+  return blocks.slice(0, 6).map((block) => {
+    const title = decodeSearchText((block.match(/<h2[^>]*>[\s\S]*?<\/h2>/i) || [""])[0]);
+    const cite = decodeSearchText((block.match(/<cite[^>]*>[\s\S]*?<\/cite>/i) || [""])[0]).replace(/\s+/g, "").replace(/[›>].*$/, "");
+    const snippet = decodeSearchText((block.match(/<p[^>]*>[\s\S]*?<\/p>/i) || [""])[0]);
+    const urlText = /^https?:\/\//i.test(cite) ? cite : (cite ? `https://${cite}` : "");
+    return { titulo: title.slice(0, 180), url: urlText.slice(0, 1000), trecho: snippet.slice(0, 700) };
+  }).filter((source) => source.titulo && /^https?:\/\//i.test(source.url) && source.trecho);
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 export function registerCrmRoutes(app: any) {
   const r = Router();
@@ -814,20 +850,35 @@ export function registerCrmRoutes(app: any) {
     const limit = consumeRateLimit(`evento-pesquisa:${u.userId}`, 12, 60 * 60 * 1000);
     if (!limit.ok) return res.status(429).json({ error: "Limite de pesquisas atingido. Aguarde alguns minutos para tentar novamente." });
     try {
+      const searchGroups = await Promise.allSettled([
+        searchPublicEventSources(nome),
+        searchPublicEventSources(`${nome} data local`),
+        searchPublicEventSources(`${nome} organizadora`),
+      ]);
+      const seenSources = new Set<string>();
+      const fontesEncontradas = searchGroups.flatMap((result) => result.status === "fulfilled" ? result.value : [])
+        .filter((source) => {
+          const key = source.url.toLowerCase();
+          if (seenSources.has(key)) return false;
+          seenSources.add(key);
+          return true;
+        }).slice(0, 8);
+      if (!fontesEncontradas.length) {
+        return res.status(503).json({ error: "A busca pública não retornou fontes agora. Tente novamente em instantes ou informe o site oficial do evento nas observações." });
+      }
+      const evidencias = fontesEncontradas.map((fonte, index) => `[${index + 1}] ${fonte.titulo}\nURL: ${fonte.url}\nTrecho: ${fonte.trecho}`).join("\n\n");
       const response = await invokeLLM({
         model: "gpt-5-mini",
         messages: [
           {
             role: "system",
-            content: "Você pesquisa eventos no Brasil para uma montadora de stands. Use busca na web para localizar fontes oficiais ou do pavilhão/organizadora. Extraia somente informações explicitamente confirmadas nas fontes. Nunca invente datas, organizadora, local, endereço ou taxas. Se houver conflito ou ausência de evidência, retorne string vazia para o campo. As taxas devem permanecer fora da resposta."
+            content: "Você extrai dados de eventos no Brasil para uma montadora de stands. Use EXCLUSIVAMENTE os trechos de fontes públicas recebidos nesta conversa. Extraia somente informações explicitamente confirmadas. Nunca invente datas, organizadora, local, endereço ou taxas. Se houver conflito ou ausência de evidência, retorne string vazia para o campo. As taxas devem permanecer fora da resposta. Datas devem estar em YYYY-MM-DD."
           },
           {
             role: "user",
-            content: `Pesquise o evento \"${nome}\". Retorne uma sugestão para pré-preencher o cadastro, priorizando a próxima edição futura ou a edição indicada no nome. Inclua fontes públicas reais e um resumo curto da evidência.`
+            content: `Evento pesquisado: \"${nome}\". Extraia uma sugestão de cadastro a partir destas evidências:\n\n${evidencias}`
           }
         ],
-        tools: [{ type: "web_search" }] as any,
-        toolChoice: "auto",
         maxTokens: 1800,
         response_format: {
           type: "json_schema",
@@ -864,10 +915,7 @@ export function registerCrmRoutes(app: any) {
       const parsed = JSON.parse(raw || "{}") as Record<string, any>;
       const text = (value: any, max: number) => String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
       const isoDate = (value: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
-      const fontes = Array.isArray(parsed.fontes) ? parsed.fontes
-        .map((fonte: any) => ({ titulo: text(fonte?.titulo, 180), url: text(fonte?.url, 1000) }))
-        .filter((fonte: any) => /^https?:\/\//i.test(fonte.url))
-        .slice(0, 5) : [];
+      const fontes = fontesEncontradas.slice(0, 5).map((fonte) => ({ titulo: text(fonte.titulo, 180), url: text(fonte.url, 1000) }));
       const sugestao = {
         organizadora: text(parsed.organizadora, 180),
         local: text(parsed.local, 180),
