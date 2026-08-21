@@ -212,10 +212,24 @@ export function deriveEventFieldsFromSources(sources: EventoPesquisaFonte[]) {
   const localMatch = evidence.match(/((?:Centro de Eventos|Centro de Convenções|Expo Center|Pavilhão)[^.;]{0,100})/i);
   const organizadoraMatch = evidence.match(/(?:realizado|organizado|promovido)\s+(?:pela?|por)\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ0-9\s.-]{2,80})/i);
   const organizadora = /\bABRH[-\s]?RS\b/i.test(evidence) ? "ABRH-RS" : String(organizadoraMatch?.[1] || "").trim();
+  const local = String(localMatch?.[1] || "").replace(/\s+/g, " ").trim();
+  const localTerms = local.toLocaleLowerCase("pt-BR").split(/\W+/).filter((term) => term.length >= 4);
+  const addressCandidates = sources.map((source) => {
+    const sourceText = `${source.titulo}. ${source.trecho}`.replace(/\s+/g, " ").trim();
+    const addressMatch = sourceText.match(/\b(?:Avenida|Av\.?|Rua|R\.?|Rodovia|Estrada|Travessa)\s+[A-Za-zÀ-ÿ0-9 .'-]{2,90},?\s*\d{1,6}(?:\s*[-,]?\s*[A-Za-zÀ-ÿ0-9 .'-]{2,70}){0,3}/i);
+    if (!addressMatch) return { endereco: "", score: 0 };
+    const normalizedSource = sourceText.toLocaleLowerCase("pt-BR");
+    const hasVenueLink = localTerms.some((term) => normalizedSource.includes(term)) || /centro de eventos|centro de convenções|expo center|pavilhão/i.test(sourceText);
+    if (!hasVenueLink) return { endereco: "", score: 0 };
+    const score = (localTerms.some((term) => normalizedSource.includes(term)) ? 4 : 0)
+      + (/endereço|localizado|como chegar|realizado/i.test(sourceText) ? 2 : 0)
+      + (/porto alegre|são paulo|rio de janeiro|belo horizonte|curitiba|recife|brasília/i.test(sourceText) ? 1 : 0);
+    return { endereco: addressMatch[0].replace(/\s+/g, " ").replace(/[.,;\s]+$/, "").trim(), score };
+  }).filter((candidate) => candidate.endereco).sort((a, b) => b.score - a.score);
   return {
     organizadora,
-    local: String(localMatch?.[1] || "").replace(/\s+/g, " ").trim(),
-    endereco: "",
+    local,
+    endereco: addressCandidates[0]?.endereco || "",
     site: sources[0]?.url || "",
     dataInicio,
     dataFim,
@@ -893,6 +907,7 @@ export function registerCrmRoutes(app: any) {
         searchPublicEventSources(nome),
         searchPublicEventSources(`${nome} data local`),
         searchPublicEventSources(`${nome} organizadora`),
+        searchPublicEventSources(`${nome} endereço local`),
       ]);
       const sourcesByUrl = new Map<string, EventoPesquisaFonte>();
       for (const source of searchGroups.flatMap((result) => result.status === "fulfilled" ? result.value : [])) {

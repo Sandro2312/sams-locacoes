@@ -56,6 +56,27 @@ describe("Pesquisa assistida de eventos", () => {
     expect(derived.organizadora).toBe("ABRH-RS");
   });
 
+  it("extrai o endereço quando uma fonte o vincula explicitamente ao local do evento", () => {
+    const derived = deriveEventFieldsFromSources([
+      {
+        titulo: "CONGREGARH 2026 · Quem imagina o futuro?",
+        url: "https://congregarh.com.br/",
+        trecho: "O evento será realizado no Centro de Eventos da PUCRS, em Porto Alegre/RS.",
+      },
+      {
+        titulo: "Centro de Eventos da PUCRS e Como Chegar",
+        url: "https://www.santoanjo.com.br/",
+        trecho: "O Centro de Eventos da PUCRS está localizado na Avenida Ipiranga, 6681, Partenon, Porto Alegre - RS, CEP 90619-900.",
+      },
+    ]);
+    expect(derived.endereco).toContain("Avenida Ipiranga, 6681");
+  });
+
+  it("consulta fontes específicas de endereço além de data, local e organizadora", () => {
+    expect(server).toContain('searchPublicEventSources(`${nome} endereço local`)');
+    expect(server).toContain('const addressCandidates = sources.map((source) =>');
+  });
+
   it("exibe pré-visualização editável, alerta lacunas e preserva a aplicação sob confirmação", () => {
     expect(forms).toContain('data-evento-pesquisa="1"');
     expect(forms).toContain("const setIfEmpty");

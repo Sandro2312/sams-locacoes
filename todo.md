@@ -897,3 +897,8 @@
 - [x] Tornar a área de revisão visível imediatamente após a resposta de pesquisa
 - [x] Focar e rolar o modal de forma segura em desktop e mobile sem preencher campos automaticamente
 - [x] Validar busca, pré-visualização, aplicação e regressões antes do checkpoint
+
+## Evolução — Endereço na Pesquisa de Eventos (Ago/2026)
+- [x] Extrair endereço, cidade e UF das fontes públicas quando houver evidência suficiente
+- [x] Preservar o alerta de preenchimento manual quando não houver endereço confirmado
+- [x] Validar fontes, pré-visualização, aplicação, mobile e regressões antes do checkpoint
