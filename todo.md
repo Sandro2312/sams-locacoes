@@ -872,3 +872,8 @@
 - [x] Destacar campos sem evidência para preenchimento manual
 - [x] Limpar somente valores aplicados automaticamente, preservando edições manuais
 - [x] Validar edição, aplicação, limpeza, mobile e regressões antes do checkpoint
+
+## Correção — Timeout de Implantação (Ago/2026)
+- [x] Inspecionar arquivos, dependências e configuração que compõem o pacote de implantação
+- [x] Confirmar que não há artefatos grandes ou arquivos não necessários que justifiquem exclusão adicional
+- [x] Validar build, inicialização e saúde antes de salvar o checkpoint de publicação
