@@ -814,3 +814,8 @@
 - [x] Verificar a versão do módulo recebida pelo navegador e a condição de lote em rascunho
 - [x] Tornar a ação de confirmação acessível em posição permanente, sem depender do fluxo da tabela
 - [x] Validar a renderização e a confirmação protegida em desktop/mobile antes do checkpoint
+
+## Correção — Edição de Eventos (Ago/2026)
+- [x] Mapear carregamento do formulário, datas, validações e rota de atualização do evento
+- [x] Corrigir a persistência e a atualização visual sem sobrescrever dados existentes
+- [x] Validar criação e edição de eventos, permissões, mobile e regressões antes do checkpoint

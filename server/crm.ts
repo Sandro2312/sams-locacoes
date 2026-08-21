@@ -823,14 +823,46 @@ export function registerCrmRoutes(app: any) {
     const u = (req as any).crmUser;
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: "ID inválido" });
-    const { nome, organizadora, local, endereco, data_inicio, data_fim, status, taxas_json, observacoes } = req.body;
+    const existing = await dbOne<any>("SELECT * FROM crm_eventos WHERE id = ?", [id]);
+    if (!existing) return res.status(404).json({ error: "Evento não encontrado" });
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const supplied = (...keys: string[]) => {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(body, key)) return body[key];
+      }
+      return undefined;
+    };
+    const choose = (current: any, ...keys: string[]) => {
+      const value = supplied(...keys);
+      return value === undefined ? current : value;
+    };
+    const parseTaxas = (value: any) => {
+      if (value && typeof value === "object") return value;
+      try { return JSON.parse(String(value || "{}")); } catch { return {}; }
+    };
+    const rawTaxas = supplied("taxas_json", "taxas");
+    const taxas = rawTaxas === undefined ? parseTaxas(existing.taxas_json) : parseTaxas(rawTaxas);
+    const taxaMap: Record<string, string> = { limpeza: "taxas_limpeza", eletrica: "taxas_eletrica", hidraulica: "taxas_hidraulica" };
+    for (const [field, legacyKey] of Object.entries(taxaMap)) {
+      const value = supplied(legacyKey);
+      if (value !== undefined) taxas[field] = value === null || value === "" ? 0 : value;
+    }
+    const nome = choose(existing.nome, "nome");
+    const organizadora = choose(existing.organizadora, "organizadora");
+    const local = choose(existing.local, "local");
+    const endereco = choose(existing.endereco, "endereco");
+    const data_inicio = choose(existing.data_inicio, "data_inicio", "dataInicio");
+    const data_fim = choose(existing.data_fim, "data_fim", "dataFim");
+    const status = choose(existing.status || "Planejado", "status");
+    const observacoes = choose(existing.observacoes, "observacoes");
     if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
     await db(
       "UPDATE crm_eventos SET nome=?, organizadora=?, local=?, endereco=?, data_inicio=?, data_fim=?, status=?, taxas_json=?, observacoes=? WHERE id=?",
-      [nome, organizadora, local, endereco, data_inicio, data_fim, status ?? "Planejado", taxas_json ? JSON.stringify(taxas_json) : null, observacoes, id]
+      [nome, organizadora, local, endereco, data_inicio, data_fim, status ?? "Planejado", JSON.stringify(taxas), observacoes, id]
     );
-    await audit(u.userId, "update", "crm_eventos", id, req.body, req.ip);
-    res.json({ ok: true });
+    const evento = await dbOne<any>("SELECT * FROM crm_eventos WHERE id = ?", [id]);
+    await audit(u.userId, "update", "crm_eventos", id, body, req.ip);
+    res.json({ ok: true, evento });
   });
 
   r.delete("/eventos/:id", requireCrmAdmin, async (req, res) => {

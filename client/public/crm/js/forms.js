@@ -2210,21 +2210,54 @@ const FormSystem = {
                 return;
             } else if (module === 'eventos') {
                 try {
+                    const toTaxa = (value) => {
+                        if (value == null || value === '') return 0;
+                        const parsed = Number(String(value).replace(',', '.'));
+                        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+                    };
+                    const eventoPayload = {
+                        nome: data.nome,
+                        organizadora: data.organizadora || null,
+                        local: data.local || null,
+                        endereco: data.endereco || null,
+                        data_inicio: data.dataInicio ?? data.data_inicio ?? null,
+                        data_fim: data.dataFim ?? data.data_fim ?? null,
+                        status: data.status || 'Planejado',
+                        taxas_json: {
+                            limpeza: toTaxa(data.taxas_limpeza),
+                            eletrica: toTaxa(data.taxas_eletrica),
+                            hidraulica: toTaxa(data.taxas_hidraulica)
+                        },
+                        observacoes: data.observacoes || null
+                    };
                     const resp = await fetch(`/api/crm/eventos/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify(data)
+                        body: JSON.stringify(eventoPayload)
                     });
+                    const payload = await resp.json().catch(() => ({}));
                     if (!resp.ok) {
-                        console.warn('[FormSystem] PUT /api/eventos/:id não OK, atualizando apenas localmente');
+                        const msg = payload?.error || `Não foi possível atualizar o evento (${resp.status}).`;
+                        notifyError(msg);
+                        throw new Error(msg);
                     }
-                } catch (err) {
-                    console.warn('[FormSystem] Falha ao atualizar evento no backend, atualizando apenas localmente:', err);
-                } finally {
                     if (window.ModuleSystem && typeof ModuleSystem.updateItem === 'function') {
-                        ModuleSystem.updateItem('eventos', id, data);
+                        ModuleSystem.updateItem('eventos', id, { ...data, ...eventoPayload, dataInicio: eventoPayload.data_inicio, dataFim: eventoPayload.data_fim, taxas: eventoPayload.taxas_json });
                     }
+                    this.closeModal();
+                    if (window.NavigationSystem && typeof window.NavigationSystem.reloadEventosList === 'function') {
+                        window.NavigationSystem.reloadEventosList();
+                    } else if (window.ComercialModule && typeof window.ComercialModule.loadEventos === 'function') {
+                        window.ComercialModule.loadEventos();
+                    }
+                    if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
+                        window.NotificationSystem.success('Evento atualizado com sucesso.');
+                    }
+                    return;
+                } catch (err) {
+                    console.warn('[FormSystem] Falha ao atualizar evento no backend:', err);
+                    return;
                 }
             } else if (module === 'memoriais') {
                 try {
@@ -6071,6 +6104,21 @@ ENTREGA
     getEventoForm(id = null) {
         const evento = id ? ModuleSystem.data.eventos?.find(e => e.id == id) : {};
         const formId = `evento-${id || 'new'}`;
+        const toInputDate = (value) => {
+            if (!value) return '';
+            const raw = typeof value === 'object' ? (value.value || value.date || '') : String(value);
+            const iso = String(raw || '').match(/^(\d{4}-\d{2}-\d{2})/);
+            if (iso) return iso[1];
+            const parsed = new Date(raw);
+            return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+        };
+        const parseTaxas = (value) => {
+            if (value && typeof value === 'object') return value;
+            try { return JSON.parse(String(value || '{}')); } catch { return {}; }
+        };
+        const taxas = parseTaxas(evento?.taxas ?? evento?.taxas_json);
+        const dataInicio = toInputDate(evento?.dataInicio ?? evento?.data_inicio);
+        const dataFim = toInputDate(evento?.dataFim ?? evento?.data_fim);
         return `
             <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="eventos" data-id="${id || ''}">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6 border border-blue-200">
@@ -6104,12 +6152,12 @@ ENTREGA
                         </div>
                         <div>
                             <label for="${formId}-dataInicio" class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
-                            <input type="date" id="${formId}-dataInicio" name="dataInicio" value="${evento?.dataInicio || ''}"
+                            <input type="date" id="${formId}-dataInicio" name="dataInicio" value="${dataInicio}"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label for="${formId}-dataFim" class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
-                            <input type="date" id="${formId}-dataFim" name="dataFim" value="${evento?.dataFim || ''}"
+                            <input type="date" id="${formId}-dataFim" name="dataFim" value="${dataFim}"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
@@ -6120,19 +6168,19 @@ ENTREGA
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Taxa de Limpeza (R$)</label>
-                            <input type="number" step="0.01" name="taxas_limpeza" value="${evento?.taxas?.limpeza ?? ''}"
+                            <input type="number" step="0.01" name="taxas_limpeza" value="${taxas?.limpeza ?? ''}"
                                    placeholder="0,00"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Taxa Elétrica (R$)</label>
-                            <input type="number" step="0.01" name="taxas_eletrica" value="${evento?.taxas?.eletrica ?? ''}"
+                            <input type="number" step="0.01" name="taxas_eletrica" value="${taxas?.eletrica ?? ''}"
                                    placeholder="0,00"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Taxa Hidráulica (R$)</label>
-                            <input type="number" step="0.01" name="taxas_hidraulica" value="${evento?.taxas?.hidraulica ?? ''}"
+                            <input type="number" step="0.01" name="taxas_hidraulica" value="${taxas?.hidraulica ?? ''}"
                                    placeholder="0,00"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
