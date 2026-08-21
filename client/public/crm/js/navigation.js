@@ -576,6 +576,46 @@ const NavigationSystem = {
         console.log(`✅ NavigationSystem: Conteúdo do módulo ${module} carregado com sucesso`);
     },
 
+    installStandardSearch(module, page) {
+        const moduleContent = document.getElementById('moduleContent');
+        if (!moduleContent) return;
+        try { moduleContent._crmStandardSearchObserver?.disconnect?.(); } catch {}
+        const excludedPages = new Set(['main', 'dashboard', 'guia_lancamentos', 'resultados_stand', 'resultados_evento', 'relatorios', 'configuracoes', 'ia', 'backup', 'permissoes']);
+        if (excludedPages.has(String(page || ''))) return;
+
+        const toolbar = document.createElement('section');
+        toolbar.setAttribute('data-crm-standard-search-toolbar', '1');
+        toolbar.className = 'mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm';
+        toolbar.innerHTML = `<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><label class="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-slate-700"><i class="fas fa-search text-blue-700" aria-hidden="true"></i><span class="sr-only">Busca padrão do CRM</span><input type="search" data-crm-standard-search autocomplete="off" placeholder="Buscar nesta tela por qualquer informação..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"></label><span data-crm-standard-search-status aria-live="polite" class="text-xs text-slate-500">Busca padrão da tela</span></div>`;
+        moduleContent.prepend(toolbar);
+        const input = toolbar.querySelector('[data-crm-standard-search]');
+        const status = toolbar.querySelector('[data-crm-standard-search-status]');
+        const normalize = (value) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+        const apply = () => {
+            const rows = [...moduleContent.querySelectorAll('tbody tr')].filter((row) => !row.closest('[data-crm-standard-search-toolbar]'));
+            const query = normalize(input?.value);
+            if (!rows.length) {
+                toolbar.classList.add('hidden');
+                return;
+            }
+            toolbar.classList.remove('hidden');
+            let visible = 0;
+            rows.forEach((row) => {
+                const isPlaceholder = Boolean(row.querySelector('td[colspan]'));
+                const matches = !query || isPlaceholder || normalize(row.textContent).includes(query);
+                row.style.display = matches ? '' : 'none';
+                if (matches && !isPlaceholder) visible += 1;
+            });
+            const label = query ? `${visible} registro(s) encontrado(s) nesta tela.` : `Busca padrão ativa em ${visible} registro(s).`;
+            if (status && status.textContent !== label) status.textContent = label;
+        };
+        input?.addEventListener('input', apply);
+        const observer = new MutationObserver(apply);
+        observer.observe(moduleContent, { childList: true, subtree: true });
+        moduleContent._crmStandardSearchObserver = observer;
+        apply();
+    },
+
     // Carregar conteúdo da página
     async loadPageContent(module, page) {
         const dashboardContent = document.getElementById('dashboardContent');
@@ -595,6 +635,8 @@ const NavigationSystem = {
         if (moduleContent) {
             moduleContent.innerHTML = content;
         }
+
+    this.installStandardSearch(module, page);
 
     // Vincular eventos específicos da página
     this.bindPageEvents(module, page);

@@ -82,6 +82,6 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain("openFinancePage('custos')");
     expect(navigation).toContain('window.LoteFinanceiroModule?.load?.()');
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787262000");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787319600");
   });
 });

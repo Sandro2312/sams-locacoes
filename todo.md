@@ -825,3 +825,9 @@
 - [x] Apropriar receitas e despesas do lote no centro do evento, preservando o detalhe de cliente e stand
 - [x] Corrigir a consulta de centros para localizar lançamentos antigos e novos sem alterar valores históricos
 - [x] Validar filtros, relatórios, mobile e regressões antes do checkpoint
+
+## Evolução — Confirmação Permanente e Busca Padrão (Ago/2026)
+- [x] Expor uma ação de confirmação fixa e acessível para todo lote em rascunho
+- [x] Mapear as buscas atuais e definir um padrão reutilizável que preserve filtros específicos
+- [x] Aplicar busca padrão aos módulos prioritários do CRM sem remover as buscas existentes
+- [x] Validar confirmação, buscas, mobile, permissões e regressões antes do checkpoint
