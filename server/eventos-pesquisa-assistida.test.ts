@@ -15,6 +15,9 @@ describe("Pesquisa assistida de eventos", () => {
     expect(server).toContain('async function searchPublicEventSources');
     expect(server).toContain('https://www.bing.com/search');
     expect(server).toContain('const fontesEncontradas');
+    expect(server).toContain('const sourcesByUrl = new Map<string, EventoPesquisaFonte>()');
+    expect(server).toContain('existing.trecho = `${existing.trecho} ${source.trecho}`');
+    expect(server).toContain('class="b_lineclamp\\d');
     expect(server).toContain('.replace(/\\s+/g, "").replace(/[›>].*$/, "")');
     expect(server).toContain('event_search');
   });
@@ -49,6 +52,7 @@ describe("Pesquisa assistida de eventos", () => {
     expect(forms).toContain('data-evento-pesquisa="1"');
     expect(forms).toContain("const setIfEmpty");
     expect(forms).toContain('data-evento-pesquisa-aplicar');
+    expect(forms).toContain('background:#047857!important');
     expect(forms).toContain('data-evento-pesquisa-descartar');
     expect(forms).toContain('Pré-visualização dos dados encontrados');
     expect(forms).toContain('fa-circle-notch fa-spin');
@@ -68,6 +72,6 @@ describe("Pesquisa assistida de eventos", () => {
   });
 
   it("distribui o formulário atualizado", () => {
-    expect(index).toContain('/crm/js/forms.js?v=1787337600');
+    expect(index).toContain('/crm/js/forms.js?v=1787339800');
   });
 });

@@ -860,3 +860,9 @@
 - [x] Persistir e sugerir site oficial e descrição quando presentes nas fontes públicas
 - [x] Criar pré-visualização com aplicar ou descartar antes de preencher os campos
 - [x] Validar migração, salvamento, mobile, permissões e regressões antes do checkpoint
+
+## Correção — Pré-visualização Sem Dados Úteis (Ago/2026)
+- [x] Recuperar trechos completos da fonte oficial quando os snippets de busca forem insuficientes
+- [x] Gerar sugestões práticas de organizadora, local, datas, site e descrição a partir das evidências
+- [x] Manter o botão Aplicar sugestões sempre visível e acessível em desktop/mobile
+- [x] Validar o caso público, aplicação, preservação de dados e regressões antes do checkpoint

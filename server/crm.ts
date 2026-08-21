@@ -177,7 +177,8 @@ async function searchPublicEventSources(query: string): Promise<EventoPesquisaFo
   return blocks.slice(0, 6).map((block) => {
     const title = decodeSearchText((block.match(/<h2[^>]*>[\s\S]*?<\/h2>/i) || [""])[0]);
     const cite = decodeSearchText((block.match(/<cite[^>]*>[\s\S]*?<\/cite>/i) || [""])[0]).replace(/\s+/g, "").replace(/[›>].*$/, "");
-    const snippet = decodeSearchText((block.match(/<p[^>]*>[\s\S]*?<\/p>/i) || [""])[0]);
+    const snippetMarkup = (block.match(/class="b_lineclamp\d[^>]*>[\s\S]*?<\/(?:div|p)>/i) || block.match(/<div class="b_caption"[\s\S]*?<\/div>/i) || block.match(/<p[^>]*>[\s\S]*?<\/p>/i) || [block])[0];
+    const snippet = decodeSearchText(snippetMarkup || block);
     const urlText = /^https?:\/\//i.test(cite) ? cite : (cite ? `https://${cite}` : "");
     return { titulo: title.slice(0, 180), url: urlText.slice(0, 1000), trecho: snippet.slice(0, 700) };
   }).filter((source) => source.titulo && /^https?:\/\//i.test(source.url) && source.trecho);
@@ -893,14 +894,17 @@ export function registerCrmRoutes(app: any) {
         searchPublicEventSources(`${nome} data local`),
         searchPublicEventSources(`${nome} organizadora`),
       ]);
-      const seenSources = new Set<string>();
-      const fontesEncontradas = searchGroups.flatMap((result) => result.status === "fulfilled" ? result.value : [])
-        .filter((source) => {
-          const key = source.url.toLowerCase();
-          if (seenSources.has(key)) return false;
-          seenSources.add(key);
-          return true;
-        }).slice(0, 8);
+      const sourcesByUrl = new Map<string, EventoPesquisaFonte>();
+      for (const source of searchGroups.flatMap((result) => result.status === "fulfilled" ? result.value : [])) {
+        const key = source.url.toLowerCase();
+        const existing = sourcesByUrl.get(key);
+        if (existing) {
+          existing.trecho = `${existing.trecho} ${source.trecho}`.replace(/\s+/g, " ").slice(0, 2400);
+        } else {
+          sourcesByUrl.set(key, { ...source });
+        }
+      }
+      const fontesEncontradas = Array.from(sourcesByUrl.values()).slice(0, 8);
       if (!fontesEncontradas.length) {
         return res.status(503).json({ error: "A busca pública não retornou fontes agora. Tente novamente em instantes ou informe o site oficial do evento nas observações." });
       }
