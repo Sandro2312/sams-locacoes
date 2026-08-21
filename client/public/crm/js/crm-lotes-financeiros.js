@@ -260,7 +260,24 @@
     const response = await api(`/api/crm/lotes-financeiros/${encodeURIComponent(lote.id)}/confirmar`, { method: 'POST', body: JSON.stringify({ confirmacaoHumana: true }) });
     state.lote = response.lote;
     renderWorkspace();
-    message(`${response.lancamentos?.reduce((sum, entry) => sum + (entry.lancamentos?.length || 0), 0) || 0} lançamento(s) criado(s) após confirmação humana.`, 'success');
+    showConfirmationSuccess(response.lancamentos || []);
+    const total = response.lancamentos?.reduce((sum, entry) => sum + (entry.lancamentos?.length || 0), 0) || 0;
+    message(`Lote confirmado com sucesso: ${total} lançamento(s) financeiro(s) criado(s).`, 'success');
+  }
+  function showConfirmationSuccess(entries) {
+    const records = entries.flatMap((entry) => Array.isArray(entry?.lancamentos) ? entry.lancamentos : []);
+    const receitas = records.filter((record) => record?.tipo === 'conta_receber').length;
+    const despesas = records.filter((record) => record?.tipo === 'transacao').length;
+    const previous = document.getElementById('finance-batch-confirmation-success');
+    if (previous) previous.remove();
+    const toast = document.createElement('aside');
+    toast.id = 'finance-batch-confirmation-success';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.className = 'fixed right-4 top-4 z-[60] w-[calc(100vw-2rem)] max-w-md rounded-xl border-2 border-emerald-400 bg-white p-5 shadow-2xl';
+    toast.innerHTML = `<div class="flex items-start gap-3"><span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><i class="fas fa-check" aria-hidden="true"></i></span><div class="min-w-0 flex-1"><p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Lançamentos confirmados</p><h4 class="mt-1 text-base font-bold text-slate-900">Sucesso: ${records.length} lançamento(s) criado(s)</h4><p class="mt-1 text-sm leading-5 text-slate-600">${receitas ? `${receitas} Conta(s) a Receber` : ''}${receitas && despesas ? ' e ' : ''}${despesas ? `${despesas} Despesa(s)` : ''} foram incluídas como pendentes no Financeiro.</p><div class="mt-4 flex flex-wrap gap-2">${receitas ? '<button type="button" data-finance-batch-action="ver-receitas" class="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800">Ver Receitas</button>' : ''}${despesas ? '<button type="button" data-finance-batch-action="ver-despesas" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800 hover:bg-rose-100">Ver Despesas</button>' : ''}<button type="button" data-finance-batch-action="fechar-sucesso" class="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">Fechar</button></div></div></div>`;
+    document.body.appendChild(toast);
+    toast.querySelector('[data-finance-batch-action="ver-receitas"], [data-finance-batch-action="ver-despesas"], [data-finance-batch-action="fechar-sucesso"]')?.focus?.();
   }
   function openFinancePage(page) {
     const navigation = window.NavigationSystem;
@@ -301,6 +318,7 @@
         if (action.dataset.financeBatchAction === 'ver-receitas') openFinancePage('receitas');
         if (action.dataset.financeBatchAction === 'ver-despesas') openFinancePage('custos');
         if (action.dataset.financeBatchAction === 'confirmar') await confirmLote();
+        if (action.dataset.financeBatchAction === 'fechar-sucesso') document.getElementById('finance-batch-confirmation-success')?.remove();
       } catch (error) { message(error?.message || 'Não foi possível concluir a ação.', 'error'); }
     });
   }

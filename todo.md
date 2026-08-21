@@ -831,3 +831,8 @@
 - [x] Mapear as buscas atuais e definir um padrão reutilizável que preserve filtros específicos
 - [x] Aplicar busca padrão aos módulos prioritários do CRM sem remover as buscas existentes
 - [x] Validar confirmação, buscas, mobile, permissões e regressões antes do checkpoint
+
+## Evolução — Confirmação Visual de Lançamentos (Ago/2026)
+- [x] Exibir notificação de sucesso com a quantidade de receitas e despesas criadas
+- [x] Oferecer próximos passos claros para consultar os lançamentos no Financeiro
+- [x] Validar confirmação, acessibilidade, mobile e regressões antes do checkpoint

@@ -16,6 +16,15 @@ describe("CRM — confirmação acessível e busca padrão", () => {
     expect(lote).toContain("data-finance-batch-action=\"confirmar\"");
   });
 
+  it("informa visualmente as receitas e despesas após a confirmação", () => {
+    expect(lote).toContain("showConfirmationSuccess(response.lancamentos || [])");
+    expect(lote).toContain("finance-batch-confirmation-success");
+    expect(lote).toContain("Lançamentos confirmados");
+    expect(lote).toContain("Ver Receitas");
+    expect(lote).toContain("Ver Despesas");
+    expect(lote).toContain("fechar-sucesso");
+  });
+
   it("instala uma busca padrão que filtra apenas a tabela carregada da página", () => {
     expect(navigation).toContain("installStandardSearch(module, page)");
     expect(navigation).toContain("data-crm-standard-search");
@@ -30,7 +39,7 @@ describe("CRM — confirmação acessível e busca padrão", () => {
   });
 
   it("distribui as versões atualizadas dos dois módulos", () => {
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787319600");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787321600");
     expect(index).toContain("/crm/js/navigation.js?v=1787319600");
   });
 });
