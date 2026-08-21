@@ -877,3 +877,8 @@
 - [x] Inspecionar arquivos, dependências e configuração que compõem o pacote de implantação
 - [x] Confirmar que não há artefatos grandes ou arquivos não necessários que justifiquem exclusão adicional
 - [x] Validar build, inicialização e saúde antes de salvar o checkpoint de publicação
+
+## Correção — Timeout de Implantação Repetido (Ago/2026)
+- [x] Revisar build limpo, lockfile, dependências de produção e inicialização isolada
+- [x] Verificar configurações de publicação e o conteúdo efetivo do pacote gerado
+- [x] Documentar evidência de indisponibilidade da plataforma quando não há fator reproduzível no projeto
