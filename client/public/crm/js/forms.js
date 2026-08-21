@@ -2869,6 +2869,8 @@ const FormSystem = {
         wrap.setAttribute('data-bound', '1');
 
         const openButtons = Array.from(wrap.querySelectorAll('[data-evento-ai-open]'));
+        const researchButton = form.querySelector('[data-evento-pesquisa="1"]');
+        const researchResult = wrap.querySelector('[data-evento-pesquisa-resultado]');
 
         const copyText = async (text) => {
             const t = String(text || '');
@@ -2890,6 +2892,52 @@ const FormSystem = {
             if (window.Toast && typeof window.Toast.show === 'function') return window.Toast.show(m, 'error');
             if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') return window.NotificationSystem.error(m);
             alert(m);
+        };
+
+        const escape = (value) => this.escapeHtml ? this.escapeHtml(value) : String(value || '');
+        const setIfEmpty = (name, value) => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (!field || field.value || !value) return false;
+            field.value = value;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        };
+        const formatSource = (source) => {
+            const url = String(source?.url || '');
+            if (!/^https?:\/\//i.test(url)) return '';
+            return `<li><a href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="font-medium text-indigo-700 underline hover:text-indigo-900">${escape(source?.titulo || url)}</a></li>`;
+        };
+        const pesquisarDados = async () => {
+            const nome = String(form.querySelector('[name="nome"]')?.value || '').trim();
+            if (nome.length < 3) return notifyErr('Informe o nome do evento antes de pesquisar.');
+            const original = researchButton?.innerHTML || '';
+            if (researchButton) { researchButton.disabled = true; researchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Pesquisando...'; }
+            try {
+                const response = await fetch('/api/crm/eventos/pesquisar', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome }) });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(payload.error || `Falha na pesquisa (${response.status})`);
+                const suggestion = payload.sugestao || {};
+                const applied = [];
+                if (setIfEmpty('organizadora', suggestion.organizadora)) applied.push('organizadora');
+                if (setIfEmpty('local', suggestion.local)) applied.push('local');
+                if (setIfEmpty('endereco', suggestion.endereco)) applied.push('endereço');
+                if (setIfEmpty('dataInicio', suggestion.dataInicio)) applied.push('data de início');
+                if (setIfEmpty('dataFim', suggestion.dataFim)) applied.push('data de fim');
+                const obs = form.querySelector('[name="observacoes"]');
+                const sourceNote = suggestion.resumo ? `Pesquisa assistida (${suggestion.confianca || 'baixa'} confiança): ${suggestion.resumo}` : '';
+                if (obs && sourceNote && !String(obs.value || '').includes(sourceNote)) obs.value = String(obs.value || '').trim() ? `${obs.value}\n\n${sourceNote}` : sourceNote;
+                const sources = Array.isArray(suggestion.fontes) ? suggestion.fontes.map(formatSource).filter(Boolean).join('') : '';
+                if (researchResult) {
+                    researchResult.classList.remove('hidden');
+                    researchResult.innerHTML = `<div class="flex items-start gap-2"><i class="fas fa-check-circle mt-0.5 text-emerald-600" aria-hidden="true"></i><div class="min-w-0"><p class="font-semibold text-slate-800">Sugestões de fontes públicas ${applied.length ? 'aplicadas aos campos vazios' : 'encontradas'}</p><p class="mt-1 text-xs leading-5 text-slate-600">${applied.length ? `Preenchido: ${escape(applied.join(', '))}. ` : 'Os campos já preenchidos foram preservados. '}Revise tudo antes de salvar. Taxas não são preenchidas automaticamente.</p>${sources ? `<ul class="mt-2 list-disc space-y-1 pl-5 text-xs">${sources}</ul>` : '<p class="mt-2 text-xs text-amber-700">Nenhuma fonte pública confiável foi retornada para este nome. Preencha manualmente após conferir o site oficial.</p>'}</div></div>`;
+                }
+                notifyOk(applied.length ? 'Pesquisa concluída. Revise as sugestões antes de salvar o evento.' : 'Pesquisa concluída sem alterar dados já preenchidos. Revise as fontes exibidas.');
+            } catch (error) {
+                notifyErr(error?.message || 'Não foi possível pesquisar os dados do evento.');
+            } finally {
+                if (researchButton && researchButton.isConnected) { researchButton.disabled = false; researchButton.innerHTML = original; }
+            }
         };
 
         const buildPrompt = () => {
@@ -2952,6 +3000,7 @@ const FormSystem = {
                 openAiUrl(t).catch(() => {});
             });
         }
+        researchButton?.addEventListener('click', () => { pesquisarDados().catch(() => {}); });
     },
 
     bindMemorialAI(rootElement) {
@@ -6127,10 +6176,7 @@ ENTREGA
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
-                            <label for="${formId}-nome" class="block text-sm font-medium text-gray-700 mb-2">Nome do Evento *</label>
-                            <input type="text" id="${formId}-nome" name="nome" value="${evento?.nome || ''}" required
-                                   placeholder="Ex: Feira de Tecnologia 2025"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div class="min-w-0 flex-1"><label for="${formId}-nome" class="block text-sm font-medium text-gray-700 mb-2">Nome do Evento *</label><input type="text" id="${formId}-nome" name="nome" value="${evento?.nome || ''}" required placeholder="Ex: Feira de Tecnologia 2025" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"></div><button type="button" data-evento-pesquisa="1" class="shrink-0 rounded-lg bg-indigo-700 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-800 focus:ring-2 focus:ring-indigo-400"><i class="fas fa-search mr-2"></i>Pesquisar dados</button></div><p class="mt-2 text-xs leading-5 text-slate-500">A pesquisa consulta fontes públicas e sugere apenas organizadora, local, endereço e datas encontrados. Revise as sugestões antes de salvar.</p>
                         </div>
                         <div>
                             <label for="${formId}-organizadora" class="block text-sm font-medium text-gray-700 mb-2">Organizadora</label>
@@ -6191,6 +6237,7 @@ ENTREGA
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${evento?.observacoes || ''}</textarea>
                         </div>
                         <div class="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2" data-evento-ai="1">
+                            <div data-evento-pesquisa-resultado class="hidden mb-4 rounded-lg border border-indigo-200 bg-white p-3 text-sm"></div>
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <div class="text-sm font-semibold text-blue-800">IA (Prospecção de Leads)</div>

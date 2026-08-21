@@ -807,6 +807,85 @@ export function registerCrmRoutes(app: any) {
     res.json(rows);
   });
 
+  r.post("/eventos/pesquisar", requireCrmAuth, async (req, res) => {
+    const u = (req as any).crmUser;
+    const nome = String(req.body?.nome || "").trim().replace(/\s+/g, " ").slice(0, 180);
+    if (nome.length < 3) return res.status(400).json({ error: "Informe ao menos 3 caracteres do nome do evento" });
+    const limit = consumeRateLimit(`evento-pesquisa:${u.userId}`, 12, 60 * 60 * 1000);
+    if (!limit.ok) return res.status(429).json({ error: "Limite de pesquisas atingido. Aguarde alguns minutos para tentar novamente." });
+    try {
+      const response = await invokeLLM({
+        model: "gpt-5-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Você pesquisa eventos no Brasil para uma montadora de stands. Use busca na web para localizar fontes oficiais ou do pavilhão/organizadora. Extraia somente informações explicitamente confirmadas nas fontes. Nunca invente datas, organizadora, local, endereço ou taxas. Se houver conflito ou ausência de evidência, retorne string vazia para o campo. As taxas devem permanecer fora da resposta."
+          },
+          {
+            role: "user",
+            content: `Pesquise o evento \"${nome}\". Retorne uma sugestão para pré-preencher o cadastro, priorizando a próxima edição futura ou a edição indicada no nome. Inclua fontes públicas reais e um resumo curto da evidência.`
+          }
+        ],
+        tools: [{ type: "web_search" }] as any,
+        toolChoice: "auto",
+        maxTokens: 1800,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "evento_pesquisado",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                organizadora: { type: "string" },
+                local: { type: "string" },
+                endereco: { type: "string" },
+                dataInicio: { type: "string", description: "YYYY-MM-DD or empty" },
+                dataFim: { type: "string", description: "YYYY-MM-DD or empty" },
+                resumo: { type: "string" },
+                confianca: { type: "string", enum: ["alta", "media", "baixa"] },
+                fontes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { titulo: { type: "string" }, url: { type: "string" } },
+                    required: ["titulo", "url"],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ["organizadora", "local", "endereco", "dataInicio", "dataFim", "resumo", "confianca", "fontes"],
+              additionalProperties: false
+            }
+          }
+        }
+      } as any);
+      const raw = String(response.choices?.[0]?.message?.content || "").trim().replace(/^```json\s*|\s*```$/g, "");
+      const parsed = JSON.parse(raw || "{}") as Record<string, any>;
+      const text = (value: any, max: number) => String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
+      const isoDate = (value: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
+      const fontes = Array.isArray(parsed.fontes) ? parsed.fontes
+        .map((fonte: any) => ({ titulo: text(fonte?.titulo, 180), url: text(fonte?.url, 1000) }))
+        .filter((fonte: any) => /^https?:\/\//i.test(fonte.url))
+        .slice(0, 5) : [];
+      const sugestao = {
+        organizadora: text(parsed.organizadora, 180),
+        local: text(parsed.local, 180),
+        endereco: text(parsed.endereco, 280),
+        dataInicio: isoDate(parsed.dataInicio),
+        dataFim: isoDate(parsed.dataFim),
+        resumo: text(parsed.resumo, 900),
+        confianca: ["alta", "media", "baixa"].includes(String(parsed.confianca)) ? String(parsed.confianca) : "baixa",
+        fontes,
+      };
+      await audit(u.userId, "event_search", "crm_eventos", null, { nome, campos: Object.keys(sugestao).filter((key) => key !== "fontes" && Boolean((sugestao as any)[key])), fontes: fontes.length }, req.ip);
+      res.json({ ok: true, sugestao, restante: limit.remaining });
+    } catch (error: any) {
+      console.error("[Eventos] Falha na pesquisa assistida:", error?.message || error);
+      res.status(502).json({ error: "Não foi possível concluir a pesquisa agora. Revise o nome do evento e tente novamente." });
+    }
+  });
+
   r.post("/eventos", requireCrmAuth, async (req, res) => {
     const u = (req as any).crmUser;
     const { nome, organizadora, local, endereco, data_inicio, data_fim, status = "Planejado", taxas_json, observacoes } = req.body;

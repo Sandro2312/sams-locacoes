@@ -836,3 +836,9 @@
 - [x] Exibir notificação de sucesso com a quantidade de receitas e despesas criadas
 - [x] Oferecer próximos passos claros para consultar os lançamentos no Financeiro
 - [x] Validar confirmação, acessibilidade, mobile e regressões antes do checkpoint
+
+## Evolução — Pesquisa Assistida de Eventos (Ago/2026)
+- [x] Adicionar uma pesquisa segura por nome do evento no formulário Comercial
+- [x] Sugerir somente dados verificáveis de organizadora, local, endereço e datas, com indicação de fonte
+- [x] Manter revisão humana, não preencher taxas sem fonte e preservar campos já informados pelo usuário
+- [x] Validar permissões, interface mobile, falhas de pesquisa e regressões antes do checkpoint
