@@ -909,73 +909,81 @@ export function registerCrmRoutes(app: any) {
         return res.status(503).json({ error: "A busca pública não retornou fontes agora. Tente novamente em instantes ou informe o site oficial do evento nas observações." });
       }
       const evidencias = fontesEncontradas.map((fonte, index) => `[${index + 1}] ${fonte.titulo}\nURL: ${fonte.url}\nTrecho: ${fonte.trecho}`).join("\n\n");
-      const response = await invokeLLM({
-        model: "gpt-5-mini",
-        messages: [
-          {
-            role: "system",
-            content: "Você extrai dados de eventos no Brasil para uma montadora de stands. Use EXCLUSIVAMENTE os trechos de fontes públicas recebidos nesta conversa. Extraia somente informações explicitamente confirmadas. Nunca invente datas, organizadora, local, endereço ou taxas. Se houver conflito ou ausência de evidência, retorne string vazia para o campo. As taxas devem permanecer fora da resposta. Datas devem estar em YYYY-MM-DD."
-          },
-          {
-            role: "user",
-            content: `Evento pesquisado: \"${nome}\". Extraia uma sugestão de cadastro a partir destas evidências:\n\n${evidencias}`
-          }
-        ],
-        maxTokens: 1800,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "evento_pesquisado",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                organizadora: { type: "string" },
-                local: { type: "string" },
-                endereco: { type: "string" },
-                site: { type: "string", description: "URL oficial do evento ou vazia" },
-                descricao: { type: "string", description: "Descrição curta confirmada pelas fontes ou vazia" },
-                dataInicio: { type: "string", description: "YYYY-MM-DD or empty" },
-                dataFim: { type: "string", description: "YYYY-MM-DD or empty" },
-                resumo: { type: "string" },
-                confianca: { type: "string", enum: ["alta", "media", "baixa"] },
-                fontes: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: { titulo: { type: "string" }, url: { type: "string" } },
-                    required: ["titulo", "url"],
-                    additionalProperties: false
+      let parsed: Record<string, any> = {};
+      let extractionFallback = false;
+      try {
+        const response = await invokeLLM({
+          model: "gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: "Você extrai dados de eventos no Brasil para uma montadora de stands. Use EXCLUSIVAMENTE os trechos de fontes públicas recebidos nesta conversa. Extraia somente informações explicitamente confirmadas. Nunca invente datas, organizadora, local, endereço ou taxas. Se houver conflito ou ausência de evidência, retorne string vazia para o campo. As taxas devem permanecer fora da resposta. Datas devem estar em YYYY-MM-DD."
+            },
+            {
+              role: "user",
+              content: `Evento pesquisado: \"${nome}\". Extraia uma sugestão de cadastro a partir destas evidências:\n\n${evidencias}`
+            }
+          ],
+          maxTokens: 1800,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "evento_pesquisado",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  organizadora: { type: "string" },
+                  local: { type: "string" },
+                  endereco: { type: "string" },
+                  site: { type: "string", description: "URL oficial do evento ou vazia" },
+                  descricao: { type: "string", description: "Descrição curta confirmada pelas fontes ou vazia" },
+                  dataInicio: { type: "string", description: "YYYY-MM-DD or empty" },
+                  dataFim: { type: "string", description: "YYYY-MM-DD or empty" },
+                  resumo: { type: "string" },
+                  confianca: { type: "string", enum: ["alta", "media", "baixa"] },
+                  fontes: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: { titulo: { type: "string" }, url: { type: "string" } },
+                      required: ["titulo", "url"],
+                      additionalProperties: false
+                    }
                   }
-                }
-              },
-              required: ["organizadora", "local", "endereco", "site", "descricao", "dataInicio", "dataFim", "resumo", "confianca", "fontes"],
-              additionalProperties: false
+                },
+                required: ["organizadora", "local", "endereco", "site", "descricao", "dataInicio", "dataFim", "resumo", "confianca", "fontes"],
+                additionalProperties: false
+              }
             }
           }
-        }
-      } as any);
-      const raw = String(response.choices?.[0]?.message?.content || "").trim().replace(/^```json\s*|\s*```$/g, "");
-      const parsed = JSON.parse(raw || "{}") as Record<string, any>;
+        } as any);
+        const raw = String(response.choices?.[0]?.message?.content || "").trim().replace(/^```json\s*|\s*```$/g, "");
+        parsed = JSON.parse(raw || "{}") as Record<string, any>;
+      } catch (extractError: any) {
+        extractionFallback = true;
+        console.warn("[Eventos] Extração por IA indisponível; usando evidências públicas:", extractError?.message || extractError);
+      }
       const text = (value: any, max: number) => String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
       const isoDate = (value: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
       const fontes = fontesEncontradas.slice(0, 5).map((fonte) => ({ titulo: text(fonte.titulo, 180), url: text(fonte.url, 1000) }));
       const derived = deriveEventFieldsFromSources(fontesEncontradas);
       const sourceSite = /^https?:\/\//i.test(text(parsed.site, 500)) ? text(parsed.site, 500) : text(derived.site, 500);
+      const sourceDescription = fontesEncontradas.map((fonte) => fonte.trecho).filter(Boolean).join(" ");
       const sugestao = {
         organizadora: text(parsed.organizadora, 180) || text(derived.organizadora, 180),
         local: text(parsed.local, 180) || text(derived.local, 180),
         endereco: text(parsed.endereco, 280) || text(derived.endereco, 280),
         site: sourceSite,
-        descricao: text(parsed.descricao, 1800) || text(parsed.resumo, 1800),
+        descricao: text(parsed.descricao, 1800) || text(parsed.resumo, 1800) || text(sourceDescription, 1800),
         dataInicio: isoDate(parsed.dataInicio) || derived.dataInicio,
         dataFim: isoDate(parsed.dataFim) || derived.dataFim,
         resumo: text(parsed.resumo, 900),
-        confianca: ["alta", "media", "baixa"].includes(String(parsed.confianca)) ? String(parsed.confianca) : "baixa",
+        confianca: extractionFallback ? "baixa" : (["alta", "media", "baixa"].includes(String(parsed.confianca)) ? String(parsed.confianca) : "baixa"),
         fontes,
       };
-      await audit(u.userId, "event_search", "crm_eventos", null, { nome, campos: Object.keys(sugestao).filter((key) => key !== "fontes" && Boolean((sugestao as any)[key])), fontes: fontes.length, fallbackDeterministico: Object.keys(derived).filter((key) => Boolean((derived as any)[key])) }, req.ip);
-      res.json({ ok: true, sugestao, restante: limit.remaining });
+      await audit(u.userId, "event_search", "crm_eventos", null, { nome, campos: Object.keys(sugestao).filter((key) => key !== "fontes" && Boolean((sugestao as any)[key])), fontes: fontes.length, fallbackDeterministico: Object.keys(derived).filter((key) => Boolean((derived as any)[key])), extractionFallback }, req.ip);
+      res.json({ ok: true, sugestao, restante: limit.remaining, extractionFallback });
     } catch (error: any) {
       console.error("[Eventos] Falha na pesquisa assistida:", error?.message || error);
       res.status(502).json({ error: "Não foi possível concluir a pesquisa agora. Revise o nome do evento e tente novamente." });

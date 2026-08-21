@@ -887,3 +887,8 @@
 - [x] Inspecionar os módulos recentes de Eventos, CRM e inicialização em busca de chamadas ou ciclos recorrentes
 - [x] Revisar dependências de produção e etapas de build por peso ou comportamento indevido
 - [x] Excluir explicitamente dependências locais, artefatos e testes do contexto de implantação e validar build e inicialização
+
+## Correção — Pesquisa de Eventos com Erro 502 (Ago/2026)
+- [x] Identificar a etapa de extração que derruba a resposta mesmo com fontes recuperadas
+- [x] Retornar sugestões determinísticas quando a IA ou o parse estruturado falhar
+- [x] Validar pesquisa, pré-visualização, aplicação, mobile e regressões antes do checkpoint

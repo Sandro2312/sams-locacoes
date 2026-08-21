@@ -36,6 +36,14 @@ describe("Pesquisa assistida de eventos", () => {
     expect(server).toContain('local: text(parsed.local, 180) || text(derived.local, 180)');
   });
 
+  it("mantém fontes úteis e retorna fallback quando a IA devolve JSON inválido", () => {
+    expect(server).toContain('let extractionFallback = false');
+    expect(server).toContain('Extração por IA indisponível; usando evidências públicas');
+    expect(server).toContain('const sourceDescription = fontesEncontradas.map((fonte) => fonte.trecho)');
+    expect(server).toContain('descricao: text(parsed.descricao, 1800) || text(parsed.resumo, 1800) || text(sourceDescription, 1800)');
+    expect(server).toContain('res.json({ ok: true, sugestao, restante: limit.remaining, extractionFallback });');
+  });
+
   it("extrai datas, local e realizadora de um trecho público do CONGREGARH", () => {
     const derived = deriveEventFieldsFromSources([{
       titulo: "CONGREGARH 2026 · Quem imagina o futuro?",
