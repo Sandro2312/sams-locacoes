@@ -147,7 +147,7 @@ async function audit(userId: number | null, action: string, table: string, recor
   } catch { /* não bloquear por falha de auditoria */ }
 }
 
-type EventoPesquisaFonte = { titulo: string; url: string; trecho: string };
+export type EventoPesquisaFonte = { titulo: string; url: string; trecho: string };
 
 function decodeSearchText(value: string) {
   return String(value || "")
@@ -181,6 +181,43 @@ async function searchPublicEventSources(query: string): Promise<EventoPesquisaFo
     const urlText = /^https?:\/\//i.test(cite) ? cite : (cite ? `https://${cite}` : "");
     return { titulo: title.slice(0, 180), url: urlText.slice(0, 1000), trecho: snippet.slice(0, 700) };
   }).filter((source) => source.titulo && /^https?:\/\//i.test(source.url) && source.trecho);
+}
+
+export function deriveEventFieldsFromSources(sources: EventoPesquisaFonte[]) {
+  const evidence = sources.map((source) => `${source.titulo}. ${source.trecho}`).join(" ").replace(/\s+/g, " ");
+  const months: Record<string, string> = { janeiro: "01", fevereiro: "02", marco: "03", março: "03", abril: "04", maio: "05", junho: "06", julho: "07", agosto: "08", setembro: "09", outubro: "10", novembro: "11", dezembro: "12" };
+  const iso = (year: string, month: string, day: string) => {
+    const monthNumber = months[String(month || "").toLowerCase()];
+    const dayNumber = String(day || "").padStart(2, "0");
+    return monthNumber && /^\d{4}$/.test(year) && /^\d{2}$/.test(dayNumber) ? `${year}-${monthNumber}-${dayNumber}` : "";
+  };
+  let dataInicio = "";
+  let dataFim = "";
+  const intervalWords = evidence.match(/(\d{1,2})\s+de\s+([a-zçãéêôú]+)(?:,?\s*(?:\d{1,2}\s+e\s+)?)?(\d{1,2})\s+de\s+([a-zçãéêôú]+)\s+de\s+(20\d{2})/i);
+  if (intervalWords) {
+    dataInicio = iso(intervalWords[5], intervalWords[2], intervalWords[1]);
+    dataFim = iso(intervalWords[5], intervalWords[4], intervalWords[3]);
+  } else {
+    const singleWord = evidence.match(/(\d{1,2})\s+de\s+([a-zçãéêôú]+)\s+de\s+(20\d{2})/i);
+    if (singleWord) dataInicio = dataFim = iso(singleWord[3], singleWord[2], singleWord[1]);
+  }
+  if (!dataInicio) {
+    const numeric = evidence.match(/(\d{1,2})\/(\d{1,2})\/(20\d{2})(?:\s*(?:a|até|-)\s*(\d{1,2})\/(\d{1,2})\/(20\d{2}))?/i);
+    if (numeric) {
+      dataInicio = `${numeric[3]}-${String(numeric[2]).padStart(2, "0")}-${String(numeric[1]).padStart(2, "0")}`;
+      dataFim = numeric[4] ? `${numeric[6]}-${String(numeric[5]).padStart(2, "0")}-${String(numeric[4]).padStart(2, "0")}` : dataInicio;
+    }
+  }
+  const localMatch = evidence.match(/((?:Centro de Eventos|Centro de Convenções|Expo Center|Pavilhão)[^.;]{0,100})/i);
+  const organizadoraMatch = evidence.match(/(?:realizado|organizado|promovido)\s+(?:pela?|por)\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ0-9\s.-]{2,80})/i);
+  const organizadora = /\bABRH[-\s]?RS\b/i.test(evidence) ? "ABRH-RS" : String(organizadoraMatch?.[1] || "").trim();
+  return {
+    organizadora,
+    local: String(localMatch?.[1] || "").replace(/\s+/g, " ").trim(),
+    endereco: "",
+    dataInicio,
+    dataFim,
+  };
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -916,17 +953,18 @@ export function registerCrmRoutes(app: any) {
       const text = (value: any, max: number) => String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
       const isoDate = (value: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
       const fontes = fontesEncontradas.slice(0, 5).map((fonte) => ({ titulo: text(fonte.titulo, 180), url: text(fonte.url, 1000) }));
+      const derived = deriveEventFieldsFromSources(fontesEncontradas);
       const sugestao = {
-        organizadora: text(parsed.organizadora, 180),
-        local: text(parsed.local, 180),
-        endereco: text(parsed.endereco, 280),
-        dataInicio: isoDate(parsed.dataInicio),
-        dataFim: isoDate(parsed.dataFim),
+        organizadora: text(parsed.organizadora, 180) || text(derived.organizadora, 180),
+        local: text(parsed.local, 180) || text(derived.local, 180),
+        endereco: text(parsed.endereco, 280) || text(derived.endereco, 280),
+        dataInicio: isoDate(parsed.dataInicio) || derived.dataInicio,
+        dataFim: isoDate(parsed.dataFim) || derived.dataFim,
         resumo: text(parsed.resumo, 900),
         confianca: ["alta", "media", "baixa"].includes(String(parsed.confianca)) ? String(parsed.confianca) : "baixa",
         fontes,
       };
-      await audit(u.userId, "event_search", "crm_eventos", null, { nome, campos: Object.keys(sugestao).filter((key) => key !== "fontes" && Boolean((sugestao as any)[key])), fontes: fontes.length }, req.ip);
+      await audit(u.userId, "event_search", "crm_eventos", null, { nome, campos: Object.keys(sugestao).filter((key) => key !== "fontes" && Boolean((sugestao as any)[key])), fontes: fontes.length, fallbackDeterministico: Object.keys(derived).filter((key) => Boolean((derived as any)[key])) }, req.ip);
       res.json({ ok: true, sugestao, restante: limit.remaining });
     } catch (error: any) {
       console.error("[Eventos] Falha na pesquisa assistida:", error?.message || error);

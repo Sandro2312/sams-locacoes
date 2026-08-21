@@ -848,3 +848,9 @@
 - [x] Priorizar resultados oficiais e criar fallback verificável para quando a IA não retornar fontes
 - [x] Preencher sugestões recuperadas, exibir a fonte e preservar a revisão humana
 - [x] Validar pesquisa, falhas, mobile, permissões e regressões antes do checkpoint
+
+## Correção — Pesquisa Assistida Não Preenche Campos (Ago/2026)
+- [x] Comparar o conteúdo de fontes recuperadas com a sugestão estruturada devolvida pela API
+- [x] Extrair datas, local e organizadora de forma determinística quando os trechos forem suficientes
+- [x] Preencher campos vazios e manter fontes, observações e revisão humana
+- [x] Validar o caso público, mobile, permissões e regressões antes do checkpoint
