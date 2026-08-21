@@ -882,3 +882,8 @@
 - [x] Revisar build limpo, lockfile, dependências de produção e inicialização isolada
 - [x] Verificar configurações de publicação e o conteúdo efetivo do pacote gerado
 - [x] Documentar evidência de indisponibilidade da plataforma quando não há fator reproduzível no projeto
+
+## Auditoria — Loops e Dependências Recentes (Ago/2026)
+- [x] Inspecionar os módulos recentes de Eventos, CRM e inicialização em busca de chamadas ou ciclos recorrentes
+- [x] Revisar dependências de produção e etapas de build por peso ou comportamento indevido
+- [x] Excluir explicitamente dependências locais, artefatos e testes do contexto de implantação e validar build e inicialização

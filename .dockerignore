@@ -1,0 +1,23 @@
+# Dependências são instaladas de forma limpa durante a publicação.
+node_modules
+
+# Artefatos locais e temporários não fazem parte do runtime publicado.
+dist
+.manus-logs
+terminal_full_output
+screenshots
+coverage
+*.log
+
+# Testes e documentação não são necessários para a imagem de produção.
+**/*.test.ts
+docs
+
+# Metadados e arquivos locais de desenvolvimento.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+README.md
+todo.md
