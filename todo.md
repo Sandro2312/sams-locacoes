@@ -809,3 +809,8 @@
 - [x] Validar que a soma dos valores parcelados é igual ao valor total informado
 - [x] Persistir os valores individualizados e gerar Contas a Receber ou Despesas com os valores corretos
 - [x] Preservar rascunhos existentes, validar mobile, confirmação e regressões antes do checkpoint
+
+## Correção — Confirmação Ainda Não Visível (Ago/2026)
+- [x] Verificar a versão do módulo recebida pelo navegador e a condição de lote em rascunho
+- [x] Tornar a ação de confirmação acessível em posição permanente, sem depender do fluxo da tabela
+- [x] Validar a renderização e a confirmação protegida em desktop/mobile antes do checkpoint

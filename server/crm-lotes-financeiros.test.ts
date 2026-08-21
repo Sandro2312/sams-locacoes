@@ -72,6 +72,8 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('Soma das parcelas:');
     expect(guide).toContain('Confirmar no Financeiro');
     expect(guide).toContain('Confirmar e criar lançamentos');
+    expect(guide).toContain('Criar lançamentos');
+    expect(guide).toContain('Ações');
     expect(guide).toContain('Criar ${itens.length} item(ns) como lançamentos reais');
     expect(guide).toContain('formatDate =');
     expect(guide).toContain('Conta a Receber');
@@ -80,6 +82,6 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain("openFinancePage('custos')");
     expect(navigation).toContain('window.LoteFinanceiroModule?.load?.()');
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
-    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787261200");
+    expect(index).toContain("/crm/js/crm-lotes-financeiros.js?v=1787262000");
   });
 });
