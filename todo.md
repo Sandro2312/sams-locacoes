@@ -378,6 +378,14 @@
 - [x] Validar os totais do relatório contra o banco de dados e criar teste de regressão
 - [x] Criar teste de regressão para a compatibilidade TiDB de LIMIT/OFFSET paginados
 
+## Validação pós-restauração do CRM (Ago/2026)
+- [x] Validar saúde, autenticação e endpoints principais sem alterar dados operacionais
+- [x] Conferir fontes e totais do relatório por Centro de Custos na base restaurada
+- [x] Executar testes automatizados, documentar resultados e remover sessões temporárias
+- [x] Corrigir consulta de Contas a Receber que usa a coluna inexistente `crm_contas_receber.evento_id`
+- [x] Criar teste de regressão para a consulta de Contas a Receber sem `evento_id`
+- [x] Aplicar a migração versionada 0004 para alinhar Projetos de Stand e vínculos financeiros à base restaurada
+
 ## Investigação — Acesso automático na tela de login (Ago/2026)
 - [x] Auditar restauração de sessão, cookies e inicialização do CRM
 - [x] Corrigir apenas o gatilho que entra automaticamente com a sessão anterior
