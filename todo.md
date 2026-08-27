@@ -405,6 +405,11 @@
 - [x] Criar teste de regressão para carregamento completo e busca de eventos
 - [x] Aplicar a migração versionada 0021 para compatibilidade do cadastro de eventos restaurado
 
+## Correção — Criação de Lote Financeiro após restauração (Ago/2026)
+- [x] Aplicar a migração versionada que cria `crm_lotes_financeiros_stand` e suas tabelas relacionadas
+- [x] Validar a criação de lote sem confirmar nem gerar lançamentos financeiros
+- [x] Criar teste de regressão para a disponibilidade do schema do lote financeiro
+
 ## Correção — Perfil do proprietário após restauração (Ago/2026)
 - [x] Restabelecer o perfil de Sandro Alex Santos como Desenvolvedor com acesso total
 - [x] Confirmar que as permissões administrativas e técnicas do perfil foram restauradas
