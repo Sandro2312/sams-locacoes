@@ -47,6 +47,11 @@
     if (!normalized) return state.clientes.slice(0, 80);
     return state.clientes.filter((client) => [clientName(client), client.email, client.documento, client.cnpj, client.cpf_cnpj].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalized)).slice(0, 80);
   }
+  function searchEvent(term) {
+    const normalized = String(term || '').trim().toLocaleLowerCase('pt-BR');
+    if (!normalized) return state.eventos.slice(0, 80);
+    return state.eventos.filter((evento) => [eventName(evento), evento.organizadora, evento.local, evento.endereco, evento.status].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalized)).slice(0, 80);
+  }
   function clientOptions(selected, term) {
     const results = searchClient(term);
     const selectedClient = state.clientes.find((client) => String(client.id) === String(selected));
@@ -60,8 +65,18 @@
     if (!results.length) return '<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Nenhum cliente encontrado. Tente outro nome, e-mail ou documento.</div>';
     return `<div data-finance-batch-client-results class="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2" role="listbox" aria-label="Clientes encontrados"><p class="px-1 pb-1 text-xs font-semibold text-blue-900">Resultados encontrados — clique para selecionar:</p><div class="grid grid-cols-1 gap-1 sm:grid-cols-2">${results.map((client) => `<button type="button" data-finance-batch-client-result="${esc(client.id)}" role="option" aria-label="Selecionar ${esc(clientName(client))}" class="rounded-md border border-blue-100 bg-white px-3 py-2 text-left text-sm text-slate-800 hover:border-blue-400 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600"><span class="block font-semibold">${esc(clientName(client))}</span>${client.documento ? `<span class="block text-xs text-slate-500">${esc(client.documento)}</span>` : ''}</button>`).join('')}</div></div>`;
   }
-  function eventOptions(selected) {
-    return `<option value="">Selecione o evento</option>${state.eventos.map((evento) => `<option value="${esc(evento.id)}" ${String(evento.id) === String(selected) ? 'selected' : ''}>${esc(eventName(evento))}</option>`).join('')}`;
+  function eventOptions(selected, term) {
+    const results = searchEvent(term);
+    const selectedEvent = state.eventos.find((evento) => String(evento.id) === String(selected));
+    const unique = selectedEvent && !results.some((evento) => String(evento.id) === String(selectedEvent.id)) ? [selectedEvent, ...results] : results;
+    return `<option value="">Selecione o evento</option>${unique.map((evento) => `<option value="${esc(evento.id)}" ${String(evento.id) === String(selected) ? 'selected' : ''}>${esc(eventName(evento))}</option>`).join('')}`;
+  }
+  function eventSearchResultsMarkup(term) {
+    const normalized = String(term || '').trim();
+    const results = searchEvent(normalized);
+    if (!normalized) return '';
+    if (!results.length) return '<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Nenhum evento cadastrado foi encontrado. Cadastre o evento em Comercial → Eventos antes de criar o lote.</div>';
+    return `<div data-finance-batch-event-results class="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2" role="listbox" aria-label="Eventos encontrados"><p class="px-1 pb-1 text-xs font-semibold text-blue-900">Resultados encontrados — clique para selecionar:</p><div class="grid grid-cols-1 gap-1 sm:grid-cols-2">${results.map((evento) => `<button type="button" data-finance-batch-event-result="${esc(evento.id)}" role="option" aria-label="Selecionar ${esc(eventName(evento))}" class="rounded-md border border-blue-100 bg-white px-3 py-2 text-left text-sm text-slate-800 hover:border-blue-400 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600"><span class="block font-semibold">${esc(eventName(evento))}</span>${evento.local ? `<span class="block text-xs text-slate-500">${esc(evento.local)}</span>` : ''}</button>`).join('')}</div></div>`;
   }
   function categoryOptions(natureza, selected) {
     return (categories[natureza] || categories.despesa).map(([value, label]) => `<option value="${value}" ${value === selected ? 'selected' : ''}>${label}</option>`).join('');
@@ -85,9 +100,10 @@
     return `<div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div class="mb-5"><h3 class="text-lg font-bold text-slate-900">1. Identifique o lote financeiro</h3><p class="mt-1 text-sm text-slate-600">Este contexto será aplicado às receitas e despesas confirmadas neste lote.</p></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-client-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p><div data-finance-batch-client-results-host></div></div>
+        <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-client-search">Buscar cliente</label><input id="finance-batch-client-search" data-finance-batch-client-search type="search" autocomplete="off" placeholder="Nome, e-mail ou documento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-client-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.clientes.length ? `${state.clientes.length} clientes disponíveis para busca.` : 'Carregando clientes...'}</p><div data-finance-batch-client-results-host></div></div>
+        <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-event-search">Buscar evento</label><input id="finance-batch-event-search" data-finance-batch-event-search type="search" autocomplete="off" placeholder="Nome, organizadora ou local" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"><p data-finance-batch-event-count aria-live="polite" class="mt-1 text-xs text-slate-500">${state.eventos.length ? `${state.eventos.length} eventos disponíveis para busca.` : 'Carregando eventos...'}</p><div data-finance-batch-event-results-host></div></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-client">Cliente <span class="text-rose-600">*</span></label><select id="finance-batch-client" data-finance-batch-client class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${clientOptions('', '')}</select></div>
-        <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-event">Evento <span class="text-rose-600">*</span></label><select id="finance-batch-event" data-finance-batch-event class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${eventOptions('')}</select></div>
+        <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-event">Evento <span class="text-rose-600">*</span></label><select id="finance-batch-event" data-finance-batch-event class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${eventOptions('', '')}</select></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-stand">Identificação do stand <span class="text-rose-600">*</span></label><input id="finance-batch-stand" data-finance-batch-stand maxlength="180" placeholder="Ex.: Stand Urano · Pavilhão 2 · 48 m²" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div>
         <div><label class="text-sm font-semibold text-slate-700" for="finance-batch-centro">Centro de custo <span class="text-rose-600">*</span></label><input id="finance-batch-centro" data-finance-batch-centro maxlength="220" placeholder="Preenchido ao selecionar cliente, evento e stand" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div>
         <div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700" for="finance-batch-observacoes">Observações do lote</label><textarea id="finance-batch-observacoes" data-finance-batch-observacoes rows="3" maxlength="4000" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" placeholder="Referência interna, contrato, orientação de conferência..."></textarea></div>
@@ -204,6 +220,28 @@
     }
     updateCentroCusto();
   }
+  function refreshEventSelect() {
+    const search = document.querySelector('[data-finance-batch-event-search]');
+    const select = document.querySelector('[data-finance-batch-event]');
+    const count = document.querySelector('[data-finance-batch-event-count]');
+    if (!select) return;
+    const previous = select.value;
+    const term = String(search?.value || '');
+    const results = searchEvent(term);
+    const resultsHost = document.querySelector('[data-finance-batch-event-results-host]');
+    select.innerHTML = eventOptions(previous, term);
+    if (resultsHost) resultsHost.innerHTML = eventSearchResultsMarkup(term);
+    if (term.trim() && results.length === 1) {
+      select.value = String(results[0].id);
+      if (count) count.textContent = '1 evento encontrado e selecionado automaticamente.';
+    } else {
+      if (previous) select.value = previous;
+      if (count) count.textContent = term.trim()
+        ? `${results.length} evento(s) encontrado(s). Selecione um resultado abaixo.`
+        : `${state.eventos.length} eventos disponíveis para busca.`;
+    }
+    updateCentroCusto();
+  }
   function updateCentroCusto() {
     const client = state.clientes.find((item) => String(item.id) === String(document.querySelector('[data-finance-batch-client]')?.value || ''));
     const evento = state.eventos.find((item) => String(item.id) === String(document.querySelector('[data-finance-batch-event]')?.value || ''));
@@ -300,6 +338,7 @@
     document.addEventListener('input', (event) => {
       const target = event.target;
       if (target?.matches?.('[data-finance-batch-client-search]')) refreshClientSelect();
+      if (target?.matches?.('[data-finance-batch-event-search]')) refreshEventSelect();
       if (target?.matches?.('[data-finance-batch-stand]')) updateCentroCusto();
       if (target?.matches?.('[data-finance-batch-centro]')) target.dataset.manual = 'true';
       if (target?.matches?.('[data-finance-batch-item-parcelas]')) refreshDueDates();
@@ -328,6 +367,21 @@
         refreshClientSelect();
         select.value = String(client.id);
         if (count) count.textContent = `${clientName(client)} selecionado para o lote.`;
+        updateCentroCusto();
+        return;
+      }
+      const eventResult = event.target?.closest?.('[data-finance-batch-event-result]');
+      if (eventResult) {
+        event.preventDefault();
+        const search = document.querySelector('[data-finance-batch-event-search]');
+        const select = document.querySelector('[data-finance-batch-event]');
+        const count = document.querySelector('[data-finance-batch-event-count]');
+        const evento = state.eventos.find((item) => String(item.id) === String(eventResult.dataset.financeBatchEventResult));
+        if (!evento || !select) return;
+        if (search) search.value = eventName(evento);
+        refreshEventSelect();
+        select.value = String(evento.id);
+        if (count) count.textContent = `${eventName(evento)} selecionado para o lote.`;
         updateCentroCusto();
         return;
       }

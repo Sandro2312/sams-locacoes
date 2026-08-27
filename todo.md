@@ -398,6 +398,13 @@
 - [x] Validar a exibição do carrossel ampliado em desktop e mobile
 - [x] Criar teste de regressão para as marcas adicionais do carrossel
 
+## Correção — Guia de Lançamentos (Ago/2026)
+- [x] Carregar todos os eventos no campo de seleção, incluindo EXPOAGAS
+- [x] Substituir listas extensas de clientes e eventos por busca assistida e seleção acessível
+- [x] Validar a criação de lote com cliente e evento selecionados pela busca
+- [x] Criar teste de regressão para carregamento completo e busca de eventos
+- [x] Aplicar a migração versionada 0021 para compatibilidade do cadastro de eventos restaurado
+
 ## Correção — Perfil do proprietário após restauração (Ago/2026)
 - [x] Restabelecer o perfil de Sandro Alex Santos como Desenvolvedor com acesso total
 - [x] Confirmar que as permissões administrativas e técnicas do perfil foram restauradas
