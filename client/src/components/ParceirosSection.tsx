@@ -13,6 +13,41 @@ const parceiros = [
     bg: "bg-white",
   },
   {
+    nome: "Perto S.A.",
+    logo: "/manus-storage/perto-logo_29321379.svg",
+    bg: "bg-[#003C76]",
+  },
+  {
+    nome: "Siry Global",
+    logo: "/manus-storage/siry-global-logo_8f7d7d46.webp",
+    bg: "bg-white",
+  },
+  {
+    nome: "Popper",
+    logo: "/manus-storage/popper-logo_3f574d81.jpg",
+    bg: "bg-white",
+  },
+  {
+    nome: "BiQ Adesivos",
+    logo: "/manus-storage/biq-adesivos-logo_40137aa8.png",
+    bg: "bg-white",
+  },
+  {
+    nome: "Grupo Stickfran",
+    logo: "/manus-storage/grupo-stickfran-logo_731ac5c4.jpg",
+    bg: "bg-white",
+  },
+  {
+    nome: "Aromasil",
+    logo: "/manus-storage/aromasil-logo_26990b0e.webp",
+    bg: "bg-[#0788C9]",
+  },
+  {
+    nome: "AlcaFoods",
+    logo: "/manus-storage/alcafoods-logo_45ae812d.jpg",
+    bg: "bg-white",
+  },
+  {
     nome: "Neugebauer",
     logo: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
     bg: "bg-white",

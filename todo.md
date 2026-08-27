@@ -394,9 +394,9 @@
 - [x] Criar teste de regressão para o case Reebok e o destaque de Calçados Beira Rio
 
 ## Atualização — Expansão do carrossel de clientes (Ago/2026)
-- [ ] Incluir logos de Perto S.A., Siry Global, Popper, BiQ Adesivos, Grupo Stickfran, Aromasil e AlcaFoods
-- [ ] Validar a exibição do carrossel ampliado em desktop e mobile
-- [ ] Criar teste de regressão para as marcas adicionais do carrossel
+- [x] Incluir logos de Perto S.A., Siry Global, Popper, BiQ Adesivos, Grupo Stickfran, Aromasil e AlcaFoods
+- [x] Validar a exibição do carrossel ampliado em desktop e mobile
+- [x] Criar teste de regressão para as marcas adicionais do carrossel
 
 ## Correção — Perfil do proprietário após restauração (Ago/2026)
 - [x] Restabelecer o perfil de Sandro Alex Santos como Desenvolvedor com acesso total
