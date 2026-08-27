@@ -2,6 +2,17 @@ import { useEffect, useRef } from "react";
 
 const parceiros = [
   {
+    nome: "Calçados Beira Rio",
+    logo: "/manus-storage/calcados-beira-rio-oficial_826615a3.png",
+    bg: "bg-white",
+    destaque: true,
+  },
+  {
+    nome: "Reebok",
+    logo: "/manus-storage/reebok-logo_381daf8c.png",
+    bg: "bg-white",
+  },
+  {
     nome: "Neugebauer",
     logo: "https://d2xsxph8kpxj0f.cloudfront.net/310519663116701243/YqfJkXFtpDqUvVsMHfnp8h/neugebauer_677b7f41.png",
     bg: "bg-white",
@@ -93,8 +104,13 @@ export default function ParceirosSection() {
           {allParceiros.map((parceiro, idx) => (
             <div
               key={idx}
-              className="flex-shrink-0 w-52 h-28 bg-white rounded-xl shadow-md flex items-center justify-center px-6 py-4 hover:shadow-amber-500/20 hover:shadow-lg transition-shadow duration-300 cursor-default"
+              className={`relative flex-shrink-0 w-52 h-28 ${parceiro.bg} rounded-xl shadow-md flex items-center justify-center px-6 py-4 hover:shadow-amber-500/20 hover:shadow-lg transition-shadow duration-300 cursor-default ${parceiro.destaque ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-zinc-950" : ""}`}
             >
+              {parceiro.destaque && (
+                <span className="absolute -top-3 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-950">
+                  Cliente VIP
+                </span>
+              )}
               <img
                 src={parceiro.logo}
                 alt={`Logo ${parceiro.nome}`}

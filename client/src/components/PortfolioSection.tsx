@@ -7,6 +7,20 @@ const CDN2 = "/manus-storage";
 
 const projetos = [
   {
+    id: 17,
+    titulo: "Stand Reebok — Fitness Brasil",
+    cliente: "Reebok",
+    evento: "Fitness Brasil",
+    categoria: "Personalizado",
+    imagem: "/manus-storage/stand-reebok-fitness-brasil-poster_08f2e487.jpg",
+    video: "/manus-storage/stand-reebok-fitness-brasil_bacb670c.mp4",
+    galeria: [
+      "/manus-storage/stand-reebok-fitness-brasil-poster_08f2e487.jpg",
+    ],
+    vip: false,
+    descricao: "A SAMS Locações realizou a montagem do stand da Reebok na Fitness Brasil. O projeto traduziu a energia da marca em uma presença de feira preparada para relacionamento, demonstração e experiência do público.",
+  },
+  {
     id: 16,
     titulo: "Stand Perto S.A. — LAT.BUS 2026",
     cliente: "Perto S.A.",
@@ -208,8 +222,9 @@ export default function PortfolioSection() {
   const abrirProjeto = (projeto: Projeto) => {
     setSelecionado(projeto);
     setFotoAtiva(0);
-    // Se não há galeria de imagens mas há vídeo, abre direto no vídeo
-    setVideoAtivo(projeto.galeria.length === 0 && projeto.video ? projeto.video : null);
+    // O vídeo abre com controles visíveis. Isso evita autoplay com áudio, bloqueado
+    // por navegadores móveis, e permite reprodução por gesto explícito do usuário.
+    setVideoAtivo(projeto.video ?? null);
   };
 
   return (
@@ -329,6 +344,7 @@ export default function PortfolioSection() {
                       muted
                       playsInline
                       preload="metadata"
+                      poster={projeto.imagem || undefined}
                       onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play()}
                       onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
                     />
@@ -457,7 +473,9 @@ export default function PortfolioSection() {
                     key={videoAtivo}
                     src={videoAtivo}
                     controls
-                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    poster={selecionado.imagem || undefined}
                     className="w-full h-full object-contain"
                   />
                 ) : selecionado.galeria.length > 0 ? (
@@ -471,7 +489,9 @@ export default function PortfolioSection() {
                     key={selecionado.video}
                     src={selecionado.video}
                     controls
-                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    poster={selecionado.imagem || undefined}
                     className="w-full h-full object-contain"
                   />
                 ) : null}

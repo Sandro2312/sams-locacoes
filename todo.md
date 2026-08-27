@@ -386,6 +386,13 @@
 - [x] Criar teste de regressão para a consulta de Contas a Receber sem `evento_id`
 - [x] Aplicar a migração versionada 0004 para alinhar Projetos de Stand e vínculos financeiros à base restaurada
 
+## Atualização — Marcas e portfólio Reebok (Ago/2026)
+- [x] Atualizar o carrossel com logos de clientes, destacando Calçados Beira Rio
+- [x] Adicionar o case Reebok — Fitness Brasil ao portfólio
+- [x] Diagnosticar e corrigir a reprodução de vídeo para navegadores modernos e dispositivos móveis
+- [x] Validar a mídia publicada, responsividade e testes do projeto
+- [x] Criar teste de regressão para o case Reebok e o destaque de Calçados Beira Rio
+
 ## Investigação — Acesso automático na tela de login (Ago/2026)
 - [x] Auditar restauração de sessão, cookies e inicialização do CRM
 - [x] Corrigir apenas o gatilho que entra automaticamente com a sessão anterior
