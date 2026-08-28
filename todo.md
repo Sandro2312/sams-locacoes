@@ -410,6 +410,16 @@
 - [x] Validar a criação de lote sem confirmar nem gerar lançamentos financeiros
 - [x] Criar teste de regressão para a disponibilidade do schema do lote financeiro
 
+## Investigação — Domínio público (Ago/2026)
+- [x] Diagnosticar a resolução de `www.samslocacoes.com.br` e o vínculo com a hospedagem
+- [x] Informar a ação necessária para restaurar o acesso público com HTTPS
+
+## Reconexão — Domínio personalizado (Ago/2026)
+- [x] Reconectar `samslocacoes.com.br` e `www.samslocacoes.com.br` ao projeto restaurado
+- [x] Validar DNS, HTTPS e redirecionamento do domínio principal
+- [x] Acessar o painel de domínios do projeto e solicitar a validação do vínculo restaurado
+- [x] Operar diretamente o painel de domínio autenticado, sem alterar os registros DNS válidos
+
 ## Correção — Perfil do proprietário após restauração (Ago/2026)
 - [x] Restabelecer o perfil de Sandro Alex Santos como Desenvolvedor com acesso total
 - [x] Confirmar que as permissões administrativas e técnicas do perfil foram restauradas
