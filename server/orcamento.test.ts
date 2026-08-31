@@ -11,12 +11,32 @@ vi.mock("./_core/notification", () => ({
   notifyOwner: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("./lead-capture", () => ({
+  captureLeadFromSite: vi.fn().mockResolvedValue({ leadId: null, taskId: null, duplicated: false, ownerId: null }),
+}));
+
 function createPublicContext(): TrpcContext {
   return {
     user: null,
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
   };
+}
+
+function createAdminContext(): TrpcContext {
+  const context = createPublicContext();
+  context.user = {
+    id: 999999,
+    openId: "teste-administrador",
+    name: "Administrador de teste",
+    email: "admin.teste@example.com",
+    loginMethod: "teste",
+    role: "admin",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+  return context;
 }
 
 const validOrcamento = {
@@ -107,7 +127,7 @@ describe("orcamento.enviar", () => {
 
 describe("orcamento.listar", () => {
   it("deve retornar array vazio quando não há banco de dados", async () => {
-    const ctx = createPublicContext();
+    const ctx = createAdminContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.orcamento.listar();
     expect(Array.isArray(result)).toBe(true);

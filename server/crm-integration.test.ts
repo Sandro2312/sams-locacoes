@@ -45,7 +45,7 @@ describe('CRM Integration Tests', () => {
     expect(data.user.id).toBeDefined();
   });
 
-  it('deve retornar lista de leads com autenticação', async () => {
+  it('deve retornar uma lista de leads com autenticação, mesmo quando vazia', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/leads?limit=10`, {
       headers: {
         'Cookie': sessionCookie || '',
@@ -58,9 +58,8 @@ describe('CRM Integration Tests', () => {
     // Verificar se é um array ou objeto com propriedade data
     let leads = Array.isArray(data) ? data : (data.data || []);
     expect(Array.isArray(leads)).toBe(true);
-    expect(leads.length).toBeGreaterThan(0);
     
-    // Verificar estrutura do lead
+    // Verificar estrutura quando houver dados reais; o teste não cria dados de demonstração.
     if (leads.length > 0) {
       const lead = leads[0];
       expect(lead.id).toBeDefined();

@@ -11,6 +11,10 @@ vi.mock("./_core/notification", () => ({
   notifyOwner: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("./lead-capture", () => ({
+  captureLeadFromSite: vi.fn().mockResolvedValue({ leadId: null, taskId: null, duplicated: false, ownerId: null }),
+}));
+
 function createPublicContext(): TrpcContext {
   return {
     user: null,
@@ -22,6 +26,22 @@ function createPublicContext(): TrpcContext {
       clearCookie: vi.fn(),
     } as unknown as TrpcContext["res"],
   };
+}
+
+function createAdminContext(): TrpcContext {
+  const context = createPublicContext();
+  context.user = {
+    id: 999999,
+    openId: "teste-administrador",
+    name: "Administrador de teste",
+    email: "admin.teste@example.com",
+    loginMethod: "teste",
+    role: "admin",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+  return context;
 }
 
 describe("contato.enviar", () => {
@@ -84,7 +104,7 @@ describe("contato.enviar", () => {
 
 describe("contato.listar", () => {
   it("deve retornar lista vazia quando banco não disponível", async () => {
-    const ctx = createPublicContext();
+    const ctx = createAdminContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.contato.listar();

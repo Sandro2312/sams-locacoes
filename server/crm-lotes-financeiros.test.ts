@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { runInNewContext } from "node:vm";
 
 const root = process.cwd();
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), "utf8");
@@ -102,5 +103,60 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
     expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788269400');
+  });
+
+  it("consulta o cadastro atualizado ao pesquisar um cliente e o seleciona sem depender da lista anterior", async () => {
+    const listeners = new Map<string, (event: { target: unknown }) => void>();
+    const search = { value: "MM HORTI", matches: (selector: string) => selector === "[data-finance-batch-client-search]" };
+    const select = { value: "", innerHTML: "" };
+    const count = { textContent: "" };
+    const resultsHost = { innerHTML: "" };
+    const workspace = { innerHTML: "" };
+    const fetchCalls: string[] = [];
+    const document = {
+      addEventListener: (type: string, listener: (event: { target: unknown }) => void) => listeners.set(type, listener),
+      querySelector: (selector: string) => ({
+        "[data-finance-batch-page]": {},
+        "[data-finance-batch-client-search]": search,
+        "[data-finance-batch-client]": select,
+        "[data-finance-batch-client-count]": count,
+        "[data-finance-batch-client-results-host]": resultsHost,
+      } as Record<string, unknown>)[selector] ?? null,
+      getElementById: (id: string) => id === "finance-batch-workspace" ? workspace : null,
+    };
+    const window = {
+      ModuleSystem: { showNotification: () => undefined },
+      setTimeout: (callback: () => void, _delay: number) => setTimeout(callback, 0),
+      clearTimeout,
+    };
+    runInNewContext(guide, {
+      window,
+      document,
+      fetch: async (url: string) => {
+        fetchCalls.push(url);
+        const data = url.includes("q=MM%20HORTI")
+          ? [{ id: 987654, nome: "MM HORTIFRUTIGRANJEIROS", email: "", documento: "" }]
+          : url.includes("/api/crm/clientes")
+            ? [{ id: 1, nome: "Cliente anterior", email: "", documento: "" }]
+            : [{ id: 1, nome: "Evento de teste" }];
+        return { ok: true, json: async () => ({ data, total: data.length }) };
+      },
+      console,
+      Map,
+      Intl,
+      String,
+      Number,
+      Array,
+      JSON,
+      encodeURIComponent,
+    });
+    await (window as any).LoteFinanceiroModule.load();
+    listeners.get("input")?.({ target: search });
+    await new Promise((resolve) => setTimeout(resolve, 15));
+
+    expect(fetchCalls).toContain("/api/crm/clientes?q=MM%20HORTI&limit=80");
+    expect(select.value).toBe("987654");
+    expect(count.textContent).toContain("selecionado automaticamente");
+    expect(resultsHost.innerHTML).toContain("MM HORTIFRUTIGRANJEIROS");
   });
 });

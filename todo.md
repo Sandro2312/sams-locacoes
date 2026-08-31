@@ -958,3 +958,8 @@
 - [x] Reproduzir a ausência do cliente recém-cadastrado na busca assistida do Guia de Lançamentos
 - [x] Corrigir a sincronização e a filtragem da lista de clientes sem alterar os dados financeiros
 - [ ] Validar busca, seleção e manutenção do lote em desktop e mobile com teste de regressão
+
+## Correção urgente — Atividades ressurgidas na Agenda (Ago/2026)
+- [x] Identificar as quatro atividades indevidas relacionadas a contatos e orçamentos do site
+- [x] Confirmar a origem da restauração sem remover tarefas operacionais válidas
+- [ ] Excluir somente os registros indevidos e validar a Agenda publicada em desktop e mobile
