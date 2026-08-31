@@ -69,6 +69,12 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('Resultados encontrados — clique para selecionar:');
     expect(guide).toContain('selecionado para o lote.');
     expect(guide).toContain('1 cliente encontrado e selecionado automaticamente.');
+    expect(guide).toContain('function buscarClientesAtualizados()');
+    expect(guide).toContain("/api/crm/clientes?q=${encodeURIComponent(term)}&limit=80");
+    expect(guide).toContain('Buscando clientes atualizados...');
+    expect(guide).toContain('mergeClientes(clientes);');
+    expect(guide).toContain('if (request !== state.clientSearchRequest) return;');
+    expect(guide).toContain('window.clearTimeout(state.clientSearchTimer)');
     expect(guide).toContain('data-finance-batch-event-search');
     expect(guide).toContain('data-finance-batch-event-count');
     expect(guide).toContain('data-finance-batch-event-results-host');
@@ -95,6 +101,6 @@ describe("Lote Financeiro por Stand", () => {
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
-    expect(index).toMatch(/\/crm\/js\/crm-lotes-financeiros\.js\?v=\d+/);
+    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788269400');
   });
 });

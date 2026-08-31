@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  const state = { clientes: [], eventos: [], lote: null, loading: false, bound: false };
+  const state = { clientes: [], eventos: [], lote: null, loading: false, bound: false, clientSearchTimer: null, clientSearchRequest: 0 };
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   const currency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const formatDate = (value) => {
@@ -46,6 +46,32 @@
     const normalized = String(term || '').trim().toLocaleLowerCase('pt-BR');
     if (!normalized) return state.clientes.slice(0, 80);
     return state.clientes.filter((client) => [clientName(client), client.email, client.documento, client.cnpj, client.cpf_cnpj].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(normalized)).slice(0, 80);
+  }
+  function mergeClientes(clientes) {
+    const byId = new Map(state.clientes.map((cliente) => [String(cliente.id), cliente]));
+    clientes.forEach((cliente) => byId.set(String(cliente.id), cliente));
+    state.clientes = Array.from(byId.values()).sort((a, b) => clientName(a).localeCompare(clientName(b), 'pt-BR'));
+  }
+  function buscarClientesAtualizados() {
+    const search = document.querySelector('[data-finance-batch-client-search]');
+    const term = String(search?.value || '').trim();
+    const count = document.querySelector('[data-finance-batch-client-count]');
+    if (state.clientSearchTimer) window.clearTimeout(state.clientSearchTimer);
+    const request = ++state.clientSearchRequest;
+    if (term.length < 2) return;
+    if (count) count.textContent = 'Buscando clientes atualizados...';
+    state.clientSearchTimer = window.setTimeout(async () => {
+      try {
+        const payload = await api(`/api/crm/clientes?q=${encodeURIComponent(term)}&limit=80`, { method: 'GET' });
+        if (request !== state.clientSearchRequest) return;
+        const clientes = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
+        mergeClientes(clientes);
+        refreshClientSelect();
+      } catch (_error) {
+        if (request !== state.clientSearchRequest) return;
+        refreshClientSelect();
+      }
+    }, 180);
   }
   function searchEvent(term) {
     const normalized = String(term || '').trim().toLocaleLowerCase('pt-BR');
@@ -337,7 +363,10 @@
     state.bound = true;
     document.addEventListener('input', (event) => {
       const target = event.target;
-      if (target?.matches?.('[data-finance-batch-client-search]')) refreshClientSelect();
+      if (target?.matches?.('[data-finance-batch-client-search]')) {
+        refreshClientSelect();
+        buscarClientesAtualizados();
+      }
       if (target?.matches?.('[data-finance-batch-event-search]')) refreshEventSelect();
       if (target?.matches?.('[data-finance-batch-stand]')) updateCentroCusto();
       if (target?.matches?.('[data-finance-batch-centro]')) target.dataset.manual = 'true';

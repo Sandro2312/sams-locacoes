@@ -953,3 +953,8 @@
 - [x] Mapear a divergência entre a contagem da busca e as opções visíveis no seletor
 - [x] Atualizar a lista de seleção com os clientes encontrados e preservar a escolha atual
 - [x] Validar busca, seleção, criação de lote, mobile e regressões antes do checkpoint
+
+## Correção — Cliente recém-cadastrado ausente no Lote Financeiro (Ago/2026)
+- [x] Reproduzir a ausência do cliente recém-cadastrado na busca assistida do Guia de Lançamentos
+- [x] Corrigir a sincronização e a filtragem da lista de clientes sem alterar os dados financeiros
+- [ ] Validar busca, seleção e manutenção do lote em desktop e mobile com teste de regressão
