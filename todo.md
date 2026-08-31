@@ -963,3 +963,8 @@
 - [x] Identificar as quatro atividades indevidas relacionadas a contatos e orçamentos do site
 - [x] Confirmar a origem da restauração sem remover tarefas operacionais válidas
 - [x] Excluir somente os registros indevidos e validar a Agenda publicada em desktop e mobile
+
+## Ajuste — Posição da confirmação do lote financeiro (Ago/2026)
+- [x] Reposicionar a ação de confirmação para não sobrepor a Veruska no desktop
+- [x] Preservar uma ação visível e segura de confirmação em telas menores
+- [x] Validar o posicionamento sem alterar a criação de receitas e despesas

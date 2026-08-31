@@ -90,6 +90,9 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('Soma das parcelas:');
     expect(guide).toContain('Confirmar no Financeiro');
     expect(guide).toContain('Confirmar e criar lançamentos');
+    expect(guide).toContain('data-finance-batch-confirmation-dock class="mt-5');
+    expect(guide).not.toContain('data-finance-batch-confirmation-dock class="fixed');
+    expect(guide).toContain('A confirmação cria os registros pendentes no Financeiro');
     expect(guide).toContain('Criar lançamentos');
     expect(guide).toContain('Ações');
     expect(guide).toContain('Criar ${itens.length} item(ns) como lançamentos reais');
@@ -102,7 +105,7 @@ describe("Lote Financeiro por Stand", () => {
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
-    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788269400');
+    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788273100');
   });
 
   it("consulta o cadastro atualizado ao pesquisar um cliente e o seleciona sem depender da lista anterior", async () => {
