@@ -68,6 +68,21 @@ describe('CRM Integration Tests', () => {
     }
   });
 
+  it('deve localizar o cliente restaurado pela busca usada no Guia de Lançamentos', async () => {
+    const response = await fetch(`${BASE_URL}/api/crm/clientes?q=MM%20H&limit=80`, {
+      headers: {
+        'Cookie': sessionCookie || '',
+      },
+    });
+
+    expect(response.ok).toBe(true);
+    const payload = await response.json();
+    const clientes = Array.isArray(payload) ? payload : (payload.data || []);
+    expect(clientes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nome: 'MM Hortifrutigranjeiros' }),
+    ]));
+  });
+
   it('deve retornar KPIs do dashboard', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/dashboard/kpis`, {
       headers: {
