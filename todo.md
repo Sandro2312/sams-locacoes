@@ -968,3 +968,8 @@
 - [x] Reposicionar a ação de confirmação para não sobrepor a Veruska no desktop
 - [x] Preservar uma ação visível e segura de confirmação em telas menores
 - [x] Validar o posicionamento sem alterar a criação de receitas e despesas
+
+## Refinamento — Destaque da confirmação do lote (Ago/2026)
+- [x] Tornar a confirmação imediatamente visível sem depender do cursor do mouse
+- [x] Reforçar contraste, instrução e chamada para ação em desktop e mobile
+- [x] Validar a descoberta visual sem alterar a confirmação financeira

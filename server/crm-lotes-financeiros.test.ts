@@ -88,14 +88,14 @@ describe("Lote Financeiro por Stand", () => {
     expect(guide).toContain('Vencimentos e valores por parcela');
     expect(guide).toContain('data-finance-batch-item-valor-parcela');
     expect(guide).toContain('Soma das parcelas:');
-    expect(guide).toContain('Confirmar no Financeiro');
-    expect(guide).toContain('Confirmar e criar lançamentos');
-    expect(guide).toContain('data-finance-batch-confirmation-dock class="mt-5');
-    expect(guide).not.toContain('data-finance-batch-confirmation-dock class="fixed');
-    expect(guide).toContain('A confirmação cria os registros pendentes no Financeiro');
-    expect(guide).toContain('Criar lançamentos');
+    expect(guide).toContain('Confirmar lançamentos');
+    expect(guide).toContain('data-finance-batch-confirmation-panel class="rounded-2xl border-4 border-emerald-500 bg-slate-950');
+    expect(guide).toContain('Ação necessária');
+    expect(guide).toContain('Revise os itens abaixo');
+    expect(guide).not.toContain('data-finance-batch-confirmation-dock');
+    expect(guide).not.toContain('sticky bottom-3');
     expect(guide).toContain('Ações');
-    expect(guide).toContain('Criar ${itens.length} item(ns) como lançamentos reais');
+    expect(guide).toContain('Confirmar ${itens.length} lançamento(s) do lote');
     expect(guide).toContain('formatDate =');
     expect(guide).toContain('Conta a Receber');
     expect(guide).toContain('Ver Receitas');
@@ -105,7 +105,7 @@ describe("Lote Financeiro por Stand", () => {
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
-    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788273100');
+    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788275200');
   });
 
   it("consulta o cadastro atualizado ao pesquisar um cliente e o seleciona sem depender da lista anterior", async () => {
