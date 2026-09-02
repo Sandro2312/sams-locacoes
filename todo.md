@@ -978,3 +978,8 @@
 - [x] Confrontar o checklist pré-determinado de lote com os fluxos e contratos atuais
 - [x] Avaliar a simplificação do Resultado por Stand por lote, evento e centro de custo
 - [x] Documentar riscos, sequência segura e validações antes de qualquer implementação
+
+## Plano — Implementação segura do Financeiro por Stand (Ago/2026)
+- [x] Definir a sequência de entrega, proteção de dados e pontos de reversão
+- [x] Detalhar os testes funcionais e de regressão obrigatórios por etapa
+- [x] Registrar o plano para aprovação antes de alterar o Financeiro
