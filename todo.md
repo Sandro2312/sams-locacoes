@@ -973,3 +973,8 @@
 - [x] Tornar a confirmação imediatamente visível sem depender do cursor do mouse
 - [x] Reforçar contraste, instrução e chamada para ação em desktop e mobile
 - [x] Validar a descoberta visual sem alterar a confirmação financeira
+
+## Análise — Evolução do Financeiro por Stand (Ago/2026)
+- [x] Confrontar o checklist pré-determinado de lote com os fluxos e contratos atuais
+- [x] Avaliar a simplificação do Resultado por Stand por lote, evento e centro de custo
+- [x] Documentar riscos, sequência segura e validações antes de qualquer implementação
