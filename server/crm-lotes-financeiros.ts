@@ -278,6 +278,45 @@ export function registerLotesFinanceirosRoutes(app: any) {
     } catch (error: any) { res.status(500).json({ error: error?.message || "Não foi possível atualizar o lote" }); }
   });
 
+  r.post("/:id/itens-em-lote", requireFinance, async (req, res) => {
+    const user = (req as any).crmUser as CrmSession;
+    try {
+      const loteId = safeInt(req.params.id, 0, 1);
+      const rawItems = Array.isArray(req.body?.itens) ? req.body.itens : [];
+      if (!rawItems.length || rawItems.length > 30) return res.status(400).json({ error: "Informe de 1 a 30 itens para inclusão no lote" });
+      // A normalização ocorre antes de abrir a transação: qualquer item inválido impede toda a gravação.
+      const items = rawItems.map(normalizeItem);
+      const conn = await getPool().getConnection();
+      try {
+        await conn.beginTransaction();
+        const [lotes] = await conn.execute("SELECT id, status FROM crm_lotes_financeiros_stand WHERE id = ? FOR UPDATE", [loteId]) as any;
+        const lote = lotes?.[0];
+        if (!lote) throw new Error("LOTE_NAO_ENCONTRADO");
+        if (lote.status !== "rascunho") throw new Error("LOTE_JA_CONFIRMADO");
+        const itemIds: number[] = [];
+        for (const item of items) {
+          const [result] = await conn.execute(
+            `INSERT INTO crm_lotes_financeiros_stand_itens
+             (lote_id, natureza, categoria, descricao, valor_total, parcelas, primeiro_vencimento, datas_vencimento, valores_parcelas, forma_pagamento, observacoes, status, created_by, updated_by)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,'rascunho',?,?)`,
+            [loteId, item.natureza, item.categoria, item.descricao, (item.valorCents / 100).toFixed(2), item.parcelas, item.primeiroVencimento, JSON.stringify(item.datasVencimento), JSON.stringify(item.valoresParcelas), item.formaPagamento, item.observacoes, user.userId, user.userId],
+          );
+          itemIds.push(Number((result as any).insertId));
+        }
+        await audit(conn, user, "ADD_FINANCE_BATCH_ITEMS", loteId, { quantidade: itemIds.length, itemIds, categorias: items.map((item: NormalizedItem) => item.categoria) });
+        await conn.commit();
+        res.status(201).json({ ok: true, itemIds, lote: await getLote(loteId) });
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      } finally { conn.release(); }
+    } catch (error: any) {
+      const known = ["VALOR_INVALIDO", "DATA_INVALIDA", "DATAS_PARCELAS_INCONSISTENTES", "VALORES_PARCELAS_INCONSISTENTES", "NATUREZA_INVALIDA", "CATEGORIA_INVALIDA", "DESCRICAO_OBRIGATORIA", "LOTE_NAO_ENCONTRADO", "LOTE_JA_CONFIRMADO"];
+      const status = error?.message === "LOTE_NAO_ENCONTRADO" ? 404 : (known.includes(error?.message) ? 400 : 500);
+      res.status(status).json({ error: known.includes(error?.message) ? error.message : (error?.message || "Não foi possível incluir os itens do checklist") });
+    }
+  });
+
   r.post("/:id/itens", requireFinance, async (req, res) => {
     const user = (req as any).crmUser as CrmSession;
     try {

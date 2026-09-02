@@ -65,9 +65,9 @@ Após criar ou abrir um lote em rascunho, a tela mostrará checkboxes por catego
 
 O botão de criação permanecerá separado da confirmação final. Seu texto será **“Adicionar itens selecionados ao rascunho”**, evitando interpretação de que os lançamentos reais já serão gerados.
 
-### Passo 1.3 — Validar tudo antes de gravar
+### Passo 1.3 — Revisar em modal e validar tudo antes de gravar
 
-No cliente, todas as linhas marcadas serão validadas antes de qualquer chamada ao servidor. A validação indicará a linha específica com problema: valor ausente ou inválido, vencimento ausente, descrição obrigatória em itens livres, ou diferença entre total e parcelas da venda.
+No cliente, todas as linhas marcadas serão validadas antes de qualquer chamada ao servidor. Em seguida, um **modal de revisão** exibirá a quantidade, natureza, descrição, parcelas e valor total dos itens selecionados. Somente o botão explícito **“Salvar itens no rascunho”** dentro desse modal poderá iniciar a gravação. A validação indicará a linha específica com problema: valor ausente ou inválido, vencimento ausente, descrição obrigatória em itens livres, ou diferença entre total e parcelas da venda.
 
 Nenhuma linha será enviada quando existir erro em outra linha marcada. Essa validação reduz falhas operacionais, mas não elimina por si só risco de queda de conexão entre várias chamadas.
 

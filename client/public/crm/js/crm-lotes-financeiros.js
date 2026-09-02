@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  const state = { clientes: [], eventos: [], lote: null, loading: false, bound: false, clientSearchTimer: null, clientSearchRequest: 0 };
+  const state = { clientes: [], eventos: [], lote: null, loading: false, bound: false, clientSearchTimer: null, clientSearchRequest: 0, checklistExtraIndex: 0, pendingChecklistItems: [] };
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   const currency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const formatDate = (value) => {
@@ -18,6 +18,19 @@
     receita: [['venda_stand', 'Venda do stand'], ['adicional', 'Adicional / serviço'], ['outros', 'Outra receita']],
     despesa: [['projeto', 'Projeto'], ['montagem', 'Montagem'], ['taxas', 'Taxas / feira'], ['comissao_vendedor', 'Comissão de vendedor'], ['comissao_projetista', 'Comissão de projetista'], ['logistica', 'Logística'], ['desmontagem', 'Desmontagem'], ['fornecedor', 'Fornecedor'], ['outros', 'Outra despesa']],
   };
+  const checklistCatalog = [
+    { id: 'venda-stand', natureza: 'receita', categoria: 'venda_stand', titulo: 'Venda do stand', descricao: 'Venda do stand', parcelavel: true },
+    { id: 'outra-receita', natureza: 'receita', categoria: 'adicional', titulo: 'Outra receita', descricaoLivre: true, repetivel: true },
+    { id: 'montagem', natureza: 'despesa', categoria: 'montagem', titulo: 'Montagem', descricao: 'Montagem do stand' },
+    { id: 'desmontagem', natureza: 'despesa', categoria: 'desmontagem', titulo: 'Desmontagem', descricao: 'Desmontagem do stand' },
+    { id: 'comissao-venda', natureza: 'despesa', categoria: 'comissao_vendedor', titulo: 'Comissão de venda', descricao: 'Comissão de venda' },
+    { id: 'comissao-projeto', natureza: 'despesa', categoria: 'comissao_projetista', titulo: 'Comissão de projeto', descricao: 'Comissão de projeto' },
+    { id: 'led', natureza: 'despesa', categoria: 'fornecedor', titulo: 'Locação de painéis de LED', descricao: 'Locação de painéis de LED' },
+    { id: 'logistica', natureza: 'despesa', categoria: 'logistica', titulo: 'Logística / frete', descricao: 'Logística e frete' },
+    { id: 'taxas', natureza: 'despesa', categoria: 'taxas', titulo: 'Taxas do evento', descricao: 'Taxas do evento' },
+    { id: 'fornecedor', natureza: 'despesa', categoria: 'fornecedor', titulo: 'Fornecedores', descricao: 'Fornecedor' },
+    { id: 'outra-despesa', natureza: 'despesa', categoria: 'outros', titulo: 'Outra despesa', descricaoLivre: true, repetivel: true },
+  ];
 
   function api(path, options = {}) {
     return fetch(path, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options })
@@ -183,8 +196,104 @@
   function installmentInputs(count, dates = [], values = []) {
     return Array.from({ length: count }, (_, index) => `<div class="rounded-lg border border-slate-200 bg-slate-50 p-3"><p class="text-xs font-bold text-slate-700">${index + 1}ª parcela</p><div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2"><label class="text-xs font-semibold text-slate-700">Vencimento <span class="text-rose-600">*</span><input type="date" data-finance-batch-item-data-parcela value="${esc(dates[index] || '')}" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"></label><label class="text-xs font-semibold text-slate-700">Valor <span class="text-rose-600">*</span><input data-finance-batch-item-valor-parcela inputmode="decimal" value="${esc(values[index] || '')}" placeholder="0,00" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"></label></div></div>`).join('');
   }
-  function renderItemForm() {
+  function renderCustomItemForm() {
     return `<div class="rounded-xl border border-blue-200 bg-blue-50/40 p-5 sm:p-6"><div class="mb-4"><h4 class="font-bold text-slate-900">2. Adicione receitas e despesas</h4><p class="mt-1 text-sm text-slate-600">Cada item pode ser parcelado. Informe a data e o valor de cada parcela; os valores podem ser diferentes, desde que a soma seja igual ao valor total.</p></div><div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"><div><label class="text-sm font-semibold text-slate-700">Natureza <span class="text-rose-600">*</span></label><select data-finance-batch-item-natureza class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="receita">Receita / crédito</option><option value="despesa">Despesa / débito</option></select></div><div><label class="text-sm font-semibold text-slate-700">Categoria <span class="text-rose-600">*</span></label><select data-finance-batch-item-categoria class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">${categoryOptions('receita', 'venda_stand')}</select></div><div><label class="text-sm font-semibold text-slate-700">Valor total <span class="text-rose-600">*</span></label><input data-finance-batch-item-valor inputmode="decimal" placeholder="0,00" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div><div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700">Descrição <span class="text-rose-600">*</span></label><input data-finance-batch-item-descricao maxlength="500" placeholder="Ex.: Montagem do stand, 1ª parcela, taxa de energia" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div><div><label class="text-sm font-semibold text-slate-700">Parcelas</label><input data-finance-batch-item-parcelas type="number" min="1" max="60" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div><div class="md:col-span-2 lg:col-span-3 rounded-lg border border-slate-200 bg-white p-4"><div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-sm font-bold text-slate-800">Vencimentos e valores por parcela</p><p class="text-xs text-slate-500">Preencha cada vencimento e cada valor. A soma precisa coincidir com o valor total do item.</p></div><span data-finance-batch-item-parcel-summary class="text-xs font-semibold text-blue-700">1 parcela</span></div><div data-finance-batch-item-datas class="grid grid-cols-1 gap-3 lg:grid-cols-2">${installmentInputs(1)}</div><p data-finance-batch-item-totalizador aria-live="polite" class="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">Informe o valor total e os valores das parcelas.</p></div><div><label class="text-sm font-semibold text-slate-700">Forma de pagamento</label><input data-finance-batch-item-forma maxlength="120" placeholder="Pix, boleto, transferência..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div><div class="md:col-span-2"><label class="text-sm font-semibold text-slate-700">Observações</label><input data-finance-batch-item-observacoes maxlength="4000" placeholder="Opcional" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></div></div><div class="mt-5 flex justify-end"><button type="button" data-finance-batch-action="adicionar-item" class="rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800"><i class="fas fa-plus mr-2"></i>Adicionar ao lote</button></div></div>`;
+  }
+  function checklistInstallments(count, dates = [], values = []) {
+    return Array.from({ length: count }, (_, index) => `<div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-xs font-bold text-slate-700">${index + 1}ª parcela</p><div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2"><label class="text-xs font-semibold text-slate-700">Vencimento <span class="text-rose-600">*</span><input type="date" data-finance-batch-check-date value="${esc(dates[index] || '')}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></label><label class="text-xs font-semibold text-slate-700">Valor <span class="text-rose-600">*</span><input inputmode="decimal" data-finance-batch-check-installment-value value="${esc(values[index] || '')}" placeholder="0,00" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></label></div></div>`).join('');
+  }
+  function checklistRow(definition) {
+    const id = `finance-batch-check-${definition.id}`;
+    const description = definition.descricaoLivre
+      ? `<label class="block text-sm font-semibold text-slate-700">Descrição <span class="text-rose-600">*</span><input data-finance-batch-check-description maxlength="500" placeholder="Descreva este lançamento" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></label>`
+      : `<div class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"><span class="font-semibold">Descrição:</span> ${esc(definition.descricao)}</div>`;
+    const dueDates = definition.parcelavel
+      ? `<div class="md:col-span-2 rounded-xl border border-blue-200 bg-blue-50/70 p-4"><div class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-end"><label class="block text-sm font-semibold text-slate-700">Parcelas<input type="number" min="1" max="60" value="1" data-finance-batch-check-installments class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"></label><p class="sm:col-span-2 text-xs leading-5 text-slate-600">Informe data e valor de cada parcela. A soma deve ser igual ao valor total.</p></div><div data-finance-batch-check-installments-grid class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">${checklistInstallments(1)}</div><p data-finance-batch-check-installments-status aria-live="polite" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Informe o valor total e a parcela.</p></div>`
+      : `<label class="block text-sm font-semibold text-slate-700">Vencimento <span class="text-rose-600">*</span><input type="date" data-finance-batch-check-date class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></label>`;
+    return `<article data-finance-batch-check-row="${esc(definition.id)}" data-finance-batch-check-natureza="${esc(definition.natureza)}" data-finance-batch-check-categoria="${esc(definition.categoria)}" data-finance-batch-check-titulo="${esc(definition.titulo)}" data-finance-batch-check-descricao="${esc(definition.descricao || '')}" data-finance-batch-check-livre="${definition.descricaoLivre ? 'true' : 'false'}" data-finance-batch-check-parcelavel="${definition.parcelavel ? 'true' : 'false'}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-start gap-3"><input id="${id}" type="checkbox" data-finance-batch-check-toggle="${esc(definition.id)}" aria-controls="${id}-content" class="mt-1 h-5 w-5 rounded border-slate-400 text-blue-700 focus:ring-2 focus:ring-blue-600"><label for="${id}" class="cursor-pointer"><span class="block text-base font-bold text-slate-900">${esc(definition.titulo)}</span><span class="mt-1 block text-xs text-slate-500">${definition.natureza === 'receita' ? 'Receita' : 'Despesa'} · ${esc(definition.categoria)}</span></label></div><div id="${id}-content" data-finance-batch-check-content class="mt-4 hidden border-t border-slate-100 pt-4" aria-hidden="true"><div class="grid grid-cols-1 gap-4 md:grid-cols-2">${description}<label class="block text-sm font-semibold text-slate-700">Valor total <span class="text-rose-600">*</span><input data-finance-batch-check-total inputmode="decimal" placeholder="0,00" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></label>${dueDates}<label class="block text-sm font-semibold text-slate-700">Forma de pagamento <span class="font-normal text-slate-500">(opcional)</span><input data-finance-batch-check-payment maxlength="120" placeholder="Pix, boleto, transferência..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></label></div></div></article>`;
+  }
+  function checklistSection(title, natureza) {
+    const action = natureza === 'receita' ? 'adicionar-outra-receita' : 'adicionar-outra-despesa';
+    const button = natureza === 'receita' ? 'Adicionar outra receita' : 'Adicionar outra despesa';
+    return `<div class="space-y-3"><div class="flex items-center justify-between gap-3"><h5 class="text-sm font-extrabold uppercase tracking-wide ${natureza === 'receita' ? 'text-emerald-800' : 'text-rose-800'}">${title}</h5><button type="button" data-finance-batch-action="${action}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">+ ${button}</button></div><div class="space-y-3">${checklistCatalog.filter((item) => item.natureza === natureza).map(checklistRow).join('')}<div data-finance-batch-check-extra="${natureza}" class="space-y-3"></div></div></div>`;
+  }
+  function renderChecklist() {
+    return `<section class="rounded-2xl border-2 border-blue-200 bg-blue-50/50 p-5 shadow-sm sm:p-6" aria-label="Checklist de lançamentos típicos"><div class="flex flex-col gap-3 border-b border-blue-200 pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p class="text-xs font-extrabold uppercase tracking-wide text-blue-800">Etapa 2 · checklist guiado</p><h4 class="mt-1 text-xl font-extrabold text-slate-950">Selecione os lançamentos deste stand</h4><p class="mt-2 max-w-3xl text-sm leading-6 text-slate-700">Marque somente o que faz parte deste fechamento. Nada é gravado antes da revisão no modal.</p></div><span class="shrink-0 rounded-full bg-blue-700 px-3 py-1 text-xs font-bold text-white">Rascunho protegido</span></div><div class="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-2">${checklistSection('Receitas', 'receita')}${checklistSection('Despesas', 'despesa')}</div><div class="mt-6 flex flex-col gap-3 border-t border-blue-200 pt-5 sm:flex-row sm:items-center sm:justify-between"><p class="text-xs leading-5 text-slate-600">A revisão adiciona apenas itens ao rascunho. A geração das receitas e despesas reais continua na confirmação final do lote.</p><button type="button" data-finance-batch-action="revisar-itens-checklist" class="w-full shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"><i class="fas fa-clipboard-check mr-2"></i>Revisar itens selecionados</button></div></section>`;
+  }
+  function renderItemForm() {
+    return `<div class="space-y-5">${renderChecklist()}<details class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><summary class="cursor-pointer text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">Lançamento personalizado <span class="ml-2 text-sm font-normal text-slate-500">Para categorias ou parcelamentos fora do checklist</span></summary><div class="mt-5 border-t border-slate-100 pt-5">${renderCustomItemForm()}</div></details></div>`;
+  }
+  function appendChecklistExtra(natureza) {
+    const host = document.querySelector(`[data-finance-batch-check-extra="${natureza}"]`);
+    if (!host) return;
+    const count = ++state.checklistExtraIndex;
+    const item = natureza === 'receita'
+      ? { id: `outra-receita-${count}`, natureza: 'receita', categoria: 'adicional', titulo: 'Outra receita', descricaoLivre: true }
+      : { id: `outra-despesa-${count}`, natureza: 'despesa', categoria: 'outros', titulo: 'Outra despesa', descricaoLivre: true };
+    host.insertAdjacentHTML('beforeend', checklistRow(item));
+  }
+  function refreshChecklistInstallments(row) {
+    const count = Math.max(1, Math.min(60, Number.parseInt(row?.querySelector('[data-finance-batch-check-installments]')?.value || '1', 10) || 1));
+    const grid = row?.querySelector('[data-finance-batch-check-installments-grid]');
+    if (!grid) return;
+    const dates = [...grid.querySelectorAll('[data-finance-batch-check-date]')].map((input) => input.value);
+    const values = [...grid.querySelectorAll('[data-finance-batch-check-installment-value]')].map((input) => input.value);
+    grid.innerHTML = checklistInstallments(count, dates, values);
+    refreshChecklistInstallmentsTotal(row);
+  }
+  function refreshChecklistInstallmentsTotal(row) {
+    if (!row) return;
+    const total = amountCents(row.querySelector('[data-finance-batch-check-total]')?.value);
+    const valuesInputs = [...row.querySelectorAll('[data-finance-batch-check-installment-value]')];
+    const status = row.querySelector('[data-finance-batch-check-installments-status]');
+    if (!status) return;
+    const values = valuesInputs.map((input) => amountCents(input.value));
+    if (total && values.length && values.every((value) => value == null)) valuesInputs.forEach((input, index) => { input.value = equalValues(total, valuesInputs.length)[index]; });
+    const resolved = valuesInputs.map((input) => amountCents(input.value));
+    if (!total || resolved.some((value) => value == null)) { status.className = 'mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800'; status.textContent = 'Informe o valor total e o valor de cada parcela.'; return; }
+    const sum = resolved.reduce((acc, value) => acc + value, 0);
+    if (sum !== total) { status.className = 'mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800'; status.textContent = `Soma das parcelas: ${currency(sum / 100)}. Ajuste para atingir ${currency(total / 100)}.`; return; }
+    status.className = 'mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800'; status.textContent = `Soma das parcelas conferida: ${currency(total / 100)}.`;
+  }
+  function collectChecklistItems() {
+    const rows = [...document.querySelectorAll('[data-finance-batch-check-row]')].filter((row) => row.querySelector('[data-finance-batch-check-toggle]')?.checked);
+    if (!rows.length) throw new Error('Selecione ao menos uma receita ou despesa do checklist.');
+    return rows.map((row) => {
+      const title = row.dataset.financeBatchCheckTitulo || 'Lançamento';
+      const valorTotal = row.querySelector('[data-finance-batch-check-total]')?.value || '';
+      const total = amountCents(valorTotal);
+      if (!total) throw new Error(`${title}: informe um valor válido.`);
+      const descricao = row.dataset.financeBatchCheckLivre === 'true' ? String(row.querySelector('[data-finance-batch-check-description]')?.value || '').trim() : String(row.dataset.financeBatchCheckDescricao || '').trim();
+      if (!descricao) throw new Error(`${title}: informe a descrição.`);
+      const parcelavel = row.dataset.financeBatchCheckParcelavel === 'true';
+      const parcelas = parcelavel ? Math.max(1, Math.min(60, Number.parseInt(row.querySelector('[data-finance-batch-check-installments]')?.value || '1', 10) || 1)) : 1;
+      const datasVencimento = [...row.querySelectorAll('[data-finance-batch-check-date]')].map((input) => input.value);
+      const valoresParcelas = parcelavel ? [...row.querySelectorAll('[data-finance-batch-check-installment-value]')].map((input) => input.value) : [valorTotal];
+      const values = valoresParcelas.map(amountCents);
+      if (datasVencimento.length !== parcelas || datasVencimento.some((date) => !date)) throw new Error(`${title}: informe o vencimento de cada parcela.`);
+      if (values.length !== parcelas || values.some((value) => value == null) || values.reduce((sum, value) => sum + value, 0) !== total) throw new Error(`${title}: a soma das parcelas deve ser igual ao valor total.`);
+      return { natureza: row.dataset.financeBatchCheckNatureza, categoria: row.dataset.financeBatchCheckCategoria, descricao, valorTotal, parcelas, primeiroVencimento: datasVencimento[0], datasVencimento, valoresParcelas, formaPagamento: row.querySelector('[data-finance-batch-check-payment]')?.value || '' };
+    });
+  }
+  function closeChecklistReview() { document.getElementById('finance-batch-checklist-review')?.remove(); state.pendingChecklistItems = []; }
+  function openChecklistReview() {
+    const items = collectChecklistItems();
+    closeChecklistReview(); state.pendingChecklistItems = items;
+    const modal = document.createElement('div');
+    modal.id = 'finance-batch-checklist-review'; modal.className = 'fixed inset-0 z-[120] flex items-end bg-slate-950/60 p-0 sm:items-center sm:justify-center sm:p-5';
+    modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-labelledby', 'finance-batch-checklist-review-title');
+    const total = items.reduce((sum, item) => sum + (amountCents(item.valorTotal) || 0), 0);
+    modal.innerHTML = `<div class="w-full max-w-3xl rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-7"><div class="flex items-start gap-4"><span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-800"><i class="fas fa-clipboard-check text-lg"></i></span><div><p class="text-xs font-extrabold uppercase tracking-wide text-blue-800">Revisão antes de salvar</p><h3 id="finance-batch-checklist-review-title" class="mt-1 text-xl font-extrabold text-slate-950">Adicionar ${items.length} item(ns) ao rascunho?</h3><p class="mt-2 text-sm leading-6 text-slate-600">Esta ação cria somente os itens do lote. As receitas e despesas reais permanecerão pendentes até a confirmação final do lote.</p></div></div><ul class="mt-5 max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">${items.map((item) => `<li class="flex items-center justify-between gap-3 px-4 py-3"><div><p class="font-bold text-slate-900">${esc(item.descricao)}</p><p class="text-xs text-slate-500">${item.natureza === 'receita' ? 'Receita' : 'Despesa'} · ${esc(item.categoria)} · ${item.parcelas}x</p></div><strong class="shrink-0 ${item.natureza === 'receita' ? 'text-emerald-700' : 'text-rose-700'}">${currency((amountCents(item.valorTotal) || 0) / 100)}</strong></li>`).join('')}</ul><div class="mt-4 flex items-center justify-between rounded-lg bg-slate-100 px-4 py-3"><span class="text-sm font-bold text-slate-700">Valor total selecionado</span><strong class="text-lg text-slate-950">${currency(total / 100)}</strong></div><div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" data-finance-batch-action="cancelar-itens-checklist" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Voltar e revisar</button><button type="button" data-finance-batch-action="confirmar-itens-checklist" class="rounded-xl bg-blue-700 px-5 py-3 text-sm font-extrabold text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"><i class="fas fa-save mr-2"></i>Salvar itens no rascunho</button></div></div>`;
+    document.body.appendChild(modal); modal.querySelector('[data-finance-batch-action="confirmar-itens-checklist"]')?.focus?.();
+  }
+  async function submitChecklistItems() {
+    const lote = state.lote?.lote;
+    if (!lote || !state.pendingChecklistItems.length) return;
+    const button = document.querySelector('[data-finance-batch-action="confirmar-itens-checklist"]');
+    if (button) { button.disabled = true; button.textContent = 'Salvando itens...'; }
+    const response = await api(`/api/crm/lotes-financeiros/${encodeURIComponent(lote.id)}/itens-em-lote`, { method: 'POST', body: JSON.stringify({ itens: state.pendingChecklistItems }) });
+    closeChecklistReview(); state.lote = response.lote; renderWorkspace();
+    message(`${response.itemIds?.length || 0} item(ns) adicionados ao rascunho. Revise e faça a confirmação final quando estiver pronto.`, 'success');
   }
   function refreshDueDates() {
     const parcelas = Math.max(1, Math.min(60, Number.parseInt(document.querySelector('[data-finance-batch-item-parcelas]')?.value || '1', 10) || 1));
@@ -372,12 +481,19 @@
       if (target?.matches?.('[data-finance-batch-centro]')) target.dataset.manual = 'true';
       if (target?.matches?.('[data-finance-batch-item-parcelas]')) refreshDueDates();
       if (target?.matches?.('[data-finance-batch-item-valor], [data-finance-batch-item-valor-parcela]')) refreshParcelTotal();
+      if (target?.matches?.('[data-finance-batch-check-total], [data-finance-batch-check-installment-value]')) refreshChecklistInstallmentsTotal(target.closest('[data-finance-batch-check-row]'));
     });
     document.addEventListener('change', (event) => {
       const target = event.target;
       if (target?.matches?.('[data-finance-batch-client], [data-finance-batch-event]')) updateCentroCusto();
       if (target?.matches?.('[data-finance-batch-item-parcelas]')) refreshDueDates();
       if (target?.matches?.('[data-finance-batch-item-valor], [data-finance-batch-item-valor-parcela]')) refreshParcelTotal();
+      if (target?.matches?.('[data-finance-batch-check-toggle]')) {
+        const row = target.closest('[data-finance-batch-check-row]');
+        const content = row?.querySelector('[data-finance-batch-check-content]');
+        if (content) { content.classList.toggle('hidden', !target.checked); content.setAttribute('aria-hidden', target.checked ? 'false' : 'true'); }
+      }
+      if (target?.matches?.('[data-finance-batch-check-installments]')) refreshChecklistInstallments(target.closest('[data-finance-batch-check-row]'));
       if (target?.matches?.('[data-finance-batch-item-natureza]')) {
         const category = document.querySelector('[data-finance-batch-item-categoria]');
         if (category) category.innerHTML = categoryOptions(target.value, target.value === 'receita' ? 'venda_stand' : 'projeto');
@@ -421,6 +537,11 @@
         if (action.dataset.financeBatchAction === 'criar') await createLote();
         if (action.dataset.financeBatchAction === 'novo') { state.lote = null; renderWorkspace(); }
         if (action.dataset.financeBatchAction === 'adicionar-item') await addItem();
+        if (action.dataset.financeBatchAction === 'revisar-itens-checklist') openChecklistReview();
+        if (action.dataset.financeBatchAction === 'confirmar-itens-checklist') await submitChecklistItems();
+        if (action.dataset.financeBatchAction === 'cancelar-itens-checklist') closeChecklistReview();
+        if (action.dataset.financeBatchAction === 'adicionar-outra-receita') appendChecklistExtra('receita');
+        if (action.dataset.financeBatchAction === 'adicionar-outra-despesa') appendChecklistExtra('despesa');
         if (action.dataset.financeBatchAction === 'remover-item') await removeItem(action.dataset.itemId);
         if (action.dataset.financeBatchAction === 'ver-receitas') openFinancePage('receitas');
         if (action.dataset.financeBatchAction === 'ver-despesas') openFinancePage('custos');

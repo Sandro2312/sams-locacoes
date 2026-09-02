@@ -983,3 +983,11 @@
 - [x] Definir a sequência de entrega, proteção de dados e pontos de reversão
 - [x] Detalhar os testes funcionais e de regressão obrigatórios por etapa
 - [x] Registrar o plano para aprovação antes de alterar o Financeiro
+
+## Implementação — Checklist e confirmação de itens do lote (Ago/2026)
+- [x] Conferir a disponibilidade das estruturas restauradas e preservar um ponto de reversão
+- [x] Criar inclusão transacional para os itens selecionados do checklist
+- [x] Implementar checklist expansível com receitas, despesas e itens repetíveis
+- [x] Adicionar modal de revisão e confirmação antes de salvar itens no rascunho
+- [x] Preservar o formulário personalizado e a confirmação final de lançamentos reais
+- [x] Validar atomicidade, desktop/mobile, acessibilidade e regressões financeiras

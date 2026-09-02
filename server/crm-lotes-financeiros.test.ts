@@ -44,6 +44,27 @@ describe("Lote Financeiro por Stand", () => {
     expect(api).toContain("lancamentos_criados: storedCreated(item.lancamentos_criados)");
   });
 
+  it("inclui o checklist em uma única transação antes de qualquer confirmação financeira", () => {
+    expect(api).toContain('r.post("/:id/itens-em-lote", requireFinance');
+    expect(api).toContain('const items = rawItems.map(normalizeItem)');
+    expect(api).toContain('Informe de 1 a 30 itens para inclusão no lote');
+    expect(api).toContain('await conn.beginTransaction()');
+    expect(api).toContain('await conn.rollback()');
+    expect(api).toContain('ADD_FINANCE_BATCH_ITEMS');
+    expect(api).toContain('itemIds');
+  });
+
+  it("inclui os itens selecionados do checklist de forma atômica antes da confirmação financeira final", () => {
+    expect(api).toContain('r.post("/:id/itens-em-lote", requireFinance');
+    expect(api).toContain('Informe de 1 a 30 itens para inclusão no lote');
+    expect(api).toContain('const items = rawItems.map(normalizeItem)');
+    expect(api).toContain('await conn.beginTransaction()');
+    expect(api).toContain('await conn.rollback()');
+    expect(api).toContain('ADD_FINANCE_BATCH_ITEMS');
+    expect(api).toContain('itemIds');
+    expect(api).toContain('LOTE_JA_CONFIRMADO');
+  });
+
   it("preserva datas individualizadas por parcela e não serializa datas como objetos", () => {
     expect(schema).toContain('datasVencimento: text("datas_vencimento")');
     expect(schema).toContain('valoresParcelas: text("valores_parcelas")');
@@ -105,7 +126,32 @@ describe("Lote Financeiro por Stand", () => {
     expect(navigation).toContain("window.LoteFinanceiroModule?.load?.()");
     expect(guide).toContain('showConfirmationSuccess');
     expect(guide).toContain('Lançamentos confirmados');
-    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788275200');
+    expect(index).toContain('/crm/js/crm-lotes-financeiros.js?v=1788357800');
+  });
+
+  it("exibe checklist expansível e exige revisão em modal antes de salvar o rascunho", () => {
+    expect(guide).toContain('const checklistCatalog =');
+    expect(guide).toContain('Venda do stand');
+    expect(guide).toContain('Locação de painéis de LED');
+    expect(guide).toContain('Lançamento personalizado');
+    expect(guide).toContain('revisar-itens-checklist');
+    expect(guide).toContain('finance-batch-checklist-review');
+    expect(guide).toContain('Revisão antes de salvar');
+    expect(guide).toContain('Salvar itens no rascunho');
+    expect(guide).toContain('/itens-em-lote');
+    expect(guide).toContain('A geração das receitas e despesas reais continua na confirmação final do lote.');
+  });
+
+  it("mantém a revisão acessível e responsiva em desktop e mobile", () => {
+    expect(guide).toContain('aria-label="Checklist de lançamentos típicos"');
+    expect(guide).toContain('aria-controls="${id}-content"');
+    expect(guide).toContain('aria-modal');
+    expect(guide).toContain('focus:ring-4');
+    expect(guide).toContain('grid-cols-1 gap-6 xl:grid-cols-2');
+    expect(guide).toContain('w-full shrink-0');
+    expect(guide).toContain('sm:w-auto');
+    expect(guide).toContain('flex items-end');
+    expect(guide).toContain('sm:items-center sm:justify-center');
   });
 
   it("consulta o cadastro atualizado ao pesquisar um cliente e o seleciona sem depender da lista anterior", async () => {

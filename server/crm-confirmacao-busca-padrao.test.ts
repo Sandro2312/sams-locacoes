@@ -9,11 +9,14 @@ const navigation = read("client/public/crm/js/navigation.js");
 const index = read("client/public/crm/index.html");
 
 describe("CRM — confirmação acessível e busca padrão", () => {
-  it("mantém uma confirmação fixa enquanto houver itens em rascunho", () => {
-    expect(lote).toContain("data-finance-batch-confirmation-dock");
-    expect(lote).toContain("fixed bottom-4 right-4 z-50");
-    expect(lote).toContain("Confirmar e criar lançamentos");
+  it("mantém uma confirmação contextual destacada enquanto houver itens em rascunho", () => {
+    expect(lote).toContain("data-finance-batch-confirmation-panel");
+    expect(lote).toContain("border-4 border-emerald-500 bg-slate-950");
+    expect(lote).toContain("Ação necessária");
+    expect(lote).toContain("Confirmar lançamentos");
     expect(lote).toContain("data-finance-batch-action=\"confirmar\"");
+    expect(lote).not.toContain("data-finance-batch-confirmation-dock");
+    expect(lote).not.toContain("fixed bottom-4 right-4 z-50");
   });
 
   it("informa visualmente as receitas e despesas após a confirmação", () => {
