@@ -676,7 +676,7 @@ const NavigationSystem = {
                 window.LoteFinanceiroModule?.load?.();
             } catch (e) { console.warn('Falha ao carregar Guia de Lançamentos:', e); }
         } else if (module === 'financeiro' && page === 'resultados_stand') {
-            try { window.ProjetosStandModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado por Stand:', e); }
+            try { window.ResultadosStandModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado por Stand:', e); }
         } else if (module === 'financeiro' && page === 'resultados_evento') {
             try { window.EventosResultadosModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado do Evento:', e); }
         } else if (module === 'financeiro' && page === 'rateios') {
@@ -806,7 +806,7 @@ const NavigationSystem = {
         } else if (module === 'financeiro' && page === 'guia_lancamentos') {
             pageContent = window.LoteFinanceiroModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'resultados_stand') {
-            pageContent = window.ProjetosStandModule?.render?.() || '';
+            pageContent = window.ResultadosStandModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'resultados_evento') {
             pageContent = window.EventosResultadosModule?.render?.() || '';
         } else if (module === 'financeiro' && page === 'rateios') {

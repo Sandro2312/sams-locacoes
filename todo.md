@@ -991,3 +991,10 @@
 - [x] Adicionar modal de revisão e confirmação antes de salvar itens no rascunho
 - [x] Preservar o formulário personalizado e a confirmação final de lançamentos reais
 - [x] Validar atomicidade, desktop/mobile, acessibilidade e regressões financeiras
+
+## Implementação — Nova apuração de Resultado por Stand (Set/2026)
+- [x] Validar vínculos financeiros, status e estruturas de rateio disponíveis
+- [x] Criar consulta consolidada por stand sem alterar receitas, despesas ou histórico
+- [x] Expor a consulta protegida com filtros de evento, cliente e período
+- [x] Atualizar a tela Resultado por Stand com totais e detalhamento verificável
+- [ ] Validar totais com a base real, permissões, desktop/mobile e regressões

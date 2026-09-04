@@ -7,6 +7,7 @@ import { registerTicketRoutes } from "./crm-tickets";
 import { registerProjetosStandRoutes } from "./crm-projetos-stand";
 import { registerProjetosStandFechamentoRoutes } from "./crm-projetos-stand-fechamento";
 import { registerLotesFinanceirosRoutes } from "./crm-lotes-financeiros";
+import { registerResultadosStandRoutes } from "./crm-resultados-stand";
 import { registerEventosResultadosRoutes } from "./crm-eventos-resultados";
 import { registerRateiosRoutes } from "./crm-rateios";
 import { registerJuridicoRoutes } from "./crm-juridico";
@@ -2493,6 +2494,8 @@ export function registerCrmRoutes(app: any) {
   registerProjetosStandFechamentoRoutes(app);
   // Registrar lotes financeiros por cliente, evento e stand sem criar venda ou Projeto de Stand
   registerLotesFinanceirosRoutes(app);
+  // Registrar resultado financeiro por lote confirmado, independente de Projeto de Stand
+  registerResultadosStandRoutes(app);
   // Registrar o painel de metas, captação e resultado consolidado por Evento
   registerEventosResultadosRoutes(app);
   // Registrar rotas de rateio auditável de custos compartilhados

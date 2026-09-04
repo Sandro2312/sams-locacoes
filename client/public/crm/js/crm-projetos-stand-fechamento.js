@@ -281,7 +281,8 @@
           const result = await api(projectId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadFrom(form)) });
           message(result.fechamento?.status === 'fechado' ? 'Checklist fechado com revisão registrada.' : 'Guia atualizado.');
           close();
-          window.ProjetosStandModule?.load?.();
+          if (document.querySelector('[data-resultados-stand-filter]')) window.ResultadosStandModule?.load?.();
+          else window.ProjetosStandModule?.load?.();
         } catch (error) {
           message(error.message || 'Não foi possível salvar o guia.', 'error');
           submit.disabled = false;

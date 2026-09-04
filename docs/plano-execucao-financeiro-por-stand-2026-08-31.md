@@ -95,6 +95,10 @@ Serão incluídos testes para o catálogo, a validação de parcelas, a inclusã
 
 ## Entrega 2 — Resultado por Stand baseado em lotes confirmados
 
+### Andamento da implementação — 04/09/2026
+
+Foi implementada a rota protegida `GET /api/crm/financeiro/resultados-stand` e a tela financeira correspondente. A apuração parte exclusivamente dos lotes confirmados, soma Contas a Receber e despesas não canceladas pela chave `cliente_id + evento_id + centro_custo` e não executa nenhuma escrita em lançamentos, projetos ou históricos. A indisponibilidade das tabelas de rateio na base restaurada é tratada de forma explícita: custo rateado igual a zero e aviso visível, sem falha de carregamento. A validação visual autenticada e a homologação publicada permanecem como a etapa final desta entrega.
+
 ### Passo 2.1 — Criar uma rota de leitura específica
 
 Não será alterada a rota administrativa de Projetos de Stand. Será criada uma rota exclusiva do Financeiro, por exemplo `GET /api/crm/financeiro/resultados-stand`, com filtros de evento, cliente, centro de custo e paginação.

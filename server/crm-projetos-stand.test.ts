@@ -12,6 +12,7 @@ const navigationSource = readFileSync(resolve(root, "client/public/crm/js/naviga
 const migrationSource = readFileSync(resolve(root, "drizzle/migrations/0004_crm_projetos_stand.sql"), "utf8");
 const opportunityMigrationSource = readFileSync(resolve(root, "drizzle/0005_cooing_peter_quill.sql"), "utf8");
 const projectUiSource = readFileSync(resolve(root, "client/public/crm/js/crm-projetos-stand.js"), "utf8");
+const resultsUiSource = readFileSync(resolve(root, "client/public/crm/js/crm-resultados-stand.js"), "utf8");
 
 describe("Projetos de Stand — apuração por evento e cliente", () => {
   it("cria uma estrutura opcional, sem alteração de dados históricos", () => {
@@ -49,7 +50,8 @@ describe("Projetos de Stand — apuração por evento e cliente", () => {
     expect(receitasSource).toContain('name="projetoStandId"');
     expect(receitasSource).toContain('name="eventoId"');
     expect(navigationSource).toContain("resultados_stand");
-    expect(navigationSource).toContain("window.ProjetosStandModule?.load?.()");
+    expect(navigationSource).toContain("window.ResultadosStandModule?.load?.()");
+    expect(resultsUiSource).toContain("Resultado por Stand");
   });
 
   it("permite custos para lead potencial sem exigir cliente convertido", () => {
