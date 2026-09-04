@@ -51,7 +51,7 @@ describe("Guia de Fechamento por Stand V1", () => {
     expect(formsSource).toContain('window.__samsGuiaStandDefaults?.transacoes');
     expect(receivableSource).toContain('window.__samsGuiaStandDefaults?.contasReceber');
     expect(indexSource).toContain('crm-projetos-stand.js?v=1787251200');
-    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1787252500');
+    expect(indexSource).toContain('crm-projetos-stand-fechamento.js?v=1788359600');
   });
 
   it("mantém o checklist por projeto e expõe o lote financeiro como entrada principal", () => {
