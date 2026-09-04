@@ -97,7 +97,7 @@ Serão incluídos testes para o catálogo, a validação de parcelas, a inclusã
 
 ### Andamento da implementação — 04/09/2026
 
-Foi implementada a rota protegida `GET /api/crm/financeiro/resultados-stand` e a tela financeira correspondente. A apuração parte exclusivamente dos lotes confirmados, soma Contas a Receber e despesas não canceladas pela chave `cliente_id + evento_id + centro_custo` e não executa nenhuma escrita em lançamentos, projetos ou históricos. A indisponibilidade das tabelas de rateio na base restaurada é tratada de forma explícita: custo rateado igual a zero e aviso visível, sem falha de carregamento. A validação visual autenticada e a homologação publicada permanecem como a etapa final desta entrega.
+Foi implementada a rota protegida `GET /api/crm/financeiro/resultados-stand` e a tela financeira correspondente. A apuração parte exclusivamente dos lotes confirmados, soma Contas a Receber e despesas não canceladas pela chave `cliente_id + evento_id + centro_custo` e não executa nenhuma escrita em lançamentos, projetos ou históricos. A indisponibilidade das tabelas de rateio na base restaurada é tratada de forma explícita: custo rateado igual a zero e aviso visível, sem falha de carregamento. A homologação técnica e a publicação foram concluídas: a rota respondeu protegida sem sessão, os scripts publicados foram conferidos, os três lotes confirmados conciliam com as fontes financeiras e os testes específicos foram aprovados.
 
 ### Passo 2.1 — Criar uma rota de leitura específica
 

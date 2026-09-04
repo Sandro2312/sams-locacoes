@@ -997,4 +997,4 @@
 - [x] Criar consulta consolidada por stand sem alterar receitas, despesas ou histórico
 - [x] Expor a consulta protegida com filtros de evento, cliente e período
 - [x] Atualizar a tela Resultado por Stand com totais e detalhamento verificável
-- [ ] Validar totais com a base real, permissões, desktop/mobile e regressões
+- [x] Validar totais com a base real, permissões, desktop/mobile e regressões
