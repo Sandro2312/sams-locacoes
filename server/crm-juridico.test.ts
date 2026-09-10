@@ -34,6 +34,8 @@ describe("módulo Jurídico persistente", () => {
   it("serializa recargas e mantém o formulário aberto para salvar processos sequenciais", () => {
     expect(client).toContain('processosRequestId');
     expect(client).not.toContain('AbortController');
+    expect(client).toContain("const currentHost = document.getElementById('juridico-processos-root')");
+    expect(client).toContain('currentHost.innerHTML = processosContent()');
     expect(client).toContain('Salvar e novo');
     expect(client).toContain("saveMode === 'continue'");
   });

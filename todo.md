@@ -998,3 +998,8 @@
 - [x] Expor a consulta protegida com filtros de evento, cliente e período
 - [x] Atualizar a tela Resultado por Stand com totais e detalhamento verificável
 - [x] Validar totais com a base real, permissões, desktop/mobile e regressões
+
+## Correção — Carregamento de Processos Jurídicos no mobile (Set/2026)
+- [x] Reproduzir a falha no fluxo móvel sem alterar os processos cadastrados
+- [x] Corrigir somente a causa de carregamento, autenticação ou renderização identificada
+- [ ] Validar Processos em desktop e mobile e criar teste de regressão
