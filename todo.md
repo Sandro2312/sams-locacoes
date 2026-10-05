@@ -1003,3 +1003,12 @@
 - [x] Reproduzir a falha no fluxo móvel sem alterar os processos cadastrados
 - [x] Corrigir somente a causa de carregamento, autenticação ou renderização identificada
 - [ ] Validar Processos em desktop e mobile e criar teste de regressão
+
+## Implementação — Planejamento e Execução de Montagem — Fase 1 (Out/2026)
+
+- [x] Preparar modelo seguro de Plano de Montagem por Evento/Projeto de Stand, sem alterar lançamentos financeiros
+- [x] Implementar APIs autenticadas, permissões e auditoria para Ordens de Serviço, equipe, materiais e ocorrências operacionais
+- [ ] Criar agenda operacional com verificação de conflitos de período/equipe e apontamento planejado versus realizado
+- [x] Criar interface responsiva e mobile para criar, acompanhar e encerrar planos de montagem
+- [ ] Validar migração, permissões, fluxos sem dados de teste persistentes, desktop/mobile e regressões financeiras
+- [ ] Criar checkpoint documentado da primeira entrega operacional

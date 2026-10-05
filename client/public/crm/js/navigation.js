@@ -53,7 +53,7 @@ const NavigationSystem = {
             icon: 'fas fa-tools',
             pages: {
                 checklists: { name: 'Checklists', icon: 'fas fa-tasks' },
-                ordens_servico: { name: 'Ordens de Serviço', icon: 'fas fa-clipboard-check' },
+                ordens_servico: { name: 'Planos de Montagem', icon: 'fas fa-clipboard-check' },
                 conformidade: { name: 'Conformidade', icon: 'fas fa-certificate' },
                 custos: { name: 'Custos', icon: 'fas fa-calculator' }
             }
@@ -681,6 +681,8 @@ const NavigationSystem = {
             try { window.EventosResultadosModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Resultado do Evento:', e); }
         } else if (module === 'financeiro' && page === 'rateios') {
             try { window.RateiosModule?.load?.(); } catch (e) { console.warn('Falha ao carregar Rateios:', e); }
+        } else if (module === 'montagem' && page === 'ordens_servico') {
+            try { window.PlanejamentoMontagemModule?.load?.(); } catch (e) { console.warn('Falha ao carregar planejamento de montagem:', e); }
         }
     } else {
         console.log(`⏳ [NavigationSystem] Ignorando auto-load duplicado para ${signature}`);
@@ -796,7 +798,7 @@ const NavigationSystem = {
         } else if (module === 'montagem' && page === 'checklists') {
             pageContent = ModuleSystem?.montagem?.listMontagens?.() || '';
         } else if (module === 'montagem' && page === 'ordens_servico') {
-            pageContent = ModuleSystem?.montagem?.listOrdensServico?.() || '';
+            pageContent = window.PlanejamentoMontagemModule?.render?.() || ModuleSystem?.montagem?.listOrdensServico?.() || '';
         } else if (module === 'financeiro' && page === 'custos') {
             pageContent = ModuleSystem?.financeiro?.listTransacoes?.() || '';
         } else if (module === 'financeiro' && page === 'dashboard') {
@@ -1089,7 +1091,7 @@ const NavigationSystem = {
         }
         if (module === 'montagem' && page === 'ordens_servico') {
             setTimeout(() => {
-                try { ModuleSystem?.montagem?.initOrdensServico?.(); } catch {}
+                try { window.PlanejamentoMontagemModule?.load?.(); } catch {}
             }, 50);
         }
         if (module === 'administrativo' && page === 'tarefas') {

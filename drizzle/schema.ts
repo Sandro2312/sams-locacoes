@@ -1,4 +1,4 @@
-import { bigint, date, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, tinyint, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, date, datetime, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, tinyint, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -97,6 +97,81 @@ export const orcamentos = mysqlTable("orcamentos", {
 
 export type Orcamento = typeof orcamentos.$inferSelect;
 export type InsertOrcamento = typeof orcamentos.$inferInsert;
+
+/**
+ * Plano operacional de montagem, desmontagem ou manutenção. A entidade é
+ * independente de receitas e despesas: registra somente prazo, equipe,
+ * materiais e execução para apoiar a melhoria contínua da operação.
+ */
+export const crmOrdensServico = mysqlTable("crm_ordens_servico", {
+  id: int("id").autoincrement().primaryKey(),
+  contratoId: int("contrato_id"),
+  oportunidadeId: int("oportunidade_id"),
+  eventoId: int("evento_id"),
+  projetoStandId: int("projeto_stand_id"),
+  responsavelId: int("responsavel_id"),
+  numero: varchar("numero", { length: 100 }),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  tipo: varchar("tipo", { length: 30 }).notNull().default("montagem"),
+  status: varchar("status", { length: 30 }).notNull().default("planejada"),
+  complexidade: varchar("complexidade", { length: 20 }).notNull().default("media"),
+  dataInicio: datetime("data_inicio"),
+  dataFim: datetime("data_fim"),
+  dataInicioReal: datetime("data_inicio_real"),
+  dataFimReal: datetime("data_fim_real"),
+  localEvento: varchar("local_evento", { length: 255 }),
+  credenciais: text("credenciais"),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("crm_os_evento_status_idx").on(table.eventoId, table.status),
+  index("crm_os_periodo_idx").on(table.dataInicio, table.dataFim),
+]);
+
+export const crmOsEquipe = mysqlTable("crm_os_equipe", {
+  id: int("id").autoincrement().primaryKey(),
+  osId: int("os_id").notNull(),
+  userId: int("user_id"),
+  nomeExterno: varchar("nome_externo", { length: 255 }),
+  funcao: varchar("funcao", { length: 100 }),
+  confirmado: tinyint("confirmado").notNull().default(0),
+  horasPlanejadas: decimal("horas_planejadas", { precision: 8, scale: 2 }),
+  horasReais: decimal("horas_reais", { precision: 8, scale: 2 }),
+});
+
+export const crmOsMateriais = mysqlTable("crm_os_materiais", {
+  id: int("id").autoincrement().primaryKey(),
+  osId: int("os_id").notNull(),
+  descricao: varchar("descricao", { length: 255 }).notNull(),
+  quantidade: decimal("quantidade", { precision: 10, scale: 3 }).notNull().default("1"),
+  quantidadeReal: decimal("quantidade_real", { precision: 10, scale: 3 }),
+  unidade: varchar("unidade", { length: 20 }).notNull().default("un"),
+  status: varchar("status", { length: 30 }).notNull().default("pendente"),
+  observacoes: text("observacoes"),
+});
+
+export const crmOsOcorrencias = mysqlTable("crm_os_ocorrencias", {
+  id: int("id").autoincrement().primaryKey(),
+  osId: int("os_id").notNull(),
+  tipo: varchar("tipo", { length: 40 }).notNull(),
+  severidade: varchar("severidade", { length: 20 }).notNull().default("media"),
+  descricao: text("descricao").notNull(),
+  custoEstimado: decimal("custo_estimado", { precision: 14, scale: 2 }),
+  resolvida: tinyint("resolvida").notNull().default(0),
+  createdBy: int("created_by"),
+  createdByNome: varchar("created_by_nome", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: datetime("resolved_at"),
+}, (table) => [
+  index("crm_os_ocorrencias_os_idx").on(table.osId, table.resolvida),
+]);
+
+export type CrmOrdemServico = typeof crmOrdensServico.$inferSelect;
+export type InsertCrmOrdemServico = typeof crmOrdensServico.$inferInsert;
+export type CrmOsEquipe = typeof crmOsEquipe.$inferSelect;
+export type CrmOsMaterial = typeof crmOsMateriais.$inferSelect;
+export type CrmOsOcorrencia = typeof crmOsOcorrencias.$inferSelect;
 
 /**
  * Unidade de apuração para um stand de determinado cliente dentro de uma feira.

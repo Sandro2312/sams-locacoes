@@ -99,6 +99,33 @@ describe('CRM Integration Tests', () => {
     expect(data.oportunidades).toBeDefined();
   });
 
+  it('deve listar os Planos de Montagem autenticados sem criar dados operacionais', async () => {
+    const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/`, {
+      headers: {
+        'Cookie': sessionCookie || '',
+      },
+    });
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+    expect(Array.isArray(data.data)).toBe(true);
+    expect(typeof data.total).toBe('number');
+  });
+
+  it('deve fornecer referências operacionais autenticadas sem alterar eventos ou usuários', async () => {
+    const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/referencias`, {
+      headers: {
+        'Cookie': sessionCookie || '',
+      },
+    });
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+    expect(Array.isArray(data.eventos)).toBe(true);
+    expect(Array.isArray(data.projetos)).toBe(true);
+    expect(Array.isArray(data.usuarios)).toBe(true);
+  });
+
   it('deve rejeitar requisição sem autenticação', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/leads?limit=10`);
     

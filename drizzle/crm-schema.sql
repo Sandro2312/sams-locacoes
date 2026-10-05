@@ -352,13 +352,17 @@ CREATE TABLE IF NOT EXISTS crm_ordens_servico (
   contrato_id INT NULL,
   oportunidade_id INT NULL,
   evento_id INT NULL,
+  projeto_stand_id INT NULL,
   responsavel_id INT NULL,
   numero VARCHAR(100) UNIQUE NULL,
   titulo VARCHAR(255) NOT NULL,
   tipo ENUM('montagem','desmontagem','manutencao') NOT NULL DEFAULT 'montagem',
   status ENUM('planejada','confirmada','em_andamento','concluida','cancelada') NOT NULL DEFAULT 'planejada',
+  complexidade VARCHAR(20) NOT NULL DEFAULT 'media',
   data_inicio DATETIME NULL,
   data_fim DATETIME NULL,
+  data_inicio_real DATETIME NULL,
+  data_fim_real DATETIME NULL,
   local_evento VARCHAR(255) NULL,
   credenciais TEXT NULL,
   observacoes TEXT NULL,
@@ -377,6 +381,8 @@ CREATE TABLE IF NOT EXISTS crm_os_equipe (
   nome_externo VARCHAR(255) NULL,
   funcao VARCHAR(100) NULL,
   confirmado TINYINT(1) DEFAULT 0,
+  horas_planejadas DECIMAL(8,2) NULL,
+  horas_reais DECIMAL(8,2) NULL,
   FOREIGN KEY (os_id) REFERENCES crm_ordens_servico(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES crm_users(id) ON DELETE SET NULL
 );
@@ -387,8 +393,26 @@ CREATE TABLE IF NOT EXISTS crm_os_materiais (
   os_id INT NOT NULL,
   descricao VARCHAR(255) NOT NULL,
   quantidade DECIMAL(10,3) DEFAULT 1,
+  quantidade_real DECIMAL(10,3) NULL,
   unidade VARCHAR(20) DEFAULT 'un',
   status ENUM('pendente','separado','enviado','devolvido') DEFAULT 'pendente',
+  observacoes TEXT NULL,
+  FOREIGN KEY (os_id) REFERENCES crm_ordens_servico(id) ON DELETE CASCADE
+);
+
+-- Ocorrências operacionais registradas durante a execução da OS
+CREATE TABLE IF NOT EXISTS crm_os_ocorrencias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  os_id INT NOT NULL,
+  tipo VARCHAR(40) NOT NULL,
+  severidade VARCHAR(20) NOT NULL DEFAULT 'media',
+  descricao TEXT NOT NULL,
+  custo_estimado DECIMAL(14,2) NULL,
+  resolvida TINYINT(1) NOT NULL DEFAULT 0,
+  created_by INT NULL,
+  created_by_nome VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  resolved_at DATETIME NULL,
   FOREIGN KEY (os_id) REFERENCES crm_ordens_servico(id) ON DELETE CASCADE
 );
 
@@ -482,6 +506,10 @@ CREATE INDEX IF NOT EXISTS idx_crm_contas_vencimento ON crm_contas_receber(venci
 CREATE INDEX IF NOT EXISTS idx_crm_auditoria ON crm_auditoria(table_name, record_id);
 CREATE INDEX IF NOT EXISTS idx_crm_os_status ON crm_ordens_servico(status);
 CREATE INDEX IF NOT EXISTS idx_crm_os_tipo ON crm_ordens_servico(tipo);
+CREATE INDEX IF NOT EXISTS idx_crm_os_projeto_stand ON crm_ordens_servico(projeto_stand_id);
+CREATE INDEX IF NOT EXISTS idx_crm_os_periodo ON crm_ordens_servico(data_inicio, data_fim);
+CREATE INDEX IF NOT EXISTS idx_crm_os_equipe_user ON crm_os_equipe(user_id, os_id);
+CREATE INDEX IF NOT EXISTS idx_crm_os_ocorrencias_os ON crm_os_ocorrencias(os_id, resolvida);
 
 SET FOREIGN_KEY_CHECKS = 1;
 
