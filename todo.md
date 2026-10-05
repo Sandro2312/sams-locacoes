@@ -1012,3 +1012,13 @@
 - [x] Criar interface responsiva e mobile para criar, acompanhar e encerrar planos de montagem
 - [x] Validar migração, permissões, fluxos sem dados de teste persistentes, desktop/mobile e regressões financeiras
 - [x] Criar checkpoint documentado da primeira entrega operacional
+
+## Correção — Busca de Centro de Custos nos Relatórios (Out/2026)
+
+- [x] Substituir a lista suspensa extensa por busca assistida por texto no relatório de Centro de Custos
+- [x] Manter a seleção por clique e por teclado, a ação “Todos” e as exportações CSV, Excel e PDF
+- [x] Validar com centros de custo reais, sintaxe JavaScript, TypeScript, build e regressões financeiras
+
+## Próximo complemento operacional
+
+- [ ] Retomar o checklist persistente de campo vinculado aos Planos de Montagem quando solicitado; a entrega foi deliberadamente pausada antes de ativar qualquer fluxo operacional.

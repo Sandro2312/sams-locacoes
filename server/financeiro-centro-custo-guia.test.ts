@@ -30,7 +30,20 @@ describe("Financeiro — centro de custo de lançamentos por stand", () => {
     expect(modules).toContain("const selectedEvent = filterKey ? this.findEventoByCentroCustoFilter(filterCentroCusto) : null");
   });
 
+  it("troca o seletor extenso do relatório por busca assistida com seleção por mouse e teclado", () => {
+    expect(modules).toContain("findRelatorioCentroCustoMatches(term, limit = 12)");
+    expect(modules).toContain("renderRelatorioCentroCustoSearch(input)");
+    expect(modules).toContain("commitRelatorioCentroCustoSearch(input)");
+    expect(modules).toContain("selectRelatorioCentroCustoOption(value)");
+    expect(modules).toContain('id="relatorio-centro-custo-search"');
+    expect(modules).toContain('type="search"');
+    expect(modules).toContain("Digite parte do centro de custo");
+    expect(modules).toContain("if(event.key==='Enter')");
+    expect(modules).toContain("data-relatorio-centro-custo-option");
+    expect(modules).toContain("Exibir todos os centros de custo");
+  });
+
   it("distribui a versão atualizada dos filtros financeiros", () => {
-    expect(index).toContain("/crm/js/modules.js?v=1787316000");
+    expect(index).toContain("/crm/js/modules.js?v=1791204700");
   });
 });

@@ -5069,6 +5069,52 @@ const ModuleSystem = {
             setTimeout(() => { try { win.print(); } catch {} }, 400);
         },
 
+        findRelatorioCentroCustoMatches(term, limit = 12) {
+            const query = this.centroCustoComparisonKey(term);
+            if (!query) return [];
+            return this.getCentroCustosList()
+                .filter((centro) => this.centroCustoComparisonKey(centro).includes(query))
+                .slice(0, limit);
+        },
+
+        renderRelatorioCentroCustoSearch(input) {
+            const wrapper = input?.closest?.('[data-relatorio-centro-busca]');
+            const host = wrapper?.querySelector?.('[data-relatorio-centro-resultados]');
+            const status = wrapper?.querySelector?.('[data-relatorio-centro-status]');
+            if (!host || !status) return;
+            const query = String(input.value || '').trim();
+            const escape = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            if (!query) {
+                host.hidden = true;
+                host.innerHTML = '';
+                status.textContent = 'Digite para localizar um centro de custo.';
+                return;
+            }
+            const matches = this.findRelatorioCentroCustoMatches(query);
+            status.textContent = matches.length ? `${matches.length} centro(s) encontrado(s). Selecione uma opção.` : 'Nenhum centro de custo encontrado.';
+            host.hidden = false;
+            host.innerHTML = matches.length
+                ? matches.map((centro) => `<button type="button" data-relatorio-centro-custo-option data-value="${escape(centro)}" onclick="ModuleSystem.financeiro.selectRelatorioCentroCustoOption(this.dataset.value)" class="block w-full border-b border-slate-100 px-3 py-2.5 text-left text-sm font-medium text-slate-800 last:border-b-0 hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none">${escape(centro)}</button>`).join('')
+                : '<p class="px-3 py-2.5 text-sm text-slate-500">Tente outro trecho do nome.</p>';
+        },
+
+        commitRelatorioCentroCustoSearch(input) {
+            const query = String(input?.value || '').trim();
+            if (!query) return this.setRelatorioCentroCustoFilter('');
+            const comparison = this.centroCustoComparisonKey(query);
+            const exact = this.getCentroCustosList().find((centro) => this.centroCustoComparisonKey(centro) === comparison);
+            const match = exact || this.findRelatorioCentroCustoMatches(query, 1)[0];
+            if (!match) {
+                try { window.NotificationSystem?.warning?.('Selecione um centro de custo sugerido ou limpe a busca.'); } catch {}
+                return;
+            }
+            this.setRelatorioCentroCustoFilter(match);
+        },
+
+        selectRelatorioCentroCustoOption(value) {
+            this.setRelatorioCentroCustoFilter(value != null ? String(value) : '');
+        },
+
         setRelatorioCentroCustoFilter(value) {
             const raw = value != null ? String(value) : '';
             this._relatorioCentroCustoFilter = raw;
@@ -5110,12 +5156,20 @@ const ModuleSystem = {
                         <div class="flex flex-wrap justify-between items-start gap-3">
                             <h3 class="text-lg font-semibold text-gray-800">Relatórios - Centro de Custos</h3>
                             <div class="flex flex-wrap items-center gap-2">
-                                <label class="text-sm text-gray-600">Centro:</label>
-                                <select class="px-3 py-2 border border-gray-300 rounded-lg"
-                                        onchange="ModuleSystem.financeiro.setRelatorioCentroCustoFilter(this.value)">
-                                    <option value="" ${!filterKey ? 'selected' : ''}>Todos</option>
-                                    ${centros.map(cc => `<option value="${esc(cc)}" ${filterKey && String(cc) === String(filterKey) ? 'selected' : ''}>${esc(cc)}</option>`).join('')}
-                                </select>
+                                <div data-relatorio-centro-busca class="relative w-full sm:w-[min(100%,36rem)]">
+                                    <label for="relatorio-centro-custo-search" class="block text-sm text-gray-600">Centro:</label>
+                                    <div class="mt-1 flex gap-2">
+                                        <input id="relatorio-centro-custo-search" type="search" autocomplete="off" value="${esc(currentFilter)}"
+                                            placeholder="Digite parte do centro de custo"
+                                            oninput="ModuleSystem.financeiro.renderRelatorioCentroCustoSearch(this)"
+                                            onfocus="ModuleSystem.financeiro.renderRelatorioCentroCustoSearch(this)"
+                                            onkeydown="if(event.key==='Enter'){event.preventDefault();ModuleSystem.financeiro.commitRelatorioCentroCustoSearch(this)}"
+                                            class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                                        <button type="button" onclick="ModuleSystem.financeiro.setRelatorioCentroCustoFilter('')" class="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" title="Exibir todos os centros de custo">Todos</button>
+                                    </div>
+                                    <p data-relatorio-centro-status aria-live="polite" class="mt-1 text-xs text-gray-500">${currentFilter ? `Filtro aplicado: ${esc(currentFilter)}.` : 'Digite para localizar um centro de custo.'}</p>
+                                    <div data-relatorio-centro-resultados hidden role="listbox" class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"></div>
+                                </div>
                                 <button type="button" onclick="ModuleSystem.financeiro.exportRelatorioCentroCustosCsv()"
                                         class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg transition duration-300"
                                         title="Exportar como CSV (compatível com Excel)">
