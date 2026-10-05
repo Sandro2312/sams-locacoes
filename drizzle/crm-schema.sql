@@ -416,6 +416,25 @@ CREATE TABLE IF NOT EXISTS crm_os_ocorrencias (
   FOREIGN KEY (os_id) REFERENCES crm_ordens_servico(id) ON DELETE CASCADE
 );
 
+-- Checklist operacional persistente por Ordem de Serviço
+CREATE TABLE IF NOT EXISTS crm_os_checklist_itens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  os_id INT NOT NULL,
+  codigo VARCHAR(80) NOT NULL,
+  categoria VARCHAR(120) NOT NULL,
+  titulo VARCHAR(255) NOT NULL,
+  obrigatorio TINYINT(1) NOT NULL DEFAULT 1,
+  concluido TINYINT(1) NOT NULL DEFAULT 0,
+  observacao TEXT NULL,
+  concluido_por INT NULL,
+  concluido_por_nome VARCHAR(255) NULL,
+  concluido_em DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (os_id) REFERENCES crm_ordens_servico(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_crm_os_checklist_item (os_id, codigo)
+);
+
 -- OS Fotos
 CREATE TABLE IF NOT EXISTS crm_os_fotos (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -510,6 +529,7 @@ CREATE INDEX IF NOT EXISTS idx_crm_os_projeto_stand ON crm_ordens_servico(projet
 CREATE INDEX IF NOT EXISTS idx_crm_os_periodo ON crm_ordens_servico(data_inicio, data_fim);
 CREATE INDEX IF NOT EXISTS idx_crm_os_equipe_user ON crm_os_equipe(user_id, os_id);
 CREATE INDEX IF NOT EXISTS idx_crm_os_ocorrencias_os ON crm_os_ocorrencias(os_id, resolvida);
+CREATE INDEX IF NOT EXISTS idx_crm_os_checklist_os ON crm_os_checklist_itens(os_id, concluido);
 
 SET FOREIGN_KEY_CHECKS = 1;
 

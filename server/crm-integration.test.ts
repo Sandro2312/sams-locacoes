@@ -126,6 +126,39 @@ describe('CRM Integration Tests', () => {
     expect(Array.isArray(data.usuarios)).toBe(true);
   });
 
+  it('deve apurar indicadores operacionais em modo somente leitura', async () => {
+    const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/indicadores`, {
+      headers: {
+        'Cookie': sessionCookie || '',
+      },
+    });
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+    expect(data.somenteLeitura).toBe(true);
+    expect(data.qualidade).toEqual(expect.objectContaining({
+      planosConcluidos: expect.any(Number),
+      amostraSuficiente: expect.any(Boolean),
+      proximoMarco: expect.any(String),
+    }));
+    expect(data.prazo).toBeDefined();
+    expect(data.equipe).toBeDefined();
+    expect(data.materiais).toBeDefined();
+    expect(Array.isArray(data.porComplexidade)).toBe(true);
+  });
+
+  it('deve expor o detalhe operacional com checklist sem criar dados em uma OS inexistente', async () => {
+    const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/999999999`, {
+      headers: {
+        'Cookie': sessionCookie || '',
+      },
+    });
+
+    expect(response.status).toBe(404);
+    const data = await response.json();
+    expect(data.error).toBe('Ordem de Serviço não encontrada');
+  });
+
   it('deve rejeitar requisição sem autenticação', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/leads?limit=10`);
     

@@ -1019,6 +1019,23 @@
 - [x] Manter a seleção por clique e por teclado, a ação “Todos” e as exportações CSV, Excel e PDF
 - [x] Validar com centros de custo reais, sintaxe JavaScript, TypeScript, build e regressões financeiras
 
-## Próximo complemento operacional
+## Complemento operacional — Checklist de Campo (Out/2026)
 
-- [ ] Retomar o checklist persistente de campo vinculado aos Planos de Montagem quando solicitado; a entrega foi deliberadamente pausada antes de ativar qualquer fluxo operacional.
+- [x] Persistir checklist padrão de 12 itens por Ordem de Serviço, com estrutura aditiva e sem lançamentos financeiros
+- [x] Proteger a preparação e atualização de itens por perfil operacional, com auditoria e inicialização idempotente
+- [x] Integrar o checklist responsivo ao detalhe do Plano de Montagem, com progresso, observação e responsável
+- [x] Validar schema, permissões, interface vazia, sintaxe, TypeScript, build e regressões sem criar dados operacionais de teste
+
+## Complemento operacional — Apontamento Planejado x Realizado (Out/2026)
+
+- [x] Permitir registrar horas reais por integrante da Ordem de Serviço
+- [x] Permitir registrar quantidade real e situação de cada material previsto
+- [x] Manter a atualização em rotas operacionais auditadas, sem criar receitas, despesas ou rateios
+- [x] Validar cache, tela vazia, permissões, sintaxe, TypeScript, build e regressões sem criar planos ou itens de teste
+
+## Complemento operacional — Base Histórica para Planejamento Preditivo (Out/2026)
+
+- [x] Consolidar, em modo somente leitura, prazos planejados e reais, horas, materiais e checklist de OS concluídas
+- [x] Exibir qualidade da base, desvio médio e visão por complexidade no módulo de Planos de Montagem
+- [x] Bloquear recomendações assistidas até existir amostra mínima de 3 OS concluídas com prazo planejado e real
+- [x] Validar endpoint autenticado, interface vazia, cache, sintaxe, TypeScript e testes sem gerar dados operacionais

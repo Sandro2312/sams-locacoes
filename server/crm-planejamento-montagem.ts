@@ -17,6 +17,20 @@ const COMPLEXITIES = new Set(["baixa", "media", "alta", "critica"]);
 const MATERIAL_STATUSES = new Set(["pendente", "separado", "enviado", "devolvido"]);
 const OCCURRENCE_TYPES = new Set(["atraso", "material", "equipe", "logistica", "qualidade", "seguranca", "cliente", "outro"]);
 const SEVERITIES = new Set(["baixa", "media", "alta", "critica"]);
+const FIELD_CHECKLIST_TEMPLATE = [
+  ["pre_local", "Pré-montagem", "Conferir localização, pavilhão e acesso à montagem"],
+  ["pre_credenciais", "Pré-montagem", "Confirmar credenciais, carga/descarga e regras da feira"],
+  ["pre_materiais", "Pré-montagem", "Conferir materiais e quantidades antes da saída"],
+  ["pre_equipe", "Pré-montagem", "Confirmar equipe, funções e janela de trabalho"],
+  ["montagem_estrutura", "Estrutura", "Montar estrutura conforme o projeto aprovado"],
+  ["montagem_nivelamento", "Estrutura", "Verificar nivelamento, estabilidade e fixações"],
+  ["tecnica_eletrica", "Instalações técnicas", "Testar elétrica, iluminação e pontos de energia aplicáveis"],
+  ["tecnica_audiovisual", "Instalações técnicas", "Testar equipamentos audiovisuais, LED ou sonorização aplicáveis"],
+  ["acabamento_visual", "Acabamento", "Conferir comunicação visual, mobiliário e acabamento"],
+  ["acabamento_limpeza", "Acabamento", "Realizar limpeza e organização final do stand"],
+  ["entrega_qualidade", "Entrega", "Fazer conferência final de qualidade e segurança"],
+  ["entrega_cliente", "Entrega", "Registrar entrega e pendências alinhadas com o cliente"],
+] as const;
 
 let pool: mysql.Pool | null = null;
 function getPool() {
@@ -151,6 +165,8 @@ const PLAN_COLUMNS = `
   COALESCE((SELECT COUNT(*) FROM crm_os_materiais om WHERE om.os_id=os.id), 0) AS materiais_total,
   COALESCE((SELECT SUM(om.status IN ('separado','enviado','devolvido')) FROM crm_os_materiais om WHERE om.os_id=os.id), 0) AS materiais_prontos,
   COALESCE((SELECT COUNT(*) FROM crm_os_ocorrencias oo WHERE oo.os_id=os.id AND oo.resolvida=0), 0) AS ocorrencias_abertas,
+  COALESCE((SELECT COUNT(*) FROM crm_os_checklist_itens ci WHERE ci.os_id=os.id), 0) AS checklist_total,
+  COALESCE((SELECT SUM(ci.concluido=1) FROM crm_os_checklist_itens ci WHERE ci.os_id=os.id), 0) AS checklist_concluidos,
   COALESCE((SELECT COUNT(DISTINCT other_os.id)
     FROM crm_os_equipe own_team
     JOIN crm_os_equipe other_team ON other_team.user_id=own_team.user_id AND own_team.user_id IS NOT NULL
@@ -174,6 +190,61 @@ export function registerPlanejamentoMontagemRoutes(app: any) {
       ]);
       res.json({ eventos, projetos, usuarios });
     } catch (error) { errorResponse(res, error, "Não foi possível carregar as referências operacionais"); }
+  });
+
+  r.get("/indicadores", requireCrmAuth, async (_req, res) => {
+    try {
+      const [quality, duration, team, materials, complexity] = await Promise.all([
+        dbOne<any>(`SELECT
+          COUNT(*) AS planos_concluidos,
+          SUM(CASE WHEN data_inicio IS NOT NULL AND data_fim IS NOT NULL AND data_inicio_real IS NOT NULL AND data_fim_real IS NOT NULL THEN 1 ELSE 0 END) AS planos_com_tempo_real,
+          SUM(CASE WHEN EXISTS(SELECT 1 FROM crm_os_checklist_itens ci WHERE ci.os_id=os.id)
+                    AND NOT EXISTS(SELECT 1 FROM crm_os_checklist_itens ci WHERE ci.os_id=os.id AND ci.concluido=0)
+                   THEN 1 ELSE 0 END) AS checklists_completos
+          FROM crm_ordens_servico os WHERE os.status='concluida'`),
+        dbOne<any>(`SELECT
+          AVG(TIMESTAMPDIFF(MINUTE, data_inicio, data_fim) / 60) AS horas_planejadas_media,
+          AVG(TIMESTAMPDIFF(MINUTE, data_inicio_real, data_fim_real) / 60) AS horas_reais_media,
+          AVG((TIMESTAMPDIFF(MINUTE, data_inicio_real, data_fim_real) - TIMESTAMPDIFF(MINUTE, data_inicio, data_fim)) / 60) AS desvio_horas_medio
+          FROM crm_ordens_servico
+          WHERE status='concluida' AND data_inicio IS NOT NULL AND data_fim IS NOT NULL AND data_inicio_real IS NOT NULL AND data_fim_real IS NOT NULL`),
+        dbOne<any>(`SELECT
+          COUNT(DISTINCT oe.os_id) AS planos_com_equipe,
+          COUNT(DISTINCT CASE WHEN oe.horas_reais IS NOT NULL THEN oe.os_id END) AS planos_com_horas_reais,
+          COALESCE(SUM(oe.horas_planejadas), 0) AS horas_planejadas,
+          COALESCE(SUM(oe.horas_reais), 0) AS horas_reais
+          FROM crm_os_equipe oe JOIN crm_ordens_servico os ON os.id=oe.os_id WHERE os.status='concluida'`),
+        dbOne<any>(`SELECT
+          COUNT(DISTINCT om.os_id) AS planos_com_materiais,
+          COUNT(DISTINCT CASE WHEN om.quantidade_real IS NOT NULL THEN om.os_id END) AS planos_com_quantidade_real,
+          COUNT(*) AS itens_materiais,
+          SUM(CASE WHEN om.quantidade_real IS NOT NULL THEN 1 ELSE 0 END) AS itens_com_quantidade_real
+          FROM crm_os_materiais om JOIN crm_ordens_servico os ON os.id=om.os_id WHERE os.status='concluida'`),
+        db<any>(`SELECT complexidade, COUNT(*) AS planos,
+          AVG(CASE WHEN data_inicio IS NOT NULL AND data_fim IS NOT NULL AND data_inicio_real IS NOT NULL AND data_fim_real IS NOT NULL THEN (TIMESTAMPDIFF(MINUTE, data_inicio_real, data_fim_real) - TIMESTAMPDIFF(MINUTE, data_inicio, data_fim)) / 60 END) AS desvio_horas_medio
+          FROM crm_ordens_servico WHERE status='concluida' GROUP BY complexidade ORDER BY FIELD(complexidade,'baixa','media','alta','critica')`),
+      ]);
+      const completed = Number(quality?.planos_concluidos || 0);
+      const timingSample = Number(quality?.planos_com_tempo_real || 0);
+      const teamSample = Number(team?.planos_com_horas_reais || 0);
+      const materialSample = Number(materials?.planos_com_quantidade_real || 0);
+      res.json({
+        somenteLeitura: true,
+        qualidade: {
+          planosConcluidos: completed,
+          planosComTempoReal: timingSample,
+          checklistsCompletos: Number(quality?.checklists_completos || 0),
+          planosComHorasReais: teamSample,
+          planosComMateriaisReais: materialSample,
+          amostraSuficiente: completed >= 3 && timingSample >= 3,
+          proximoMarco: completed >= 3 && timingSample >= 3 ? "Base mínima atingida para recomendações assistidas." : "Registre pelo menos 3 OS concluídas com prazo planejado e real antes de usar recomendações assistidas.",
+        },
+        prazo: { horasPlanejadasMedia: Number(duration?.horas_planejadas_media || 0), horasReaisMedia: Number(duration?.horas_reais_media || 0), desvioHorasMedio: Number(duration?.desvio_horas_medio || 0) },
+        equipe: { planosComEquipe: Number(team?.planos_com_equipe || 0), planosComHorasReais: teamSample, horasPlanejadas: Number(team?.horas_planejadas || 0), horasReais: Number(team?.horas_reais || 0) },
+        materiais: { planosComMateriais: Number(materials?.planos_com_materiais || 0), planosComQuantidadeReal: materialSample, itens: Number(materials?.itens_materiais || 0), itensComQuantidadeReal: Number(materials?.itens_com_quantidade_real || 0) },
+        porComplexidade: complexity.map((row: any) => ({ complexidade: row.complexidade || "media", planos: Number(row.planos || 0), desvioHorasMedio: Number(row.desvio_horas_medio || 0) })),
+      });
+    } catch (error) { errorResponse(res, error, "Não foi possível apurar os indicadores operacionais"); }
   });
 
   r.get("/", requireCrmAuth, async (req, res) => {
@@ -209,12 +280,13 @@ export function registerPlanejamentoMontagemRoutes(app: any) {
         LEFT JOIN crm_projetos_stand ps ON ps.id=os.projeto_stand_id
         WHERE os.id=?`, [id]);
       if (!os) return res.status(404).json({ error: "Ordem de Serviço não encontrada" });
-      const [equipe, materiais, ocorrencias] = await Promise.all([
+      const [equipe, materiais, ocorrencias, checklist] = await Promise.all([
         db<any>("SELECT oe.*, u.name AS usuario_nome FROM crm_os_equipe oe LEFT JOIN crm_users u ON u.id=oe.user_id WHERE oe.os_id=? ORDER BY oe.confirmado DESC, COALESCE(u.name, oe.nome_externo) ASC", [id]),
         db<any>("SELECT * FROM crm_os_materiais WHERE os_id=? ORDER BY FIELD(status,'pendente','separado','enviado','devolvido'), descricao ASC", [id]),
         db<any>("SELECT * FROM crm_os_ocorrencias WHERE os_id=? ORDER BY resolvida ASC, created_at DESC", [id]),
+        db<any>("SELECT * FROM crm_os_checklist_itens WHERE os_id=? ORDER BY categoria ASC, id ASC", [id]),
       ]);
-      res.json({ os: toPlan(os), equipe, materiais, ocorrencias });
+      res.json({ os: toPlan(os), equipe, materiais, ocorrencias, checklist });
     } catch (error) { errorResponse(res, error, "Não foi possível carregar a Ordem de Serviço"); }
   });
 
@@ -284,6 +356,45 @@ export function registerPlanejamentoMontagemRoutes(app: any) {
       await audit(user, "UPDATE_OPERATION_PLAN", id, { status, tipo, complexidade, eventoId, projetoStandId }, req.ip);
       res.json({ ok: true, id });
     } catch (error) { errorResponse(res, error, "Não foi possível atualizar o Plano de Montagem"); }
+  });
+
+  r.post("/:id/checklist/inicializar", requireOperationalWrite, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const osId = safeInt(req.params.id, 0, 1);
+      if (!await dbOne("SELECT id FROM crm_ordens_servico WHERE id=?", [osId])) return res.status(404).json({ error: "Ordem de Serviço não encontrada" });
+      let created = 0;
+      for (const [codigo, categoria, titulo] of FIELD_CHECKLIST_TEMPLATE) {
+        const [result] = await getPool().execute<any>("INSERT IGNORE INTO crm_os_checklist_itens (os_id,codigo,categoria,titulo,obrigatorio) VALUES (?,?,?,?,1)", [osId, codigo, categoria, titulo]);
+        created += Number(result.affectedRows || 0);
+      }
+      const total = await dbOne<any>("SELECT COUNT(*) AS total FROM crm_os_checklist_itens WHERE os_id=?", [osId]);
+      await audit(user, "INITIALIZE_FIELD_CHECKLIST", osId, { created, total: Number(total?.total || 0) }, req.ip);
+      res.status(created ? 201 : 200).json({ ok: true, created, total: Number(total?.total || 0) });
+    } catch (error) { errorResponse(res, error, "Não foi possível preparar o checklist de campo"); }
+  });
+
+  r.put("/:id/checklist/:itemId", requireOperationalWrite, async (req, res) => {
+    try {
+      const user = (req as any).crmUser as CrmSession;
+      const osId = safeInt(req.params.id, 0, 1);
+      const itemId = safeInt(req.params.itemId, 0, 1);
+      const current = await dbOne<any>("SELECT * FROM crm_os_checklist_itens WHERE id=? AND os_id=?", [itemId, osId]);
+      if (!current) return res.status(404).json({ error: "Item de checklist não encontrado" });
+      const concluido = Object.prototype.hasOwnProperty.call(req.body || {}, "concluido") ? bool(req.body.concluido) : Boolean(current.concluido);
+      const observacao = nullableText(req.body?.observacao ?? current.observacao, 4000);
+      await db("UPDATE crm_os_checklist_itens SET concluido=?, observacao=?, concluido_por=?, concluido_por_nome=?, concluido_em=? WHERE id=? AND os_id=?", [
+        concluido ? 1 : 0,
+        observacao,
+        concluido ? user.userId : null,
+        concluido ? (user.name || null) : null,
+        concluido ? new Date() : null,
+        itemId,
+        osId,
+      ]);
+      await audit(user, "UPDATE_FIELD_CHECKLIST_ITEM", osId, { itemId, codigo: current.codigo, concluido, observacao: Boolean(observacao) }, req.ip);
+      res.json({ ok: true, id: itemId, concluido });
+    } catch (error) { errorResponse(res, error, "Não foi possível atualizar o checklist de campo"); }
   });
 
   r.post("/:id/equipe", requireOperationalWrite, async (req, res) => {

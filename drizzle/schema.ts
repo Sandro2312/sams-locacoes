@@ -167,11 +167,35 @@ export const crmOsOcorrencias = mysqlTable("crm_os_ocorrencias", {
   index("crm_os_ocorrencias_os_idx").on(table.osId, table.resolvida),
 ]);
 
+/**
+ * Itens de conferência em campo. Cada OS recebe seu próprio conjunto de itens
+ * para que a execução real fique auditável e não dependa do localStorage.
+ */
+export const crmOsChecklistItens = mysqlTable("crm_os_checklist_itens", {
+  id: int("id").autoincrement().primaryKey(),
+  osId: int("os_id").notNull(),
+  codigo: varchar("codigo", { length: 80 }).notNull(),
+  categoria: varchar("categoria", { length: 120 }).notNull(),
+  titulo: varchar("titulo", { length: 255 }).notNull(),
+  obrigatorio: tinyint("obrigatorio").notNull().default(1),
+  concluido: tinyint("concluido").notNull().default(0),
+  observacao: text("observacao"),
+  concluidoPor: int("concluido_por"),
+  concluidoPorNome: varchar("concluido_por_nome", { length: 255 }),
+  concluidoEm: datetime("concluido_em"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("crm_os_checklist_os_codigo_unique").on(table.osId, table.codigo),
+  index("crm_os_checklist_os_idx").on(table.osId, table.concluido),
+]);
+
 export type CrmOrdemServico = typeof crmOrdensServico.$inferSelect;
 export type InsertCrmOrdemServico = typeof crmOrdensServico.$inferInsert;
 export type CrmOsEquipe = typeof crmOsEquipe.$inferSelect;
 export type CrmOsMaterial = typeof crmOsMateriais.$inferSelect;
 export type CrmOsOcorrencia = typeof crmOsOcorrencias.$inferSelect;
+export type CrmOsChecklistItem = typeof crmOsChecklistItens.$inferSelect;
 
 /**
  * Unidade de apuração para um stand de determinado cliente dentro de uma feira.

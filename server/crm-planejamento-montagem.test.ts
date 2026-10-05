@@ -9,6 +9,7 @@ const api = read("server/crm-planejamento-montagem.ts");
 const crm = read("server/crm.ts");
 const schema = read("drizzle/schema.ts");
 const migration = read("drizzle/0022_planejamento_montagem.sql");
+const checklistMigration = read("drizzle/0023_checklist_operacional_montagem.sql");
 const ui = read("client/public/crm/js/crm-planejamento-montagem.js");
 const navigation = read("client/public/crm/js/navigation.js");
 const index = read("client/public/crm/index.html");
@@ -24,6 +25,9 @@ describe("Planejamento e Execução de Montagem — Fase 1", () => {
     expect(schema).toContain('export const crmOsEquipe');
     expect(schema).toContain('export const crmOsMateriais');
     expect(schema).toContain('export const crmOsOcorrencias');
+    expect(schema).toContain('export const crmOsChecklistItens');
+    expect(checklistMigration).toContain('CREATE TABLE IF NOT EXISTS crm_os_checklist_itens');
+    expect(checklistMigration).not.toMatch(/(?:INSERT INTO|UPDATE|DELETE FROM|ALTER TABLE)\s+crm_(?:transacoes|contas_receber)/i);
   });
 
   it("registra a API protegida e preserva a auditoria de alterações operacionais", () => {
@@ -38,6 +42,13 @@ describe("Planejamento e Execução de Montagem — Fase 1", () => {
     expect(api).toContain("ADD_OPERATION_TEAM");
     expect(api).toContain("ADD_OPERATION_MATERIAL");
     expect(api).toContain("ADD_OPERATION_ISSUE");
+    expect(api).toContain("INITIALIZE_FIELD_CHECKLIST");
+    expect(api).toContain("UPDATE_FIELD_CHECKLIST_ITEM");
+    expect(api).toContain('r.post("/:id/checklist/inicializar", requireOperationalWrite');
+    expect(api).toContain('r.put("/:id/checklist/:itemId", requireOperationalWrite');
+    expect(api).toContain('r.get("/indicadores", requireCrmAuth');
+    expect(api).toContain("amostraSuficiente");
+    expect(api).toContain("Base mínima atingida para recomendações assistidas.");
   });
 
   it("valida relações, períodos, conclusão e valores antes de persistir", () => {
@@ -72,10 +83,25 @@ describe("Planejamento e Execução de Montagem — Fase 1", () => {
     expect(ui).toContain("Próximos 14 dias");
     expect(ui).toContain("Conflito de equipe");
     expect(ui).toContain("min-w-[980px]");
+    expect(ui).toContain("Checklist de campo");
+    expect(ui).toContain("data-montagem-checklist-initialize");
+    expect(ui).toContain("data-montagem-checklist-toggle");
+    expect(ui).toContain("data-montagem-checklist-save");
+    expect(ui).toContain("Apontamento da execução");
+    expect(ui).toContain("data-montagem-team-actual-form");
+    expect(ui).toContain("data-montagem-material-actual-form");
+    expect(ui).toContain("Horas reais atualizadas.");
+    expect(ui).toContain("Apontamento de material atualizado.");
+    expect(ui).toContain("Qualidade para planejamento preditivo");
+    expect(ui).toContain("data-montagem-historical-indicators");
+    expect(ui).toContain("Base histórica · somente leitura");
+    expect(ui).toContain("api('/indicadores').catch(() => null)");
+    expect(api).toContain('r.put("/:id/equipe/:equipeId", requireOperationalWrite');
+    expect(api).toContain('r.put("/:id/materiais/:materialId", requireOperationalWrite');
     expect(navigation).toContain("Planos de Montagem");
     expect(navigation).toContain("window.PlanejamentoMontagemModule?.render?.()");
     expect(navigation).toContain("window.PlanejamentoMontagemModule?.load?.()");
-    expect(index).toContain('/crm/js/crm-planejamento-montagem.js?v=1791204200');
+    expect(index).toContain('/crm/js/crm-planejamento-montagem.js?v=1791205200');
     expect(index).toContain('/crm/js/navigation.js?v=1791203900');
   });
 
