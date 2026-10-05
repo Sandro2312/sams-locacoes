@@ -4163,6 +4163,10 @@ const ModuleSystem = {
                                             class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg transition duration-300 text-sm" title="Importar despesas via planilha Excel/CSV">
                                         <i class="fas fa-file-import mr-1"></i>Importar
                                     </button>
+                                    <button data-action="create" data-module="compras"
+                                            class="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg transition duration-300" title="Registrar uma compra com entrada e parcelas vinculadas">
+                                        <i class="fas fa-cart-plus mr-2"></i>Nova Compra
+                                    </button>
                                     <button data-action="create" data-module="transacoes" 
                                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-300">
                                         <i class="fas fa-plus mr-2"></i>Nova Despesa

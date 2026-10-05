@@ -1039,3 +1039,11 @@
 - [x] Exibir qualidade da base, desvio médio e visão por complexidade no módulo de Planos de Montagem
 - [x] Bloquear recomendações assistidas até existir amostra mínima de 3 OS concluídas com prazo planejado e real
 - [x] Validar endpoint autenticado, interface vazia, cache, sintaxe, TypeScript e testes sem gerar dados operacionais
+
+## Correção e evolução — Despesas e Compras Gerais (Out/2026)
+
+- [x] Corrigir reabertura de Nova Despesa: remover reuso automático de centro de custo e defaults financeiros após cancelamento, preservando somente contexto explícito do Guia de Fechamento
+- [x] Persistir fornecedor, categoria, forma e data de pagamento em despesas gerais
+- [x] Criar Compra Geral independente de Ordem de Serviço, aplicável a veículos, máquinas, equipamentos, mobiliário, ferramentas, estoque e serviços
+- [x] Gerar entrada e parcelas como Contas a Pagar vinculadas, em uma transação única, com valores distribuídos em centavos, vencimentos mensais e auditoria
+- [x] Validar interface, cache, permissões, schema, sintaxe, TypeScript, build e regressões sem criar compras ou lançamentos financeiros de teste

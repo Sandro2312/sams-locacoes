@@ -546,11 +546,18 @@ CREATE TABLE IF NOT EXISTS crm_transacoes (
   valor DECIMAL(12,2) NOT NULL DEFAULT 0,
   status VARCHAR(50) NULL DEFAULT 'pendente',
   centro_custo VARCHAR(100) NULL,
+  fornecedor VARCHAR(255) NULL,
+  categoria VARCHAR(100) NULL,
+  forma_pagamento VARCHAR(120) NULL,
   data DATE NULL,
+  data_pagamento DATE NULL,
   observacoes TEXT NULL,
   comprovante_url TEXT NULL,
   evento_id INT NULL,
   cliente_id INT NULL,
+  projeto_stand_id INT NULL,
+  compra_id INT NULL,
+  parcela_numero INT NULL,
   created_by INT NULL,
   recorrencia VARCHAR(20) NULL,
   recorrencia_grupo_id VARCHAR(50) NULL,
@@ -561,6 +568,37 @@ CREATE TABLE IF NOT EXISTS crm_transacoes (
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_tipo ON crm_transacoes(tipo);
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_data ON crm_transacoes(data);
 CREATE INDEX IF NOT EXISTS idx_crm_transacoes_centro_custo ON crm_transacoes(centro_custo);
+CREATE INDEX IF NOT EXISTS idx_crm_transacoes_compra ON crm_transacoes(compra_id);
+
+-- Compras gerais: cabeçalho auditável que vincula entrada e parcelas às transações existentes.
+-- Não substitui as contas a pagar; cada parcela continua como lançamento individual em crm_transacoes.
+CREATE TABLE IF NOT EXISTS crm_compras (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(60) NOT NULL UNIQUE,
+  descricao VARCHAR(255) NOT NULL,
+  fornecedor VARCHAR(255) NULL,
+  categoria VARCHAR(80) NOT NULL DEFAULT 'outros',
+  valor_total DECIMAL(14,2) NOT NULL,
+  valor_entrada DECIMAL(14,2) NOT NULL DEFAULT 0,
+  valor_financiado DECIMAL(14,2) NOT NULL DEFAULT 0,
+  parcelas INT NOT NULL DEFAULT 0,
+  data_entrada DATE NULL,
+  primeiro_vencimento DATE NULL,
+  forma_pagamento_entrada VARCHAR(120) NULL,
+  forma_pagamento_parcelas VARCHAR(120) NULL,
+  centro_custo VARCHAR(150) NULL,
+  evento_id INT NULL,
+  cliente_id INT NULL,
+  projeto_stand_id INT NULL,
+  observacoes TEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'ativo',
+  created_by INT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_crm_compras_evento ON crm_compras(evento_id);
+CREATE INDEX IF NOT EXISTS idx_crm_compras_projeto ON crm_compras(projeto_stand_id);
+CREATE INDEX IF NOT EXISTS idx_crm_compras_status ON crm_compras(status);
 
 -- Projeto de Stand: unidade de apuração por cliente dentro de cada feira.
 -- Os vínculos adicionais em lançamentos são opcionais para não alterar o histórico.

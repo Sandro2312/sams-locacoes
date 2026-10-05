@@ -12,6 +12,7 @@ import { registerEventosResultadosRoutes } from "./crm-eventos-resultados";
 import { registerRateiosRoutes } from "./crm-rateios";
 import { registerJuridicoRoutes } from "./crm-juridico";
 import { registerPlanejamentoMontagemRoutes } from "./crm-planejamento-montagem";
+import { registerComprasRoutes } from "./crm-compras";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -2501,6 +2502,8 @@ export function registerCrmRoutes(app: any) {
   registerEventosResultadosRoutes(app);
   // Registrar rotas de rateio auditável de custos compartilhados
   registerRateiosRoutes(app);
+  // Registrar compras gerais com entrada e parcelas vinculadas às Contas a Pagar
+  registerComprasRoutes(app);
   // Registrar planejamento e apontamento operacional sem alterar lançamentos financeiros
   registerPlanejamentoMontagemRoutes(app);
   registerJuridicoRoutes(app);

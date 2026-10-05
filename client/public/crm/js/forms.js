@@ -350,11 +350,6 @@ const FormSystem = {
             if (((input.value || '').trim()).length >= 2) renderDebounced();
         });
         input.addEventListener('blur', () => {
-            // Persistir CC digitado manualmente ao sair do campo
-            try {
-                const v = (input.value || '').trim();
-                if (v) localStorage.setItem('sams_last_centro_custo', v);
-            } catch {}
             setTimeout(hide, 140);
         });
         dropdown.addEventListener('mousedown', (e) => {
@@ -368,8 +363,6 @@ const FormSystem = {
             try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
             try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch {}
             try { input.focus(); } catch {}
-            // Persistir último CC selecionado
-            try { if (value) localStorage.setItem('sams_last_centro_custo', value); } catch {}
             hide();
         });
 
@@ -381,13 +374,6 @@ const FormSystem = {
         }, true);
 
         render().catch(() => {});
-        // Pré-preencher com o último CC usado se o campo estiver vazio
-        try {
-            if (!input.value || input.value.trim() === '') {
-                const lastCC = localStorage.getItem('sams_last_centro_custo');
-                if (lastCC) input.value = lastCC;
-            }
-        } catch {}
     },
 
     // Inicializar sistema
@@ -955,6 +941,10 @@ const FormSystem = {
         } catch {}
         const m = module != null ? String(module) : '';
         if (!m) return;
+        // Formulários financeiros precisam abrir limpos: valores anteriores podem gerar
+        // lançamentos em centro de custo, evento ou status incorretos. Contextos explícitos
+        // vindos do Guia de Fechamento continuam sendo tratados separadamente.
+        if (['transacoes', 'financeiro', 'compras'].includes(m)) return;
         const collected = this.collectSmartDefaultsFromForm(form);
         if (!collected || typeof collected !== 'object' || !Object.keys(collected).length) return;
         const all = this.readSmartDefaults();
@@ -969,6 +959,7 @@ const FormSystem = {
         } catch {}
         const m = module != null ? String(module) : '';
         if (!m) return;
+        if (['transacoes', 'financeiro', 'compras'].includes(m)) return;
         const root = rootElement || document.getElementById('modal-content') || document;
         const form = root.querySelector('form#crud-form');
         if (!form) return;
@@ -1657,6 +1648,38 @@ const FormSystem = {
                         createdId = ModuleSystem.addItem('briefings', { ...data });
                     }
                 }
+            } else if (module === 'compras') {
+                try {
+                    const response = await fetch('/api/crm/compras', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(data),
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload?.compra?.id) {
+                        const error = payload?.error || `HTTP ${response.status}`;
+                        if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                            window.NotificationSystem.error('Não foi possível registrar a compra: ' + error);
+                        } else {
+                            alert('Não foi possível registrar a compra: ' + error);
+                        }
+                        return null;
+                    }
+                    createdId = payload.compra.id;
+                    const lancamentos = Array.isArray(payload.lancamentos) ? payload.lancamentos.length : 0;
+                    if (window.NotificationSystem && typeof window.NotificationSystem.success === 'function') {
+                        window.NotificationSystem.success(`Compra ${payload.compra.codigo} registrada com ${lancamentos} Conta(s) a Pagar.`);
+                    }
+                } catch (error) {
+                    const message = error?.message || 'erro de comunicação';
+                    if (window.NotificationSystem && typeof window.NotificationSystem.error === 'function') {
+                        window.NotificationSystem.error('Não foi possível registrar a compra: ' + message);
+                    } else {
+                        alert('Não foi possível registrar a compra: ' + message);
+                    }
+                    return null;
+                }
             } else if (module === 'transacoes') {
                 const parseYmd = (s) => {
                     const raw = s != null ? String(s).trim() : '';
@@ -1723,7 +1746,11 @@ const FormSystem = {
                     valor: parseFloat(String(item.valor || 0).replace(',', '.')) || 0,
                     status: item.status || 'Pendente',
                     centro_custo: item.centroCusto || item.centro_custo || null,
+                    fornecedor: item.fornecedor || null,
+                    categoria: item.categoria || null,
+                    forma_pagamento: item.formaPagamento || item.forma_pagamento || null,
                     data: item.data || null,
+                    data_pagamento: item.dataPagamento || item.data_pagamento || null,
                     observacoes: item.observacoes || null,
                     evento_id: item.eventoId || item.evento_id || null,
                     cliente_id: item.clienteId || item.cliente_id || null,
@@ -1972,7 +1999,7 @@ const FormSystem = {
                 return createdId;
             }
 
-            const refreshTarget = (module === 'transacoes' || module === 'contasReceber') ? 'financeiro' : module;
+            const refreshTarget = (module === 'transacoes' || module === 'contasReceber' || module === 'compras') ? 'financeiro' : module;
             if (window.formIntegration && typeof window.formIntegration.refreshModuleData === 'function') {
                 window.formIntegration.refreshModuleData(refreshTarget);
             } else if (window.NavigationSystem && typeof window.NavigationSystem.reloadCurrentPage === 'function') {
@@ -2554,6 +2581,10 @@ const FormSystem = {
                 title = 'Nova Despesa';
                 formHtml = this.getFinanceiroForm();
                 break;
+            case 'compras':
+                title = 'Nova Compra Geral';
+                formHtml = this.getCompraGeralForm();
+                break;
             case 'contasReceber':
                 title = 'Nova Conta a Receber';
                 // Limpar defaults anteriores para garantir formulário vazio
@@ -2595,7 +2626,7 @@ const FormSystem = {
         try { this.applySmartDefaults(module, document.getElementById('modal-content') || document); } catch {}
         // Módulos com botões internos próprios: ocultar o rodapé externo explicitamente
         try {
-            const _modulesWithInternalButtons = ['contasReceber', 'transacoes', 'financeiro', 'demandasJuridicas', 'tarefas'];
+            const _modulesWithInternalButtons = ['contasReceber', 'transacoes', 'financeiro', 'compras', 'demandasJuridicas', 'tarefas'];
             const _footer = document.getElementById('modal-footer');
             const _saveBtn = document.getElementById('modal-save');
             const _contentEl = document.getElementById('modal-content');
@@ -4738,7 +4769,7 @@ ENTREGA
             : '';
         const projetosStand = Array.isArray(ModuleSystem.data?.projetosStand) ? ModuleSystem.data.projetosStand : [];
         return `
-            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="transacoes" data-id="${id || ''}" data-client-initial-limit="80" autocomplete="on">
+            <form id="crud-form" data-action="${id ? 'update' : 'create'}" data-module="transacoes" data-id="${id || ''}" data-client-initial-limit="80" autocomplete="off">
                 <div class="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-lg mb-6 border border-red-200">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">
                         <i class="fas fa-money-bill-wave mr-3 text-red-600"></i>${id ? 'Editar' : 'Nova'} Despesa
@@ -4896,6 +4927,148 @@ ENTREGA
                 </div>
             </form>
         `;
+    },
+
+    // Compra geral: cria a entrada e as parcelas como Contas a Pagar vinculadas.
+    // Não utiliza Ordem de Serviço, que é exclusiva da operação de montagem.
+    getCompraGeralForm() {
+        const eventos = Array.isArray(ModuleSystem.data?.eventos) ? ModuleSystem.data.eventos : [];
+        const projetosStand = Array.isArray(ModuleSystem.data?.projetosStand) ? ModuleSystem.data.projetosStand : [];
+        const categories = [
+            ['veiculo', 'Veículo'], ['maquina', 'Máquina'], ['equipamento', 'Equipamento'], ['mobiliario', 'Mobiliário'],
+            ['ferramenta', 'Ferramenta'], ['tecnologia', 'Tecnologia'], ['estoque', 'Estoque'], ['servico', 'Serviço'], ['outros', 'Outros'],
+        ];
+        return `
+            <form id="crud-form" data-action="create" data-module="compras" data-client-initial-limit="80" autocomplete="off">
+                <div class="mb-6 rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-6">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-cart-plus mr-3 text-indigo-600"></i>Nova Compra Geral</h3>
+                            <p class="mt-2 text-sm leading-6 text-gray-700">Registre a compra uma única vez. A entrada e cada parcela serão criadas como Contas a Pagar vinculadas, com valores e vencimentos próprios.</p>
+                        </div>
+                        <span class="w-fit rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Financeiro · auditável</span>
+                    </div>
+                    <p class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"><strong>Importante:</strong> Ordens de Serviço são usadas apenas para montagem e operação. Compras de veículos, máquinas, equipamentos, mobiliário, ferramentas, estoque ou serviços são registradas aqui.</p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_descricao">Descrição da compra *</label>
+                        <input id="compra_descricao" name="descricao" required maxlength="255" placeholder="Ex.: Caminhonete para logística, máquina de corte, equipamento de áudio" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_fornecedor">Fornecedor / vendedor</label>
+                        <input id="compra_fornecedor" name="fornecedor" maxlength="255" placeholder="Empresa ou pessoa vendedora" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_categoria">Categoria *</label>
+                        <select id="compra_categoria" name="categoria" required class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                            ${categories.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_valor_total">Valor total da compra (R$) *</label>
+                        <input id="compra_valor_total" name="valorTotal" type="number" required min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_valor_entrada">Valor da entrada (R$)</label>
+                        <input id="compra_valor_entrada" name="valorEntrada" type="number" min="0" step="0.01" inputmode="decimal" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700">Saldo financiado / parcelado</label>
+                        <output data-compra-saldo class="block w-full rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 font-bold text-indigo-900">R$ 0,00</output>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_parcelas">Quantidade de parcelas do saldo</label>
+                        <input id="compra_parcelas" name="parcelas" type="number" min="0" max="120" step="1" value="0" inputmode="numeric" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <fieldset class="md:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <legend class="px-2 text-sm font-bold text-emerald-900">Entrada — gerará uma Conta a Pagar somente se for maior que zero</legend>
+                        <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_data_entrada">Vencimento da entrada</label><input id="compra_data_entrada" name="dataEntrada" type="date" class="w-full rounded-lg border border-gray-300 px-3 py-2"></div>
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_status_entrada">Situação da entrada</label><select id="compra_status_entrada" name="statusEntrada" class="w-full rounded-lg border border-gray-300 px-3 py-2"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_data_pagamento">Data do pagamento</label><input id="compra_data_pagamento" name="dataPagamentoEntrada" type="date" class="w-full rounded-lg border border-gray-300 px-3 py-2"></div>
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_forma_entrada">Forma de pagamento</label><input id="compra_forma_entrada" name="formaPagamentoEntrada" maxlength="120" placeholder="Ex.: PIX, transferência" class="w-full rounded-lg border border-gray-300 px-3 py-2"></div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="md:col-span-2 rounded-lg border border-sky-200 bg-sky-50 p-4">
+                        <legend class="px-2 text-sm font-bold text-sky-900">Parcelas do saldo — serão criadas como pendentes</legend>
+                        <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_primeiro_vencimento">Vencimento da 1ª parcela</label><input id="compra_primeiro_vencimento" name="primeiroVencimento" type="date" class="w-full rounded-lg border border-gray-300 px-3 py-2"></div>
+                            <div><label class="mb-1 block text-sm font-medium text-gray-700" for="compra_forma_parcelas">Forma de pagamento das parcelas</label><input id="compra_forma_parcelas" name="formaPagamentoParcelas" maxlength="120" placeholder="Ex.: boleto, financiamento" class="w-full rounded-lg border border-gray-300 px-3 py-2"></div>
+                        </div>
+                    </fieldset>
+
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_centro_custo">Centro de custos</label>
+                        <input id="compra_centro_custo" name="centroCusto" maxlength="150" placeholder="Opcional — não é preenchido automaticamente" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_evento">Evento</label>
+                        <select id="compra_evento" name="eventoId" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"><option value="">Não vincular a evento</option>${eventos.map(evento => `<option value="${evento.id}">${ModuleSystem.escapeHtml(evento.nome || `Evento #${evento.id}`)}</option>`).join('')}</select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_projeto">Projeto de Stand</label>
+                        <select id="compra_projeto" name="projetoStandId" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"><option value="">Não vincular a Projeto de Stand</option>${projetosStand.map(projeto => `<option value="${projeto.id}">${ModuleSystem.escapeHtml(`${projeto.evento_nome || 'Evento'} — ${projeto.cliente_nome || 'Cliente'} — ${projeto.nome || projeto.codigo}`)}</option>`).join('')}</select>
+                        <p class="mt-1 text-xs text-gray-500">Quando informado, o projeto determina automaticamente o evento e o cliente vinculados às Contas a Pagar.</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="mb-2 block text-sm font-medium text-gray-700" for="compra_observacoes">Observações</label>
+                        <textarea id="compra_observacoes" name="observacoes" rows="3" placeholder="Contrato, número da nota, condições ou observações internas" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+                </div>
+
+                <section data-compra-preview class="mt-6 rounded-xl border-2 border-indigo-300 bg-indigo-50 p-4" aria-live="polite"></section>
+                <div class="mt-6 flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-end">
+                    <button type="button" onclick="FormSystem.closeModal()" class="rounded-lg border border-gray-300 px-5 py-2.5 text-gray-700 hover:bg-gray-50"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                    <button type="submit" class="btn-submit rounded-lg bg-indigo-700 px-5 py-2.5 font-semibold text-white hover:bg-indigo-800 focus:outline-none focus:ring-4 focus:ring-indigo-200"><i class="fas fa-check-double mr-2"></i>Confirmar compra e criar Contas a Pagar</button>
+                </div>
+            </form>
+        `;
+    },
+
+    bindCompraGeralForm(form) {
+        if (!form || form.dataset.compraBound === '1') return;
+        form.dataset.compraBound = '1';
+        const totalInput = form.querySelector('[name="valorTotal"]');
+        const entradaInput = form.querySelector('[name="valorEntrada"]');
+        const parcelasInput = form.querySelector('[name="parcelas"]');
+        const dataEntrada = form.querySelector('[name="dataEntrada"]');
+        const statusEntrada = form.querySelector('[name="statusEntrada"]');
+        const dataPagamento = form.querySelector('[name="dataPagamentoEntrada"]');
+        const primeiroVencimento = form.querySelector('[name="primeiroVencimento"]');
+        const saldoOutput = form.querySelector('[data-compra-saldo]');
+        const preview = form.querySelector('[data-compra-preview]');
+        const money = (value) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const parse = (input) => {
+            const parsed = Number.parseFloat(String(input?.value || '0').replace(',', '.'));
+            return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        };
+        const refresh = () => {
+            const total = parse(totalInput);
+            const entrada = parse(entradaInput);
+            const saldo = Math.max(0, total - entrada);
+            const parcelas = Number.parseInt(String(parcelasInput?.value || '0'), 10) || 0;
+            const hasEntrada = entrada > 0;
+            const hasSaldo = saldo > 0;
+            if (dataEntrada) dataEntrada.required = hasEntrada;
+            if (primeiroVencimento) primeiroVencimento.required = hasSaldo;
+            if (parcelasInput) parcelasInput.required = hasSaldo;
+            if (dataPagamento) dataPagamento.required = hasEntrada && String(statusEntrada?.value || '') === 'pago';
+            if (saldoOutput) saldoOutput.textContent = money(saldo);
+            if (!preview) return;
+            const invalid = entrada > total || (hasSaldo && parcelas < 1) || (!hasSaldo && parcelas > 0);
+            const installment = hasSaldo && parcelas > 0 ? saldo / parcelas : 0;
+            preview.className = `mt-6 rounded-xl border-2 p-4 ${invalid ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-300 bg-indigo-50 text-indigo-950'}`;
+            preview.innerHTML = invalid
+                ? '<strong>Revise os valores.</strong><p class="mt-1 text-sm">A entrada não pode superar o total; informe parcelas somente quando houver saldo.</p>'
+                : `<p class="text-sm font-extrabold uppercase tracking-wide">Prévia antes da confirmação</p><p class="mt-2 text-sm leading-6">Serão criadas <strong>${hasEntrada ? '1 entrada' : 'nenhuma entrada'}</strong>${hasSaldo ? ` e <strong>${parcelas} parcela${parcelas === 1 ? '' : 's'}</strong>` : ''}, todas vinculadas a esta compra.</p><dl class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3"><div><dt class="text-gray-600">Total</dt><dd class="font-bold">${money(total)}</dd></div><div><dt class="text-gray-600">Entrada</dt><dd class="font-bold">${money(entrada)}</dd></div><div><dt class="text-gray-600">Cada parcela</dt><dd class="font-bold">${hasSaldo ? money(installment) : '—'}</dd></div></dl><p class="mt-3 text-xs text-indigo-800">Nada é gravado até usar “Confirmar compra e criar Contas a Pagar”.</p>`;
+        };
+        [totalInput, entradaInput, parcelasInput, dataEntrada, statusEntrada, dataPagamento, primeiroVencimento].filter(Boolean).forEach((element) => element.addEventListener('input', refresh));
+        [statusEntrada].filter(Boolean).forEach((element) => element.addEventListener('change', refresh));
+        refresh();
     },
 
     // Formulário de Contas a Receber — delegado ao ContasReceberModule
@@ -7367,6 +7540,11 @@ ENTREGA
 
         if (module === 'transacoes' || module === 'financeiro' || module === 'contasReceber') {
             this.setupCentroCustoAutocomplete(form);
+            return;
+        }
+
+        if (module === 'compras') {
+            this.bindCompraGeralForm(form);
             return;
         }
 
