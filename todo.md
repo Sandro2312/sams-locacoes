@@ -590,7 +590,7 @@
 ## Correção urgente — Carregamento de Processos Jurídicos (Ago/2026)
 - [x] Reproduzir e identificar a falha da API de processos no CRM publicado
 - [x] Corrigir o endpoint ou a consulta sem alterar dados jurídicos existentes
-- [ ] Validar lista, cadastro e abertura de processos no ambiente publicado
+- [x] Validar lista, cadastro e abertura de processos no ambiente publicado — Out/2026: schema jurídico restaurado e listagem autenticada respondeu 200 em estado vazio explícito
 
 ## Correção urgente — Formulário de Processos Jurídicos (Ago/2026)
 - [x] Identificar atualização concorrente ou evento que fecha o formulário durante o preenchimento
@@ -1002,7 +1002,7 @@
 ## Correção — Carregamento de Processos Jurídicos no mobile (Set/2026)
 - [x] Reproduzir a falha no fluxo móvel sem alterar os processos cadastrados
 - [x] Corrigir somente a causa de carregamento, autenticação ou renderização identificada
-- [ ] Validar Processos em desktop e mobile e criar teste de regressão
+- [x] Validar Processos em desktop e mobile e criar teste de regressão — Out/2026: root renderizado em estado final sem “Carregando processos...”, markup responsivo e 25 regressões jurídico/integração aprovadas
 
 ## Implementação — Planejamento e Execução de Montagem — Fase 1 (Out/2026)
 

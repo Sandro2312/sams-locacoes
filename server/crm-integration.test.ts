@@ -147,6 +147,20 @@ describe('CRM Integration Tests', () => {
     expect(Array.isArray(data.porComplexidade)).toBe(true);
   });
 
+  it('deve listar processos e prazos jurídicos na base restaurada sem criar dados', async () => {
+    const headers = { Cookie: sessionCookie || '' };
+    const [processosResponse, prazosResponse] = await Promise.all([
+      fetch(`${BASE_URL}/api/crm/juridico/processos`, { headers }),
+      fetch(`${BASE_URL}/api/crm/juridico/prazos?status=pendente`, { headers }),
+    ]);
+
+    expect(processosResponse.ok).toBe(true);
+    expect(prazosResponse.ok).toBe(true);
+    const [processos, prazos] = await Promise.all([processosResponse.json(), prazosResponse.json()]);
+    expect(Array.isArray(processos.data)).toBe(true);
+    expect(Array.isArray(prazos.data)).toBe(true);
+  });
+
   it('deve expor o detalhe operacional com checklist sem criar dados em uma OS inexistente', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/999999999`, {
       headers: {
