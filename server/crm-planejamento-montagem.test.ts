@@ -68,10 +68,14 @@ describe("Planejamento e Execução de Montagem — Fase 1", () => {
     expect(ui).toContain("data-montagem-team-form");
     expect(ui).toContain("data-montagem-material-form");
     expect(ui).toContain("data-montagem-issue-form");
+    expect(ui).toContain("Agenda operacional");
+    expect(ui).toContain("Próximos 14 dias");
+    expect(ui).toContain("Conflito de equipe");
+    expect(ui).toContain("min-w-[980px]");
     expect(navigation).toContain("Planos de Montagem");
     expect(navigation).toContain("window.PlanejamentoMontagemModule?.render?.()");
     expect(navigation).toContain("window.PlanejamentoMontagemModule?.load?.()");
-    expect(index).toContain('/crm/js/crm-planejamento-montagem.js?v=1791203900');
+    expect(index).toContain('/crm/js/crm-planejamento-montagem.js?v=1791204200');
     expect(index).toContain('/crm/js/navigation.js?v=1791203900');
   });
 

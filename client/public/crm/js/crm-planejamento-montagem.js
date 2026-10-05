@@ -83,6 +83,26 @@
     </article>`;
   }
 
+  function agendaMarkup() {
+    const keyFor = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Array.from({ length: 14 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + index);
+      return { key: keyFor(date), label: date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }), today: index === 0 };
+    });
+    const scheduled = state.data.filter((item) => item.data_inicio && days.some((day) => day.key === String(item.data_inicio).slice(0, 10)));
+    const withoutDate = state.data.filter((item) => !item.data_inicio && item.status !== 'cancelada');
+    const slot = (item) => `<button type="button" data-montagem-action="detalhar" data-id="${item.id}" class="w-full rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-left transition hover:border-indigo-400 hover:bg-indigo-100 focus:outline-none focus:ring-4 focus:ring-indigo-200"><p class="truncate text-xs font-extrabold text-indigo-950">${esc(item.numero || 'OS')} · ${esc(item.titulo || 'Plano')}</p><p class="mt-1 truncate text-[11px] text-indigo-800">${esc(item.evento_nome || 'Evento não informado')}</p>${Number(item.conflitos_equipe) ? '<p class="mt-1 text-[11px] font-bold text-violet-800">Conflito de equipe</p>' : ''}${Number(item.ocorrencias_abertas) ? `<p class="mt-1 text-[11px] font-bold text-rose-800">${item.ocorrencias_abertas} ocorrência(s)</p>` : ''}</button>`;
+    return `<section data-montagem-agenda class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div class="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-xs font-extrabold uppercase tracking-wide text-indigo-700">Agenda operacional</p><h4 class="mt-1 text-lg font-extrabold text-slate-950">Próximos 14 dias</h4><p class="mt-1 text-sm text-slate-600">Visualização cronológica de planos previstos; os alertas indicam conflitos de equipe e ocorrências abertas.</p></div><span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">${scheduled.length} plano(s) com data</span></div><div class="mt-4 overflow-x-auto"><div class="grid min-w-[980px] grid-cols-7 gap-3">${days.map((day) => { const items = scheduled.filter((item) => String(item.data_inicio).slice(0, 10) === day.key); return `<div class="min-h-36 rounded-xl border ${day.today ? 'border-indigo-300 bg-indigo-50/40' : 'border-slate-200 bg-slate-50'} p-3"><p class="text-xs font-extrabold uppercase ${day.today ? 'text-indigo-800' : 'text-slate-600'}">${esc(day.label)}${day.today ? ' · hoje' : ''}</p><div class="mt-3 space-y-2">${items.length ? items.map(slot).join('') : '<p class="text-xs text-slate-400">Sem plano</p>'}</div></div>`; }).join('')}</div></div>${withoutDate.length ? `<div class="mt-4 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3"><p class="text-sm font-bold text-amber-950">${withoutDate.length} plano(s) ainda sem início planejado</p><div class="mt-2 flex flex-wrap gap-2">${withoutDate.map((item) => `<button type="button" data-montagem-action="detalhar" data-id="${item.id}" class="rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100">${esc(item.numero || 'OS')} · ${esc(item.titulo || 'Plano')}</button>`).join('')}</div></div>` : ''}</section>`;
+  }
+
+  function mountAgenda(root) {
+    if (!root || root.querySelector('[data-montagem-agenda]')) return;
+    root.insertAdjacentHTML('beforeend', agendaMarkup());
+  }
+
   function pageMarkup() {
     const summary = state.data.reduce((acc, item) => ({ total: acc.total + 1, running: acc.running + (item.status === 'em_andamento' ? 1 : 0), issues: acc.issues + Number(item.ocorrencias_abertas || 0), conflicts: acc.conflicts + Number(item.conflitos_equipe || 0) }), { total: 0, running: 0, issues: 0, conflicts: 0 });
     const body = state.loading ? `<tr><td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i>Carregando planos de montagem...</td></tr>` : state.data.length ? state.data.map(renderRow).join('') : `<tr><td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500">Nenhum Plano de Montagem encontrado. Crie o primeiro plano para organizar prazo, equipe e materiais.</td></tr>`;
@@ -147,6 +167,7 @@
   function bind(root) {
     if (!root || root.dataset.bound === '1') return;
     root.dataset.bound = '1';
+    mountAgenda(root);
     root.addEventListener('click', (event) => {
       const action = event.target.closest?.('[data-montagem-action]');
       if (!action) return;

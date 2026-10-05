@@ -1008,7 +1008,7 @@
 
 - [x] Preparar modelo seguro de Plano de Montagem por Evento/Projeto de Stand, sem alterar lançamentos financeiros
 - [x] Implementar APIs autenticadas, permissões e auditoria para Ordens de Serviço, equipe, materiais e ocorrências operacionais
-- [ ] Criar agenda operacional com verificação de conflitos de período/equipe e apontamento planejado versus realizado
+- [x] Criar agenda operacional com verificação de conflitos de período/equipe e apontamento planejado versus realizado
 - [x] Criar interface responsiva e mobile para criar, acompanhar e encerrar planos de montagem
-- [ ] Validar migração, permissões, fluxos sem dados de teste persistentes, desktop/mobile e regressões financeiras
-- [ ] Criar checkpoint documentado da primeira entrega operacional
+- [x] Validar migração, permissões, fluxos sem dados de teste persistentes, desktop/mobile e regressões financeiras
+- [x] Criar checkpoint documentado da primeira entrega operacional
