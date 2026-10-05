@@ -161,6 +161,29 @@ describe('CRM Integration Tests', () => {
     expect(Array.isArray(prazos.data)).toBe(true);
   });
 
+  it('deve validar links na importação em lote do Acervo sem inserir documentos', async () => {
+    const headers = { Cookie: sessionCookie || '' };
+    const beforeResponse = await fetch(`${BASE_URL}/api/crm/acervo?limit=1`, { headers });
+    expect(beforeResponse.ok).toBe(true);
+    const before = await beforeResponse.json();
+
+    const importResponse = await fetch(`${BASE_URL}/api/crm/acervo/importar-lote`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itens: [{ selecionado: true, nome: 'Teste sem persistência', tipo_doc: 'outro', ano: 2026, url_drive: 'https://example.com/nao-e-drive' }],
+      }),
+    });
+    expect(importResponse.status).toBe(400);
+    const rejected = await importResponse.json();
+    expect(rejected.error).toContain('Google Drive');
+
+    const afterResponse = await fetch(`${BASE_URL}/api/crm/acervo?limit=1`, { headers });
+    expect(afterResponse.ok).toBe(true);
+    const after = await afterResponse.json();
+    expect(after.total).toBe(before.total);
+  });
+
   it('deve expor o detalhe operacional com checklist sem criar dados em uma OS inexistente', async () => {
     const response = await fetch(`${BASE_URL}/api/crm/montagem-planejamento/999999999`, {
       headers: {

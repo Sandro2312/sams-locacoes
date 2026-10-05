@@ -74,10 +74,75 @@ const upload = multer({
 });
 
 // ─── Tipos de documento ────────────────────────────────────────────────────────
-const TIPOS_DOC = [
+export const TIPOS_DOC = [
   "contrato", "briefing", "projeto", "foto", "video",
   "planilha", "apresentacao", "logotipo", "nota_fiscal", "outro"
 ] as const;
+
+const MAX_IMPORT_LOTE = 50;
+
+export type DriveSharedLink = {
+  resourceId: string;
+  resourceType: "arquivo" | "pasta";
+  canonicalUrl: string;
+};
+
+/**
+ * Aceita somente links HTTPS públicos de compartilhamento do Google Drive/Docs
+ * e os reduz a uma URL estável para impedir duplicação por parâmetros de rastreio.
+ */
+export function parseGoogleDriveSharedLink(value: unknown): DriveSharedLink | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== "https:" || !["drive.google.com", "docs.google.com"].includes(host)) return null;
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const folderIndex = parts.findIndex((part, index) => (part === "folders" && (index === 0 || parts[index - 1] === "drive")));
+    const fileIndex = parts.findIndex((part) => part === "file");
+    const docsIndex = parts.findIndex((part) => ["document", "spreadsheets", "presentation", "forms", "drawings"].includes(part));
+    const folderId = folderIndex >= 0 ? parts[folderIndex + 1] : null;
+    const fileId = fileIndex >= 0 && parts[fileIndex + 1] === "d" ? parts[fileIndex + 2] : null;
+    const docsId = docsIndex >= 0 && parts[docsIndex + 1] === "d" ? parts[docsIndex + 2] : null;
+    const resourceId = folderId || fileId || docsId || url.searchParams.get("id");
+    if (!resourceId || !/^[A-Za-z0-9_-]{10,}$/.test(resourceId)) return null;
+
+    if (folderId) {
+      return { resourceId, resourceType: "pasta", canonicalUrl: `https://drive.google.com/drive/folders/${resourceId}` };
+    }
+    return { resourceId, resourceType: "arquivo", canonicalUrl: `https://drive.google.com/open?id=${resourceId}` };
+  } catch {
+    return null;
+  }
+}
+
+function text(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, max) : null;
+}
+
+function optionalId(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function validYear(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 2000 && parsed <= 2099 ? parsed : null;
+}
+
+async function auditBatchImport(user: any, insertedIds: number[], skippedCount: number, ip?: string) {
+  try {
+    await getPool().execute(
+      "INSERT INTO crm_auditoria (user_id, action, table_name, record_id, details, ip) VALUES (?,?,?,?,?,?)",
+      [user?.userId || user?.user_id || null, "IMPORT_ACERVO_LOTE", "crm_acervo", null, JSON.stringify({ insertedIds, insertedCount: insertedIds.length, skippedCount }), ip || null],
+    );
+  } catch {
+    // A importação já foi confirmada de forma transacional; a auditoria não deve revertê-la.
+  }
+}
 
 // ─── Registrar rotas ──────────────────────────────────────────────────────────
 export function registerAcervoRoutes(app: any) {
@@ -125,6 +190,117 @@ export function registerAcervoRoutes(app: any) {
       res.json({ docs: rows, total, limit: limitNum, offset: offsetNum });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Importar links compartilhados do Google Drive em lote ─────────────────
+  // Não baixa nem replica arquivos do Drive: apenas cria referências após a
+  // revisão explícita do usuário na prévia do CRM.
+  r.post("/importar-lote", requireCrmAuth, async (req, res) => {
+    const rawItems = Array.isArray(req.body?.itens) ? req.body.itens : [];
+    if (!rawItems.length) return res.status(400).json({ error: "Inclua ao menos um link selecionado para importar." });
+    if (rawItems.length > MAX_IMPORT_LOTE) return res.status(400).json({ error: `O limite é de ${MAX_IMPORT_LOTE} links por importação.` });
+
+    try {
+      const eventoId = optionalId(req.body?.evento_id);
+      const clienteId = optionalId(req.body?.cliente_id);
+      const anoPadrao = validYear(req.body?.ano) || new Date().getFullYear();
+      const tagsPadrao = text(req.body?.tags, 1000);
+      const [evento, cliente] = await Promise.all([
+        eventoId ? dbOne<{ id: number; nome: string }>("SELECT id, nome FROM crm_eventos WHERE id = ?", [eventoId]) : Promise.resolve(null),
+        clienteId ? dbOne<{ id: number; nome: string }>("SELECT id, nome FROM crm_clientes WHERE id = ?", [clienteId]) : Promise.resolve(null),
+      ]);
+      if (eventoId && !evento) return res.status(400).json({ error: "Evento inválido para a importação." });
+      if (clienteId && !cliente) return res.status(400).json({ error: "Cliente inválido para a importação." });
+
+      const seen = new Set<string>();
+      const skipped: Array<{ index: number; nome: string; motivo: string }> = [];
+      const prepared: Array<{
+        index: number;
+        nome: string;
+        descricao: string | null;
+        tipoDoc: string;
+        ano: number;
+        tags: string | null;
+        urlDrive: string;
+      }> = [];
+
+      for (let index = 0; index < rawItems.length; index += 1) {
+        const item = rawItems[index] || {};
+        if (item.selecionado === false) {
+          skipped.push({ index, nome: text(item.nome, 255) || `Item ${index + 1}`, motivo: "Não selecionado" });
+          continue;
+        }
+        const parsed = parseGoogleDriveSharedLink(item.url_drive);
+        if (!parsed) return res.status(400).json({ error: `O link da linha ${index + 1} não é um compartilhamento HTTPS válido do Google Drive.` });
+        const nome = text(item.nome, 255) || `${parsed.resourceType === "pasta" ? "Pasta" : "Arquivo"} Google Drive — ${parsed.resourceId}`;
+        if (seen.has(parsed.canonicalUrl)) {
+          skipped.push({ index, nome, motivo: "Link repetido na própria prévia" });
+          continue;
+        }
+        seen.add(parsed.canonicalUrl);
+        prepared.push({
+          index,
+          nome,
+          descricao: text(item.descricao, 4000),
+          tipoDoc: TIPOS_DOC.includes(item.tipo_doc) ? item.tipo_doc : "outro",
+          ano: validYear(item.ano) || anoPadrao,
+          tags: text(item.tags, 1000) || tagsPadrao,
+          urlDrive: parsed.canonicalUrl,
+        });
+      }
+
+      if (!prepared.length) return res.json({ ok: true, inserted: 0, skipped, message: "Nenhum link selecionado para importar." });
+
+      const connection = await getPool().getConnection();
+      try {
+        await connection.beginTransaction();
+        const urls = prepared.map((item) => item.urlDrive);
+        const placeholders = urls.map(() => "?").join(",");
+        const [existingRows] = await connection.execute(`SELECT url_drive FROM crm_acervo WHERE url_drive IN (${placeholders})`, urls) as any;
+        const existing = new Set((existingRows as Array<{ url_drive: string }>).map((row) => row.url_drive));
+        const toInsert = prepared.filter((item) => {
+          if (!existing.has(item.urlDrive)) return true;
+          skipped.push({ index: item.index, nome: item.nome, motivo: "Link já cadastrado no Acervo" });
+          return false;
+        });
+
+        const insertedIds: number[] = [];
+        for (const item of toInsert) {
+          const [result] = await connection.execute(
+            `INSERT INTO crm_acervo
+              (nome, descricao, tipo_doc, evento_id, evento_nome, cliente_id, cliente_nome, ano, url_drive, tags, criado_por, criado_por_nome)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+              item.nome, item.descricao, item.tipoDoc,
+              evento?.id || null, evento?.nome || null,
+              cliente?.id || null, cliente?.nome || null,
+              item.ano, item.urlDrive, item.tags,
+              (req as any).crmUser?.userId || (req as any).crmUser?.user_id || null,
+              (req as any).crmUser?.name || (req as any).crmUser?.user_nome || null,
+            ],
+          ) as any;
+          insertedIds.push(Number(result.insertId));
+        }
+        await connection.commit();
+        await auditBatchImport((req as any).crmUser, insertedIds, skipped.length, req.ip);
+        res.status(insertedIds.length ? 201 : 200).json({
+          ok: true,
+          inserted: insertedIds.length,
+          insertedIds,
+          skipped,
+          message: insertedIds.length
+            ? `${insertedIds.length} referência(s) do Google Drive adicionada(s) ao Acervo.`
+            : "Nenhum link novo foi adicionado; os itens selecionados já estavam no Acervo.",
+        });
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Não foi possível importar os links do Google Drive." });
     }
   });
 

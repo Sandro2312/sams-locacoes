@@ -75,11 +75,11 @@
 
 ## Importação em Lote — Google Drive (Backlog)
 
-- [ ] Endpoint POST /api/crm/acervo/importar-lote (backlog — aguardando priorização)
-- [ ] Modal de importação em lote no acervo.js (backlog)
-- [ ] Parsing automático do link do Google Drive (backlog)
-- [ ] Tabela de preview com campos editáveis (backlog)
-- [ ] Feedback de progresso durante importação (backlog)
+- [x] Endpoint POST /api/crm/acervo/importar-lote — autenticação, transação, limite de 50, bloqueio de duplicidade e auditoria
+- [x] Modal de importação em lote no acervo.js — confirmação explícita antes de qualquer inclusão
+- [x] Parsing automático de links HTTPS do Google Drive, Docs, Planilhas, Apresentações e pastas
+- [x] Tabela de prévia editável — seleção, nome, tipo, ano e link por referência
+- [x] Feedback de progresso durante importação — estados de validação, conclusão, itens repetidos e falhas claras
 
 ## Layout Responsivo (CRM)
 

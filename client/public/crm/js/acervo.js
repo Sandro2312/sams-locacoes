@@ -13,6 +13,8 @@ const AcervoModule = {
   clientes: [],
   anos: [],
   uploading: false,
+  importItems: [],
+  importing: false,
 
   // ─── Inicialização ──────────────────────────────────────────────────────────────────────
   async init() {
@@ -126,9 +128,12 @@ const AcervoModule = {
 
     return `
       <!-- Botão principal de ação - sempre visível no topo -->
-      <div class="mb-4">
+      <div class="mb-4 flex flex-wrap gap-3">
         <button id="acervo-btn-novo" style="background-color:#d97706;color:#ffffff;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);width:auto;" onmouseover="this.style.backgroundColor='#b45309'" onmouseout="this.style.backgroundColor='#d97706'">
           <i class="fas fa-plus-circle" style="font-size:16px;"></i> + Novo Documento
+        </button>
+        <button id="acervo-btn-importar-lote" type="button" class="inline-flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-bold text-green-800 shadow-sm transition hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <i class="fab fa-google-drive text-base"></i> Importar links do Drive
         </button>
       </div>
 
@@ -278,6 +283,56 @@ const AcervoModule = {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Modal de importação em lote por links compartilhados do Google Drive -->
+      <div id="acervo-import-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="acervo-import-titulo">
+        <div class="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div class="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wide text-green-700">Acervo documental</p>
+              <h3 id="acervo-import-titulo" class="mt-1 text-xl font-extrabold text-gray-900">Importar links do Google Drive</h3>
+              <p class="mt-1 max-w-3xl text-sm text-gray-600">Cole um link por linha, revise a prévia e confirme a inclusão. Nenhum documento é criado antes da confirmação final.</p>
+            </div>
+            <button id="acervo-import-modal-fechar" type="button" class="rounded-lg p-2 text-2xl leading-none text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Fechar importação">&times;</button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-5 sm:p-6">
+            <div class="rounded-xl border border-green-100 bg-green-50 p-4">
+              <label for="acervo-import-links" class="block text-sm font-bold text-green-950"><i class="fab fa-google-drive mr-2"></i>Links compartilhados</label>
+              <textarea id="acervo-import-links" rows="5" placeholder="https://drive.google.com/file/d/.../view&#10;https://drive.google.com/drive/folders/..." class="mt-2 w-full rounded-lg border border-green-200 bg-white px-3 py-2 font-mono text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"></textarea>
+              <p class="mt-2 text-xs leading-5 text-green-900">Aceita links HTTPS do Google Drive, Docs, Planilhas e Apresentações. Pastas são registradas como referências; o conteúdo não é baixado, copiado ou listado automaticamente.</p>
+            </div>
+            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <label class="text-sm font-medium text-gray-700">Evento
+                <select id="acervo-import-evento" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100"><option value="">Sem evento</option>${eventosOpts}</select>
+              </label>
+              <label class="text-sm font-medium text-gray-700">Cliente
+                <select id="acervo-import-cliente" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100"><option value="">Sem cliente</option>${clientesOpts}</select>
+              </label>
+              <label class="text-sm font-medium text-gray-700">Tipo padrão
+                <select id="acervo-import-tipo" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100">${tiposOpts}</select>
+              </label>
+              <label class="text-sm font-medium text-gray-700">Ano padrão
+                <input id="acervo-import-ano" type="number" min="2000" max="2099" value="${new Date().getFullYear()}" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100">
+              </label>
+              <label class="text-sm font-medium text-gray-700">Tags padrão
+                <input id="acervo-import-tags" maxlength="1000" placeholder="Ex.: Drive, evento" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100">
+              </label>
+            </div>
+            <div class="mt-4 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div id="acervo-import-feedback" class="min-h-5 text-sm text-gray-600" role="status" aria-live="polite"></div>
+              <button id="acervo-import-gerar-previa" type="button" class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"><i class="fas fa-list-check"></i> Gerar prévia</button>
+            </div>
+            <div id="acervo-import-preview" class="mt-4 hidden"></div>
+          </div>
+          <div class="flex flex-col-reverse gap-3 border-t bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p class="text-xs text-gray-500">Links já existentes e repetidos são ignorados com aviso. Limite de 50 referências por operação.</p>
+            <div class="flex gap-3">
+              <button id="acervo-import-cancelar" type="button" class="rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200">Cancelar</button>
+              <button id="acervo-import-confirmar" type="button" disabled class="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"><i class="fas fa-cloud-arrow-up mr-2"></i>Importar selecionados</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -463,6 +518,7 @@ const AcervoModule = {
 
     // Botão novo
     document.getElementById('acervo-btn-novo')?.addEventListener('click', () => this.abrirModal());
+    document.getElementById('acervo-btn-importar-lote')?.addEventListener('click', () => this.abrirImportacaoLote());
 
     // Modal fechar
     document.getElementById('acervo-modal-fechar')?.addEventListener('click', () => this.fecharModal());
@@ -470,6 +526,18 @@ const AcervoModule = {
     document.getElementById('acervo-modal')?.addEventListener('click', (e) => {
       if (e.target === document.getElementById('acervo-modal')) this.fecharModal();
     });
+
+    // Importação em lote: a prévia é sempre local e nenhuma referência é salva
+    // até o clique explícito no botão de confirmação.
+    document.getElementById('acervo-import-modal-fechar')?.addEventListener('click', () => this.fecharImportacaoLote());
+    document.getElementById('acervo-import-cancelar')?.addEventListener('click', () => this.fecharImportacaoLote());
+    document.getElementById('acervo-import-modal')?.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('acervo-import-modal')) this.fecharImportacaoLote();
+    });
+    document.getElementById('acervo-import-gerar-previa')?.addEventListener('click', () => this.gerarPreviaImportacao());
+    document.getElementById('acervo-import-confirmar')?.addEventListener('click', () => this.importarLoteDrive());
+    document.getElementById('acervo-import-preview')?.addEventListener('input', (e) => this.atualizarItemImportacao(e));
+    document.getElementById('acervo-import-preview')?.addEventListener('change', (e) => this.atualizarItemImportacao(e));
 
     // Viewer fechar
     document.getElementById('acervo-viewer-fechar')?.addEventListener('click', () => this.fecharViewer());
@@ -532,6 +600,208 @@ const AcervoModule = {
       if (btnEditar) this.editarDoc(parseInt(btnEditar.dataset.id));
       if (btnExcluir) this.excluirDoc(parseInt(btnExcluir.dataset.id));
     });
+  },
+
+  // ─── Importação em lote — links compartilhados do Google Drive ────────────
+  tiposImportacaoOptions(selected = 'outro') {
+    return [
+      ['contrato', 'Contrato'], ['briefing', 'Briefing'], ['projeto', 'Projeto'],
+      ['foto', 'Foto'], ['video', 'Vídeo'], ['planilha', 'Planilha'],
+      ['apresentacao', 'Apresentação'], ['logotipo', 'Logotipo'],
+      ['nota_fiscal', 'Nota Fiscal'], ['outro', 'Outro'],
+    ].map(([value, label]) => `<option value="${value}" ${value === selected ? 'selected' : ''}>${label}</option>`).join('');
+  },
+
+  escapeImportValue(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    })[char]);
+  },
+
+  parseGoogleDriveLink(value) {
+    try {
+      const url = new URL(String(value || '').trim());
+      const host = url.hostname.toLowerCase();
+      if (url.protocol !== 'https:' || !['drive.google.com', 'docs.google.com'].includes(host)) return null;
+      const parts = url.pathname.split('/').filter(Boolean);
+      const folderIndex = parts.indexOf('folders');
+      const fileIndex = parts.indexOf('file');
+      const docsIndex = parts.findIndex((part) => ['document', 'spreadsheets', 'presentation', 'forms', 'drawings'].includes(part));
+      const folderId = folderIndex >= 0 ? parts[folderIndex + 1] : null;
+      const fileId = fileIndex >= 0 && parts[fileIndex + 1] === 'd' ? parts[fileIndex + 2] : null;
+      const docsId = docsIndex >= 0 && parts[docsIndex + 1] === 'd' ? parts[docsIndex + 2] : null;
+      const resourceId = folderId || fileId || docsId || url.searchParams.get('id');
+      if (!resourceId || !/^[A-Za-z0-9_-]{10,}$/.test(resourceId)) return null;
+      const resourceType = folderId ? 'pasta' : 'arquivo';
+      return {
+        resourceId,
+        resourceType,
+        canonicalUrl: resourceType === 'pasta'
+          ? `https://drive.google.com/drive/folders/${resourceId}`
+          : `https://drive.google.com/open?id=${resourceId}`,
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  setImportFeedback(message = '', type = 'info') {
+    const feedback = document.getElementById('acervo-import-feedback');
+    if (!feedback) return;
+    feedback.textContent = message;
+    feedback.className = `min-h-5 text-sm ${type === 'error' ? 'text-red-700' : type === 'success' ? 'text-green-700' : 'text-gray-600'}`;
+  },
+
+  abrirImportacaoLote() {
+    this.importItems = [];
+    this.importing = false;
+    const modal = document.getElementById('acervo-import-modal');
+    const links = document.getElementById('acervo-import-links');
+    if (!modal || !links) return;
+    links.value = '';
+    const preview = document.getElementById('acervo-import-preview');
+    preview?.classList.add('hidden');
+    if (preview) preview.innerHTML = '';
+    this.setImportFeedback('Cole até 50 links, um por linha, e gere uma prévia para revisar.');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    this.atualizarAcaoImportacao();
+    links.focus();
+  },
+
+  fecharImportacaoLote() {
+    if (this.importing) return;
+    const modal = document.getElementById('acervo-import-modal');
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+  },
+
+  gerarPreviaImportacao() {
+    const raw = document.getElementById('acervo-import-links')?.value || '';
+    const links = [...new Set(raw.split(/\r?\n/).map((value) => value.trim()).filter(Boolean))];
+    if (!links.length) {
+      this.importItems = [];
+      this.renderPreviaImportacao();
+      this.setImportFeedback('Cole ao menos um link compartilhado do Google Drive.', 'error');
+      return;
+    }
+    if (links.length > 50) {
+      this.importItems = [];
+      this.renderPreviaImportacao();
+      this.setImportFeedback('O limite de segurança é 50 links por importação.', 'error');
+      return;
+    }
+    const tipoPadrao = document.getElementById('acervo-import-tipo')?.value || 'outro';
+    const anoPadrao = document.getElementById('acervo-import-ano')?.value || String(new Date().getFullYear());
+    const invalidos = [];
+    this.importItems = links.map((urlDrive, index) => {
+      const parsed = this.parseGoogleDriveLink(urlDrive);
+      if (!parsed) invalidos.push(index + 1);
+      return {
+        selecionado: Boolean(parsed),
+        nome: parsed ? `${parsed.resourceType === 'pasta' ? 'Pasta' : 'Arquivo'} Google Drive — ${parsed.resourceId}` : `Link inválido — linha ${index + 1}`,
+        tipo_doc: tipoPadrao,
+        ano: anoPadrao,
+        url_drive: parsed?.canonicalUrl || urlDrive,
+        resourceType: parsed?.resourceType || 'inválido',
+      };
+    });
+    this.renderPreviaImportacao();
+    if (invalidos.length) {
+      this.setImportFeedback(`Revise ${invalidos.length} link(s) inválido(s) nas linhas: ${invalidos.join(', ')}.`, 'error');
+    } else {
+      this.setImportFeedback(`${this.importItems.length} referência(s) prontas para revisão. Nenhum registro foi criado ainda.`, 'success');
+    }
+  },
+
+  renderPreviaImportacao() {
+    const preview = document.getElementById('acervo-import-preview');
+    if (!preview) return;
+    if (!this.importItems.length) {
+      preview.innerHTML = '';
+      preview.classList.add('hidden');
+      this.atualizarAcaoImportacao();
+      return;
+    }
+    const rows = this.importItems.map((item, index) => {
+      const safe = (value) => this.escapeImportValue(value);
+      return `<tr class="border-b border-gray-100 align-top" data-acervo-import-row="${index}">
+        <td class="w-10 px-3 py-3 text-center"><input type="checkbox" data-acervo-import-field="selecionado" data-index="${index}" ${item.selecionado ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-green-700 focus:ring-green-500" aria-label="Selecionar linha ${index + 1}"></td>
+        <td class="min-w-[190px] px-2 py-2"><input data-acervo-import-field="nome" data-index="${index}" value="${safe(item.nome)}" maxlength="255" class="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"></td>
+        <td class="min-w-[140px] px-2 py-2"><select data-acervo-import-field="tipo_doc" data-index="${index}" class="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none">${this.tiposImportacaoOptions(item.tipo_doc)}</select></td>
+        <td class="w-24 px-2 py-2"><input data-acervo-import-field="ano" data-index="${index}" type="number" min="2000" max="2099" value="${safe(item.ano)}" class="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-green-500 focus:outline-none"></td>
+        <td class="min-w-[260px] px-2 py-2"><input data-acervo-import-field="url_drive" data-index="${index}" value="${safe(item.url_drive)}" class="w-full rounded border border-gray-300 px-2 py-1.5 font-mono text-xs focus:border-green-500 focus:outline-none"><p class="mt-1 text-xs ${item.resourceType === 'inválido' ? 'text-red-700' : 'text-gray-500'}">${item.resourceType === 'pasta' ? 'Pasta do Drive' : item.resourceType === 'arquivo' ? 'Arquivo do Drive' : 'Link precisa ser corrigido'}</p></td>
+      </tr>`;
+    }).join('');
+    preview.innerHTML = `<div class="overflow-x-auto rounded-xl border border-gray-200"><table class="min-w-full bg-white text-left"><thead class="bg-gray-50 text-xs font-bold uppercase tracking-wide text-gray-500"><tr><th class="px-3 py-3">Usar</th><th class="px-2 py-3">Nome</th><th class="px-2 py-3">Tipo</th><th class="px-2 py-3">Ano</th><th class="px-2 py-3">Link do Drive</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    preview.classList.remove('hidden');
+    this.atualizarAcaoImportacao();
+  },
+
+  atualizarItemImportacao(event) {
+    const target = event.target;
+    const field = target?.dataset?.acervoImportField;
+    const index = Number(target?.dataset?.index);
+    if (!field || !Number.isInteger(index) || !this.importItems[index]) return;
+    this.importItems[index][field] = field === 'selecionado' ? target.checked : target.value;
+    if (field === 'url_drive') {
+      const parsed = this.parseGoogleDriveLink(target.value);
+      this.importItems[index].resourceType = parsed?.resourceType || 'inválido';
+    }
+    this.atualizarAcaoImportacao();
+  },
+
+  atualizarAcaoImportacao() {
+    const button = document.getElementById('acervo-import-confirmar');
+    if (!button) return;
+    const selected = this.importItems.filter((item) => item.selecionado).length;
+    button.disabled = !selected || this.importing;
+    button.innerHTML = this.importing
+      ? '<i class="fas fa-spinner fa-spin mr-2"></i>Importando...'
+      : `<i class="fas fa-cloud-arrow-up mr-2"></i>Importar ${selected ? `${selected} selecionado${selected === 1 ? '' : 's'}` : 'selecionados'}`;
+  },
+
+  async importarLoteDrive() {
+    const itens = this.importItems.filter((item) => item.selecionado).map((item) => ({
+      selecionado: true,
+      nome: String(item.nome || '').trim(),
+      tipo_doc: item.tipo_doc,
+      ano: item.ano,
+      url_drive: String(item.url_drive || '').trim(),
+    }));
+    if (!itens.length) {
+      this.setImportFeedback('Selecione ao menos uma referência para importar.', 'error');
+      return;
+    }
+    const invalid = itens.find((item) => !this.parseGoogleDriveLink(item.url_drive));
+    if (invalid) {
+      this.setImportFeedback('Corrija ou desmarque todos os links inválidos antes de confirmar.', 'error');
+      return;
+    }
+    const eventoId = document.getElementById('acervo-import-evento')?.value || '';
+    const clienteId = document.getElementById('acervo-import-cliente')?.value || '';
+    const ano = document.getElementById('acervo-import-ano')?.value || String(new Date().getFullYear());
+    const tags = document.getElementById('acervo-import-tags')?.value?.trim() || '';
+    if (!confirm(`Importar ${itens.length} referência(s) do Google Drive no Acervo? Os links serão cadastrados somente após esta confirmação.`)) return;
+    this.importing = true;
+    this.atualizarAcaoImportacao();
+    this.setImportFeedback('Validando e registrando referências…');
+    try {
+      const result = await this.api('POST', '/importar-lote', { itens, evento_id: eventoId || null, cliente_id: clienteId || null, ano, tags });
+      const skipped = Array.isArray(result.skipped) ? result.skipped : [];
+      const detail = skipped.length ? ` ${skipped.length} item(ns) ignorado(s): ${skipped.slice(0, 3).map((item) => item.motivo).join('; ')}${skipped.length > 3 ? '…' : ''}` : '';
+      this.setImportFeedback(`${result.message || 'Importação concluída.'}${detail}`, 'success');
+      this.importItems = [];
+      this.renderPreviaImportacao();
+      await this.loadAnos();
+      this.page = 0;
+      await this.reloadDocs();
+    } catch (error) {
+      this.setImportFeedback(`Não foi possível importar: ${error.message || 'erro desconhecido'}`, 'error');
+    } finally {
+      this.importing = false;
+      this.atualizarAcaoImportacao();
+    }
   },
 
   // ─── Ações ─────────────────────────────────────────────────────────────────
